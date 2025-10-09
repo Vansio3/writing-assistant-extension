@@ -3,11 +3,30 @@
 document.addEventListener('DOMContentLoaded', () => {
   const dailyCountEl = document.getElementById('dailyCount');
   const totalCountEl = document.getElementById('totalCount');
+  const lastOriginalTextEl = document.getElementById('lastOriginalText');
+  const copyButton = document.getElementById('copyButton');
 
-  // Retrieve the counts from storage and display them
-  chrome.storage.local.get(['totalCount', 'dailyCount'], (result) => {
-    // Use the nullish coalescing operator (??) to default to 0 if a value doesn't exist yet
+  // Retrieve data from storage and display it
+  chrome.storage.local.get(['totalCount', 'dailyCount', 'lastOriginalText'], (result) => {
     dailyCountEl.textContent = result.dailyCount ?? 0;
     totalCountEl.textContent = result.totalCount ?? 0;
+    lastOriginalTextEl.value = result.lastOriginalText ?? '';
+  });
+
+  // Add click listener for the copy button
+  copyButton.addEventListener('click', () => {
+    const textToCopy = lastOriginalTextEl.value;
+    
+    if (textToCopy) {
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        // Provide visual feedback
+        copyButton.textContent = 'Copied!';
+        setTimeout(() => {
+          copyButton.textContent = 'Copy';
+        }, 2000); // Revert back to 'Copy' after 2 seconds
+      }).catch(err => {
+        console.error('Failed to copy text: ', err);
+      });
+    }
   });
 });

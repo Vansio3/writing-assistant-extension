@@ -2,21 +2,26 @@
 <html>
 <head>
   <title>Gemini Assistant</title>
-  <style>
-    body { font-family: sans-serif; width: 220px; padding: 10px; }
-    h3 { margin-top: 0; }
-    p { margin: 5px 0; }
-    strong { font-size: 1.1em; }
-  </style>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <h3>Gemini Writing Assistant</h3>
-  <p>Use <strong>Alt+R</strong> on selected text.</p>
+  <p>Use <strong>Alt+R</strong> on selected text to rewrite it.</p>
   <hr>
-  <h4>API Usage</h4>
-  <p>Today: <strong id="dailyCount">0</strong></p>
-  <p>Total: <strong id="totalCount">0</strong></p>
-  
+  <div class="container">
+    <h4>API Usage</h4>
+    <div class="usage-stats">
+      <p>Today: <strong id="dailyCount">0</strong></p>
+      <p>Total: <strong id="totalCount">0</strong></p>
+    </div>
+  </div>
+  <div class="container">
+    <div class="header-container">
+      <h4>Last Original Input</h4>
+      <button id="copyButton" class="copy-button">Copy</button>
+    </div>
+    <textarea id="lastOriginalText" readonly placeholder="No text has been processed yet."></textarea>
+  </div>
   <script src="popup.js"></script>
 </body>
 </html>

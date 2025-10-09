@@ -26,6 +26,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
     }
 
+    // Save the original prompt before processing
+    chrome.storage.local.set({ lastOriginalText: request.prompt });
+
     const finalPrompt = createPrompt(request.prompt);
 
     fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
