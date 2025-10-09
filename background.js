@@ -3,18 +3,43 @@
 import { GEMINI_API_KEY, GEMINI_MODEL } from './config.js';
 import { createPrompt } from './prompt.js';
 
+// --- Function to inject the content script ---
+function injectContentScript(tab) {
+  if (!tab) return;
+  // Prevent injection on special Chrome pages
+  if (tab.url && (tab.url.startsWith("chrome://") || tab.url.startsWith("https://chrome.google.com/"))) {
+    return;
+  }
+  chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    files: ["content.js"]
+  }).catch(err => console.error("Failed to inject content script:", err));
+}
+
+// --- START: CONTEXT MENU IMPLEMENTATION ---
+// Create the context menu item upon installation.
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.create({
+    id: "gemini-rewrite",
+    title: "Process with Gemini",
+    contexts: ["selection"] // This menu item will only appear when text is selected
+  });
+});
+
+// Listen for clicks on the context menu item.
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === "gemini-rewrite") {
+    injectContentScript(tab);
+  }
+});
+// --- END: CONTEXT MENU IMPLEMENTATION ---
+
+
+// Listen for the keyboard shortcut command.
 chrome.commands.onCommand.addListener((command) => {
   if (command === "generate-text") {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (!tabs[0]) return;
-      const activeTab = tabs[0];
-      if (activeTab.url && (activeTab.url.startsWith("chrome://") || activeTab.url.startsWith("https://chrome.google.com/"))) {
-        return;
-      }
-      chrome.scripting.executeScript({
-        target: { tabId: activeTab.id },
-        files: ["content.js"]
-      }).catch(err => console.error("Failed to inject content script:", err));
+      injectContentScript(tabs[0]);
     });
   }
 });
@@ -41,9 +66,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (data.error) throw new Error(data.error.message);
       if (!data.candidates || !data.candidates[0].content.parts[0].text) throw new Error("Invalid response from API.");
       
-      // ---- START: NEW COUNTING LOGIC ----
       updateApiCallCount(); 
-      // ---- END: NEW COUNTING LOGIC ----
 
       const generatedText = data.candidates[0].content.parts[0].text;
       sendResponse({ generatedText: generatedText });
@@ -56,24 +79,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true;
 });
 
-// ---- START: NEW COUNTING FUNCTION ----
 function updateApiCallCount() {
-  const today = new Date().toISOString().split('T')[0]; // Get date in YYYY-MM-DD format
+  const today = new Date().toISOString().split('T')[0];
 
   chrome.storage.local.get(['totalCount', 'dailyCount', 'lastCallDate'], (result) => {
     let { totalCount = 0, dailyCount = 0, lastCallDate } = result;
 
-    // Increment total count
     totalCount++;
 
-    // Check if it's a new day to reset the daily count
     if (lastCallDate === today) {
       dailyCount++;
     } else {
-      dailyCount = 1; // Reset for the new day
+      dailyCount = 1;
     }
     
-    // Save the updated values
     chrome.storage.local.set({
       totalCount: totalCount,
       dailyCount: dailyCount,
@@ -81,4 +100,3 @@ function updateApiCallCount() {
     });
   });
 }
-// ---- END: NEW COUNTING FUNCTION ----

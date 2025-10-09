@@ -2,11 +2,12 @@
   "manifest_version": 3,
   "name": "Gemini Writing Assistant",
   "version": "1.0",
-  "description": "A Gemini-powered writing assistant triggered by a shortcut.",
+  "description": "A Gemini-powered writing assistant triggered by a shortcut or context menu.",
   "permissions": [
     "activeTab",
     "scripting",
-    "storage" 
+    "storage",
+    "contextMenus"
   ],
   "background": {
     "service_worker": "background.js",
