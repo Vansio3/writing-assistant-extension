@@ -19,11 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (textToCopy) {
       navigator.clipboard.writeText(textToCopy).then(() => {
-        // Provide visual feedback
         copyButton.textContent = 'Copied!';
         setTimeout(() => {
           copyButton.textContent = 'Copy';
-        }, 2000); // Revert back to 'Copy' after 2 seconds
+        }, 2000);
       }).catch(err => {
         console.error('Failed to copy text: ', err);
       });
