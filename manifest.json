@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Gemini Writing Assistant",
+  "version": "1.0",
+  "description": "A Gemini-powered writing assistant triggered by a shortcut.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage" 
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "commands": {
+    "generate-text": {
+      "suggested_key": {
+        "default": "Alt+R"
+      },
+      "description": "Generate text with Gemini"
+    }
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "icons": {
+    "48": "icon.png"
+  }
+}
