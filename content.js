@@ -330,12 +330,37 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
     document.addEventListener('focusin', (event) => {
       const target = event.target;
-      const isEditable = target && (
-        target.tagName === 'TEXTAREA' ||
-        (target.tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'submit', 'reset', 'file', 'image', 'color'].includes(target.type)) ||
-        target.isContentEditable
-      );
-      if (isEditable) {
+
+      // Quick exit for invalid targets
+      if (!target || target.disabled || target.readOnly) {
+        return;
+      }
+
+      const tagName = target.tagName.toUpperCase();
+      let isSuitable = false;
+
+      // Rule 1: contentEditable elements are suitable
+      if (target.isContentEditable) {
+        isSuitable = true;
+      }
+      // Rule 2: <textarea> is suitable
+      else if (tagName === 'TEXTAREA') {
+        isSuitable = true;
+      }
+      // Rule 3: Check <input> types carefully
+      else if (tagName === 'INPUT') {
+        const unsuitableTypes = [
+          'button', 'checkbox', 'color', 'date', 'datetime-local', 'email',
+          'file', 'hidden', 'image', 'month', 'number', 'password',
+          'radio', 'range', 'reset', 'search', 'submit', 'tel', 'time',
+          'url', 'week'
+        ];
+        if (!unsuitableTypes.includes(target.type.toLowerCase())) {
+          isSuitable = true;
+        }
+      }
+
+      if (isSuitable) {
         lastFocusedEditableElement = target;
         showOnFocusMicIcon(target);
       }
