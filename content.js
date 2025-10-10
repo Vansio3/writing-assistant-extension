@@ -5,19 +5,25 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
   let recognition;
   let finalTranscript = '';
-
   let dictationTargetElement = null;
   let originalInputText = '';
   let dictationCancelled = false;
-
   let listeningOverlay = null;
   let onFocusMicIcon = null;
   let focusOutTimeout = null;
-  
-  // This variable will hold a reference to the most recently focused editable field.
   let lastFocusedEditableElement = null;
 
-  // --- ON-FOCUS ICON IMPLEMENTATION ---
+  // This observer will react to any size/position changes of the focused input field.
+  let resizeObserver = null;
+
+  // This function is the callback for the observer, ensuring the icon is always correctly placed.
+  const repositionIcon = () => {
+    if (onFocusMicIcon && lastFocusedEditableElement && onFocusMicIcon.style.display === 'flex') {
+      const rect = lastFocusedEditableElement.getBoundingClientRect();
+      onFocusMicIcon.style.top = `${rect.top + window.scrollY + (rect.height / 2) - 14}px`;
+      onFocusMicIcon.style.left = `${rect.right + window.scrollX - 34}px`;
+    }
+  };
 
   function createOnFocusMicIcon() {
     if (onFocusMicIcon) return;
@@ -38,36 +44,42 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     onFocusMicIcon.innerHTML = svg;
     onFocusMicIcon.addEventListener('mouseenter', () => { onFocusMicIcon.style.backgroundColor = '#e0e0e0'; });
     onFocusMicIcon.addEventListener('mouseleave', () => { onFocusMicIcon.style.backgroundColor = '#f0f0f0'; });
-
     onFocusMicIcon.addEventListener('mousedown', (event) => {
       event.preventDefault();
-      // Directly call the handler function, as the action originates within this script.
       handleToggleDictation({ start: true });
     });
-
     document.body.appendChild(onFocusMicIcon);
   }
 
   function showOnFocusMicIcon(targetElement) {
     if (!onFocusMicIcon) return;
     clearTimeout(focusOutTimeout);
-    const rect = targetElement.getBoundingClientRect();
     onFocusMicIcon.style.display = 'flex';
-    onFocusMicIcon.style.top = `${rect.top + window.scrollY + (rect.height / 2) - 14}px`;
-    onFocusMicIcon.style.left = `${rect.right + window.scrollX - 34}px`;
     onFocusMicIcon.style.opacity = '1';
+    
+    // Perform the initial positioning.
+    repositionIcon();
+    
+    // Start observing the target for any future layout changes.
+    if (resizeObserver) {
+      resizeObserver.observe(targetElement);
+    }
   }
 
   function hideOnFocusMicIcon(immediately = false) {
     if (!onFocusMicIcon) return;
+    
+    // Stop observing to prevent unnecessary calculations.
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+    }
+
     const delay = immediately ? 0 : 200;
     focusOutTimeout = setTimeout(() => {
       onFocusMicIcon.style.opacity = '0';
       setTimeout(() => { if(onFocusMicIcon) onFocusMicIcon.style.display = 'none'; }, 200);
     }, delay);
   }
-
-  // --- LISTENING INDICATOR & CORE LOGIC ---
 
   function showListeningIndicator(targetElement) {
     hideOnFocusMicIcon(true);
@@ -138,7 +150,38 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   }
 
   function processSelectedText() {
-    // This function for standard text processing remains unchanged
+    const activeElement = document.activeElement;
+    if (!activeElement) return;
+    const selection = window.getSelection();
+    let promptText = selection.toString().trim();
+    const isTextareaOrInput = activeElement.tagName === "TEXTAREA" || activeElement.tagName === "INPUT";
+    let processingMode;
+    if (promptText) {
+      processingMode = 'selection';
+    } else if (isTextareaOrInput || activeElement.isContentEditable) {
+      processingMode = 'full';
+      const text = isTextareaOrInput ? activeElement.value : activeElement.textContent;
+      if (!text.trim()) return;
+      activeElement.select();
+      promptText = text;
+    } else { return; }
+    activeElement.style.opacity = '0.5';
+    activeElement.style.cursor = 'wait';
+    chrome.runtime.sendMessage({ prompt: promptText }, (response) => {
+      activeElement.style.opacity = '1';
+      activeElement.style.cursor = 'auto';
+      if (chrome.runtime.lastError) return console.error(chrome.runtime.lastError.message);
+      if (response && response.error) return alert(`Error: ${response.error}`);
+      if (response && response.generatedText) {
+        if (processingMode === 'full') {
+          if (isTextareaOrInput) activeElement.value = response.generatedText;
+          else if (activeElement.isContentEditable) activeElement.textContent = response.generatedText;
+        } else {
+          document.execCommand('insertText', false, response.generatedText);
+        }
+        activeElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+      }
+    });
   }
   
   function initializeSpeechRecognition() {
@@ -157,11 +200,9 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       playSound('assets/audio/end.mp3');
       hideListeningIndicator();
       if (dictationTargetElement) dictationTargetElement.removeEventListener('blur', handleFocusLoss);
-      
       try {
         chrome.runtime.sendMessage({ command: "update-recording-state", isRecording: false });
       } catch(e) { console.warn("Could not update background state. Context may be invalidated."); }
-      
       if (dictationCancelled) {
         if (dictationTargetElement) { dictationTargetElement.value = originalInputText; }
         dictationTargetElement = null; originalInputText = ''; finalTranscript = ''; dictationCancelled = false;
@@ -192,13 +233,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     };
   }
 
-  // Central handler for starting/stopping dictation, used by both the icon and the message listener.
   function handleToggleDictation(request) {
     const activeElement = lastFocusedEditableElement;
     if (!activeElement || !(activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'INPUT' || activeElement.isContentEditable)) {
       hideListeningIndicator(); return;
     }
-
     if (request.start) {
       if (recognition) {
         dictationTargetElement = activeElement;
@@ -206,7 +245,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
           try {
             chrome.runtime.sendMessage({ command: "update-recording-state", isRecording: true });
           } catch(e) { console.warn("Could not update background state. Context may be invalidated."); }
-          
           playSound('assets/audio/start.mp3');
           originalInputText = dictationTargetElement.value || dictationTargetElement.textContent;
           dictationTargetElement.addEventListener('blur', handleFocusLoss, { once: true });
@@ -223,39 +261,43 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     }
   }
 
-  // --- EVENT LISTENERS ---
+  function initializeExtension() {
+    // Initialize the ResizeObserver with our repositioning callback function.
+    resizeObserver = new ResizeObserver(repositionIcon);
 
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.command === "process-text") {
-      processSelectedText();
-    } else if (request.command === "toggle-dictation") {
-      // Messages from the background script (shortcut) delegate to the central handler.
-      handleToggleDictation(request);
-    }
-    sendResponse(true); return true;
-  });
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      if (request.command === "process-text") {
+        processSelectedText();
+      } else if (request.command === "toggle-dictation") {
+        handleToggleDictation(request);
+      }
+      sendResponse(true); return true;
+    });
 
-  document.addEventListener('focusin', (event) => {
-    const target = event.target;
-    const isEditable = target && (
-      target.tagName === 'TEXTAREA' ||
-      (target.tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'submit', 'reset', 'file', 'image', 'color'].includes(target.type)) ||
-      target.isContentEditable
-    );
-    if (isEditable) {
-      lastFocusedEditableElement = target;
-      showOnFocusMicIcon(target);
-    }
-  });
+    document.addEventListener('focusin', (event) => {
+      const target = event.target;
+      const isEditable = target && (
+        target.tagName === 'TEXTAREA' ||
+        (target.tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'submit', 'reset', 'file', 'image', 'color'].includes(target.type)) ||
+        target.isContentEditable
+      );
+      if (isEditable) {
+        lastFocusedEditableElement = target;
+        showOnFocusMicIcon(target);
+      }
+    });
 
-  document.addEventListener('focusout', (event) => {
-    const target = event.target;
-    if (target === lastFocusedEditableElement) {
-      hideOnFocusMicIcon();
-    }
-  });
+    document.addEventListener('focusout', (event) => {
+      const target = event.target;
+      if (target === lastFocusedEditableElement) {
+        hideOnFocusMicIcon();
+        lastFocusedEditableElement = null;
+      }
+    });
 
-  // --- SCRIPT INITIALIZATION ---
-  createOnFocusMicIcon();
-  initializeSpeechRecognition();
+    createOnFocusMicIcon();
+    initializeSpeechRecognition();
+  }
+  
+  initializeExtension();
 }
