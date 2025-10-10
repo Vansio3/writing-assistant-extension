@@ -137,13 +137,13 @@ p.status-message {
   margin-bottom: 0;
 }
 
-p.language-label {
-  margin: 5px 0;
+.setting-label, p.language-label {
+  margin: 12px 0 5px;
   color: #bdc1c6;
   font-size: 13px;
 }
 
-.language-select {
+.language-select, .setting-select {
   width: 100%;
   box-sizing: border-box;
   font-size: 12px;
@@ -153,7 +153,6 @@ p.language-label {
   background-color: #2d2e30;
   color: #e8eaed;
   font-family: inherit;
-  margin-top: 5px;
   background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5H7z%22%20fill%3D%22%239aa0a6%22%2F%3E%3C%2Fsvg%3E');
   background-repeat: no-repeat;
   background-position: right 8px center;
@@ -163,11 +162,75 @@ p.language-label {
   appearance: none;
 }
 
-.language-select:focus {
+.language-select, .setting-select {
+  margin-top: 5px;
+}
+
+.language-select:focus, .setting-select:focus {
   outline: none;
   border-color: #8ab4f8;
   box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.3);
 }
+
+/* New: Toggle Switch Styles */
+.toggle-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #5f6368;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #8ab4f8;
+}
+
+input:checked + .slider:before {
+  transform: translateX(18px);
+}
+
+.slider.round {
+  border-radius: 22px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
 
 /* Custom Scrollbar Styles */
 textarea::-webkit-scrollbar {

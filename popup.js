@@ -46,6 +46,21 @@ const supportedLanguages = [
     { code: 'zh-TW', name: '中文 (繁體)' }
 ];
 
+// New: Options for style and length
+const outputStyles = [
+    { value: 'default', name: 'Default' },
+    { value: 'professional', name: 'Professional' },
+    { value: 'casual', name: 'Casual' },
+    { value: 'technical', name: 'Technical' },
+    { value: 'creative', name: 'Creative' }
+];
+
+const outputLengths = [
+    { value: 'default', name: 'Default' },
+    { value: 'shorter', name: 'Shorter' },
+    { value: 'longer', name: 'Longer' }
+];
+
 document.addEventListener('DOMContentLoaded', () => {
   // Main content elements
   const dailyCountEl = document.getElementById('dailyCount');
@@ -59,20 +74,36 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveApiKeyButton = document.getElementById('saveApiKeyButton');
   const apiKeyStatus = document.getElementById('apiKeyStatus');
 
-  // Language selection element
+  // Setting elements
   const languageSelect = document.getElementById('languageSelect');
+  const outputStyleSelect = document.getElementById('outputStyleSelect');
+  const outputLengthSelect = document.getElementById('outputLengthSelect');
+  const aiProcessingToggle = document.getElementById('aiProcessingToggle');
 
-  // Populate the language dropdown
-  supportedLanguages.forEach(lang => {
-    const option = document.createElement('option');
-    option.value = lang.code;
-    option.textContent = lang.name;
-    languageSelect.appendChild(option);
-  });
+  // Function to populate select dropdowns
+  function populateSelect(element, options) {
+    options.forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt.value || opt.code;
+      option.textContent = opt.name;
+      element.appendChild(option);
+    });
+  }
+  
+  // Populate the dropdowns
+  populateSelect(languageSelect, supportedLanguages);
+  populateSelect(outputStyleSelect, outputStyles);
+  populateSelect(outputLengthSelect, outputLengths);
+
 
   // Function to check for API key and load content
   function checkApiKeyAndLoadContent() {
-    chrome.storage.local.get(['geminiApiKey', 'totalCount', 'dailyCount', 'lastOriginalText', 'selectedLanguage'], (result) => {
+    const storageKeys = [
+      'geminiApiKey', 'totalCount', 'dailyCount', 'lastOriginalText', 
+      'selectedLanguage', 'outputStyle', 'outputLength', 'aiProcessingEnabled'
+    ];
+
+    chrome.storage.local.get(storageKeys, (result) => {
       if (result.geminiApiKey) {
         apiKeyInput.value = result.geminiApiKey;
         mainContent.style.display = 'block';
@@ -81,8 +112,11 @@ document.addEventListener('DOMContentLoaded', () => {
         totalCountEl.textContent = result.totalCount ?? 0;
         lastOriginalTextEl.value = result.lastOriginalText ?? '';
         
-        // Set the dropdown to the saved language, or default to 'en-US' if none is saved
+        // Set controls to saved values or defaults
         languageSelect.value = result.selectedLanguage || 'en-US';
+        outputStyleSelect.value = result.outputStyle || 'default';
+        outputLengthSelect.value = result.outputLength || 'default';
+        aiProcessingToggle.checked = result.aiProcessingEnabled !== false; // Default to true
       } else {
         mainContent.style.display = 'none';
       }
@@ -115,11 +149,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Event listener for language selection change
-  languageSelect.addEventListener('change', () => {
-    const selectedLanguage = languageSelect.value;
-    chrome.storage.local.set({ selectedLanguage: selectedLanguage });
-  });
+  // Generic event listener for settings changes
+  function addSettingChangeListener(element, key) {
+    const eventType = element.type === 'checkbox' ? 'change' : 'change';
+    const valueProperty = element.type === 'checkbox' ? 'checked' : 'value';
+
+    element.addEventListener(eventType, () => {
+      chrome.storage.local.set({ [key]: element[valueProperty] });
+    });
+  }
+
+  addSettingChangeListener(languageSelect, 'selectedLanguage');
+  addSettingChangeListener(outputStyleSelect, 'outputStyle');
+  addSettingChangeListener(outputLengthSelect, 'outputLength');
+  addSettingChangeListener(aiProcessingToggle, 'aiProcessingEnabled');
 
   // Initial load
   checkApiKeyAndLoadContent();

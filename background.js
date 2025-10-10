@@ -58,9 +58,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   
   if (request.prompt) {
-    // MODIFICATION: Fetch 'selectedLanguage' along with the API key.
-    chrome.storage.local.get(['geminiApiKey', 'selectedLanguage'], (result) => {
-      const GEMINI_API_KEY = result.geminiApiKey;
+    const storageKeys = [
+      'geminiApiKey', 'selectedLanguage', 'outputStyle', 
+      'outputLength', 'aiProcessingEnabled'
+    ];
+    
+    // MODIFICATION: Fetch all settings from storage.
+    chrome.storage.local.get(storageKeys, (result) => {
+      const { 
+        geminiApiKey: GEMINI_API_KEY, 
+        selectedLanguage, 
+        outputStyle, 
+        outputLength,
+        aiProcessingEnabled 
+      } = result;
 
       if (!GEMINI_API_KEY) {
         sendResponse({ error: "API key not set. Please set it in the extension's popup." });
@@ -68,10 +79,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
 
       chrome.storage.local.set({ lastOriginalText: request.prompt });
+
+      // New: Transcription-only mode
+      if (aiProcessingEnabled === false) {
+        sendResponse({ generatedText: request.prompt });
+        return;
+      }
       
-      // MODIFICATION: Get the language from storage (or default to 'en-US') and pass it to createPrompt.
-      const language = result.selectedLanguage || 'en-US';
-      const finalPrompt = createPrompt(request.prompt, language);
+      const language = selectedLanguage || 'en-US';
+      const style = outputStyle || 'default';
+      const length = outputLength || 'default';
+      
+      const finalPrompt = createPrompt(request.prompt, language, style, length);
 
       fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
         method: "POST",

@@ -50,37 +50,51 @@ const languageNameMap = {
 };
 
 /**
- * Creates a highly constrained prompt that is aware of the desired output language.
+ * Creates a highly constrained prompt based on user settings.
  * @param {string} inputText - The text selected or dictated by the user.
  * @param {string} languageCode - The language code for the output (e.g., 'es-ES').
+ * @param {string} style - The desired writing style ('default', 'professional', etc.).
+ * @param {string} length - The desired output length ('default', 'shorter', 'longer').
  * @returns {string} The formatted prompt.
  */
-export function createPrompt(inputText, languageCode = 'en-US') {
-  // Find the full language name from the map, or use the code as a fallback.
+export function createPrompt(inputText, languageCode = 'en-US', style = 'default', length = 'default') {
   const targetLanguage = languageNameMap[languageCode] || languageCode;
 
+  // Build the instruction parts dynamically.
+  let styleInstruction = '';
+  if (style !== 'default') {
+    styleInstruction = `Your response must adopt a **${style}** tone.`;
+  }
+
+  let lengthInstruction = '';
+  if (length === 'shorter') {
+    lengthInstruction = 'The output should be more concise than the original text.';
+  } else if (length === 'longer') {
+    lengthInstruction = 'The output should be more detailed and elaborate than the original text.';
+  }
+
   /*
-    This new prompt template is much more robust:
-    - It explicitly states the required output language.
-    - It re-frames the task as "rewriting and translation," which helps the model
-      understand when the input language differs from the target language.
-    - It provides a clear, cross-language example to reinforce the instruction.
+    This new prompt template is more robust and incorporates the new settings.
   */
-  const promptTemplate = `You are an expert text rewriting and translation model. Your sole purpose is to take the user's input text and return a single, improved version written strictly in the specified target language.
+  const promptTemplate = `You are an expert text rewriting and translation model. Your sole purpose is to take the user's input text and return a single, improved version based on the rules below.
 
 **Critical Rules:**
-1. Your output language MUST be: **${targetLanguage}**.
-2. You must not provide any explanation, preamble, or alternative options.
-3. Your output must be ONLY the rewritten text and nothing else.
-
-Here is an example:
-User Input: "i want to have a popup to choose the way to process the text"
-Your Output: I need a popup that allows the user to select their preferred text processing method.
+1.  **Output Language:** Your output MUST be written in **${targetLanguage}**.
+2.  **Formatting:** You must not provide any explanation, preamble, or alternative options. Your output must be ONLY the rewritten text and nothing else.
+3.  **Style and Length:**
+    - ${styleInstruction || 'Adopt a neutral and clear writing style.'}
+    - ${lengthInstruction || 'The output length should be appropriate for the context.'}
 
 ---
 
-User Input: "${inputText}"
-Your Output:`;
+**Example:**
+*User Input:* "i want to have a popup to choose the way to process the text"
+*Your Output (assuming default settings):* I need a popup that allows the user to select their preferred text processing method.
+
+---
+
+**User Input:** "${inputText}"
+**Your Output:**`;
 
   return promptTemplate;
 }
