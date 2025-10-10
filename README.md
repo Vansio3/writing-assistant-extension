@@ -1,62 +1,69 @@
-# Gemini Writing Assistant (Chrome Extension)
+# Gemini Writing Assistant README
 
-This Chrome extension provides a powerful writing assistant powered by the Gemini API. It allows you to rewrite and improve text directly within your browser, using either a keyboard shortcut or a context menu option.
+## Overview
+
+The Gemini Writing Assistant is a Chrome extension that enhances your writing process. It allows you to leverage the power of Google's Gemini model to rewrite, translate, and improve your text directly within your browser. Additionally, it features a dictation mode for hands-free text input and processing.
 
 ## Features
 
-*   **Rewrite Text On-the-Go**: Improve your writing in any text field or editable area on a webpage.
-*   **Two Ways to Activate**:
-    *   **Keyboard Shortcut**: Press `Alt+R` to process the selected text or the entire content of a text field.
-    *   **Context Menu**: Right-click on selected text and choose "Process with Gemini" to rewrite it.
-*   **User-Friendly API Key Setup**: Securely save your API key directly in the extension's popup.
-*   **Smart Selection**: If you haven't selected any text in an editable field, the extension will automatically process the entire content.
-*   **API Usage Tracking**: The extension's popup keeps track of your daily and total API calls.
-*   **Preserves Your Original Text**: The popup also displays the last original text you processed, so you can easily copy it if needed.
-*   **Dark-Themed Popup**: A sleek and modern user interface for a comfortable experience.
+*   **Process with Gemini:** Rewrite selected text or the entire content of a text field using the Gemini language model.
+*   **Dictation:** Use your voice to dictate text directly into input fields.
+*   **On-Focus Mic Icon:** A convenient microphone icon appears next to any focused text field, allowing for quick one-click activation of dictation.
+*   **Customizable Output:** Tailor the generated text to your needs by selecting the desired language, style (e.g., professional, casual), and length (e.g., shorter, longer).
+*   **Transcription-Only Mode:** Disable AI processing to use the dictation feature for simple voice-to-text transcription.
+*   **Context Menu Integration:** Right-click on selected text to quickly process it with Gemini.
+*   **Keyboard Shortcuts:**
+    *   `Alt+R`: Process the selected text or the text in the current input field.
+    *   `Alt+L`: Start or stop dictation.
 
-## Installation
+## Getting Started
 
-1.  **Download the ZIP file**: Click on the "Code" button and then "Download ZIP".
-2.  **Unzip the file**: Extract the contents of the ZIP file to a permanent folder on your computer.
-3.  **Enable Developer Mode in Chrome**:
-    *   Open Google Chrome and navigate to `chrome://extensions`.
-    *   At the top right, toggle on "Developer mode".
-4.  **Load the extension**:
-    *   Click on the "Load unpacked" button.
-    *   Select the folder where you extracted the extension files.
+### Installation
+
+1.  Clone this repository or download the source code as a ZIP file.
+2.  Open Google Chrome and navigate to `chrome://extensions`.
+3.  Enable "Developer mode" in the top right corner.
+4.  Click on "Load unpacked" and select the directory where you saved the extension's files.
+
+### API Key Setup
+
+1.  Obtain a Gemini API key from Google AI Studio.
+2.  Click on the Gemini Writing Assistant extension icon in your Chrome toolbar.
+3.  Paste your API key into the designated field and click "Save Key."
+
+## Usage
+
+### Text Processing
+
+1.  **Using the Keyboard Shortcut:**
+    *   Select the text you want to process.
+    *   Press `Alt+R`.
+    *   The selected text will be replaced with the output from the Gemini model based on your configured settings.
+    *   If no text is selected, the entire content of the currently focused text area or input field will be processed.
+2.  **Using the Context Menu:**
+    *   Select the text you want to process.
+    *   Right-click on the selection.
+    *   Choose "Process with Gemini" from the context menu.
+
+### Dictation
+
+You can start dictation in multiple ways:
+
+1.  **Using the Keyboard Shortcut:**
+    *   Click on a text field or text area where you want to input text.
+    *   Press `Alt+L` to start dictation. You will hear a sound indicating that recording has begun.
+    *   Press `Alt+L` again to stop dictation. A sound will indicate the end of the recording, and the dictated text will be processed by Gemini and inserted into the text field.
+2.  **Using the On-Focus Microphone Icon:**
+    *   When you click into any editable text field, a small microphone icon will appear next to it.
+    *   Click this icon to start dictation.
+    *   While recording, a red, pulsing microphone icon will be displayed. Click this red icon to stop the dictation.
 
 ## Configuration
 
-To use the extension, you need to add your Gemini API key.
+You can customize the extension's behavior through the popup menu:
 
-1.  **Get your Gemini API Key**: If you don't have one, you can get it from [Google AI Studio](https://aistudio.google.com/app/apikey).
-2.  **Add the key in the Extension Popup**:
-    *   Click on the Gemini Writing Assistant icon in your Chrome toolbar to open the popup.
-    *   Paste your API key into the input field.
-    *   Click "Save Key".
-3.  **Start Using**: Once the key is saved, you are ready to use the extension.
-
-## How to Use
-
-*   **Using the Keyboard Shortcut**:
-    1.  Select the text you want to rewrite in any editable text field.
-    2.  Press `Alt+R`.
-    3.  The selected text will be replaced with the improved version from Gemini.
-
-*   **Using the Context Menu**:
-    1.  Highlight the text you want to process.
-    2.  Right-click on the selected text.
-    3.  Choose "Process with Gemini" from the context menu.
-    4.  The rewritten text will be inserted.
-
-## Project Files
-
-*   `manifest.json`: Defines the extension's properties and permissions.
-*   `background.js`: Handles API calls, context menu creation, and keyboard shortcuts.
-*   `content.js`: Injected into the active tab to interact with webpage content.
-*   `popup.html`: The HTML structure for the extension's popup.
-*   `popup.js`: Powers the popup, including API key management and usage stats.
-*   `popup.css`: The CSS for styling the popup with a dark theme.
-*   `prompt.js`: Constructs the prompt sent to the Gemini API.
-*   `config.js`: Configuration file for the Gemini model.
-*   `icon.png`: The extension's icon.
+*   **Language:** Choose the output language for the processed text.
+*   **Style:** Select the desired writing style for the generated content.
+*   **Length:** Specify whether the output should be shorter, longer, or a default length.
+*   **AI Processing:** Enable or disable Gemini processing for dictation. When disabled, the extension will only perform transcription.
+*   **Sounds:** Enable or disable the start and end sounds for dictation.
