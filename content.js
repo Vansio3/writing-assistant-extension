@@ -434,20 +434,44 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       sendResponse(true); return true;
     });
 
-    // --- NEW: Event listener for typing detection ---
-    document.addEventListener('keyup', (event) => {
-        if (lastFocusedEditableElement) {
-            clearTimeout(typingTimer);
-            hideFab(); 
-            const text = lastFocusedEditableElement.value || lastFocusedEditableElement.textContent;
-            if (text && text.trim().length > 0) {
-              typingTimer = setTimeout(() => {
-                if (document.activeElement === lastFocusedEditableElement) {
-                  showFab(lastFocusedEditableElement);
-                }
-              }, TYPING_DELAY);
-            }
+    // --- MODIFICATION: Show FAB on text selection ---
+    document.addEventListener('selectionchange', () => {
+      // Only act if an editable element is focused.
+      if (lastFocusedEditableElement && document.activeElement === lastFocusedEditableElement) {
+        const selection = window.getSelection();
+        // If there's a meaningful selection, show the FAB.
+        if (selection && selection.toString().trim().length > 0) {
+          clearTimeout(typingTimer); // Stop any "typing finished" timer.
+          showFab(lastFocusedEditableElement);
+        } else {
+          // If the selection is cleared, hide the FAB. The keyup listener will take over.
+          hideFab();
         }
+      }
+    });
+
+    // --- MODIFICATION: Show FAB after a typing pause, but only if no text is selected ---
+    document.addEventListener('keyup', (event) => {
+      if (lastFocusedEditableElement) {
+        const selection = window.getSelection();
+        // If a selection exists, the 'selectionchange' listener is in control. Don't do anything here.
+        if (selection && selection.toString().trim().length > 0) {
+          return;
+        }
+
+        // Standard logic: if the user stops typing, show the FAB for full-field processing.
+        clearTimeout(typingTimer);
+        hideFab(); // Hide initially, the timer will show it again.
+        const text = lastFocusedEditableElement.value || lastFocusedEditableElement.textContent;
+        if (text && text.trim().length > 0) {
+          typingTimer = setTimeout(() => {
+            // Final check: only show if the element is still active and no selection has been made in the interim.
+            if (document.activeElement === lastFocusedEditableElement && window.getSelection().toString().trim().length === 0) {
+              showFab(lastFocusedEditableElement);
+            }
+          }, TYPING_DELAY);
+        }
+      }
     });
 
     document.addEventListener('focusin', (event) => {
