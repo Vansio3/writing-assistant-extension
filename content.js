@@ -6,7 +6,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
   let recognition;
   let finalTranscript = '';
-  
+
   let dictationTargetElement = null;
   let originalInputText = '';
   let dictationCancelled = false; // --- NEW: Flag to track cancellation ---
@@ -83,7 +83,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
-    
+
     recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
@@ -97,7 +97,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     };
 
     recognition.onend = () => {
-      playSound('end.mp3'); 
+      playSound('end.mp3');
 
       // --- UPDATED: Handle cancellation first ---
       if (dictationCancelled) {
@@ -127,7 +127,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (dictationTargetElement && finalTranscript.trim()) {
         dictationTargetElement.style.opacity = '0.5';
         dictationTargetElement.style.cursor = 'wait';
-        
+
         chrome.runtime.sendMessage({ prompt: finalTranscript.trim() }, (response) => {
           dictationTargetElement.style.opacity = '1';
           dictationTargetElement.style.cursor = 'auto';
@@ -147,7 +147,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     recognition.onerror = (event) => {
       if (event.error === 'no-speech') return;
       console.error("Speech recognition error:", event.error);
-      
+
       if (dictationTargetElement) {
         if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
           dictationTargetElement.value = originalInputText;
@@ -165,12 +165,24 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     if (request.command === "process-text") {
       processSelectedText();
     } else if (request.command === "toggle-dictation") {
+      const activeElement = document.activeElement;
+      const isEditable = activeElement && (
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.tagName === 'INPUT' ||
+        activeElement.isContentEditable
+      );
+
+      if (!isEditable) {
+        // If the element is not editable, do not proceed with dictation.
+        return;
+      }
+
       initializeSpeechRecognition();
       if (request.start) {
         if (recognition) {
-          dictationTargetElement = document.activeElement;
+          dictationTargetElement = activeElement;
           if (dictationTargetElement) {
-            playSound('start.mp3'); 
+            playSound('start.mp3');
             const isTextElement = dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT";
             originalInputText = isTextElement ? dictationTargetElement.value : dictationTargetElement.textContent;
             if (isTextElement) {
