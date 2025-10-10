@@ -39,5 +39,12 @@
       "resources": ["assets/audio/start.mp3", "assets/audio/end.mp3"],
       "matches": ["<all_urls>"]
     }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
   ]
 }

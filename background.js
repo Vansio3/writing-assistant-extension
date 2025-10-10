@@ -32,6 +32,8 @@ chrome.commands.onCommand.addListener((command) => {
     if (!tab || (tab.url && (tab.url.startsWith("chrome://") || tab.url.startsWith("https://chrome.google.com/")))) {
       return;
     }
+    // Note: We no longer need to inject the script here because manifest.json handles it.
+    // However, it's harmless to leave it for cases where it might be needed.
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
       files: ["content.js"]
@@ -47,8 +49,10 @@ chrome.commands.onCommand.addListener((command) => {
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.command === "reset-recording-state") {
-    isRecording = false;
+  // --- KEY CHANGE: Consolidated state management ---
+  // This single listener now handles all state updates from the content script.
+  if (request.command === "update-recording-state") {
+    isRecording = request.isRecording;
     sendResponse({ success: true });
     return;
   }
