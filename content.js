@@ -110,12 +110,23 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     }
   }
 
+  // --- FOCUS HANDLING ---
+  // Function to gracefully handle the user shifting focus away from the input
+  function handleFocusLoss() {
+    if (recognition && dictationTargetElement) {
+      dictationCancelled = true;
+      recognition.stop();
+      // No need to message background here, recognition.onend will fire
+    }
+  }
+
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && dictationTargetElement) {
       dictationCancelled = true;
       if (recognition) {
         recognition.stop();
       }
+      // Notify the background script to reset its recording state
       chrome.runtime.sendMessage({ command: "reset-recording-state" });
     }
   });
@@ -193,6 +204,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       playSound('assets/audio/end.mp3');
       hideListeningIndicator();
 
+      // Always remove the event listener on cleanup
+      if (dictationTargetElement) {
+        dictationTargetElement.removeEventListener('blur', handleFocusLoss);
+      }
+
       if (dictationCancelled) {
         if (dictationTargetElement) {
           if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
@@ -205,6 +221,8 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         originalInputText = '';
         finalTranscript = '';
         dictationCancelled = false;
+        // Inform background script to reset its state if not already done by Esc key
+        chrome.runtime.sendMessage({ command: "reset-recording-state" });
         return;
       }
 
@@ -233,7 +251,9 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       console.error("Speech recognition error:", event.error);
       hideListeningIndicator();
 
+      // Always remove the event listener on cleanup
       if (dictationTargetElement) {
+        dictationTargetElement.removeEventListener('blur', handleFocusLoss);
         if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
             dictationTargetElement.value = originalInputText;
         } else {
@@ -270,8 +290,10 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
             const isTextElement = dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT";
             originalInputText = isTextElement ? dictationTargetElement.value : dictationTargetElement.textContent;
             
+            // Add the blur event listener to handle focus loss
+            dictationTargetElement.addEventListener('blur', handleFocusLoss, { once: true });
+            
             showListeningIndicator(dictationTargetElement);
-
             recognition.start();
           }
         } else {
