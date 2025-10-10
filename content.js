@@ -12,13 +12,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   let dictationCancelled = false;
 
   let listeningOverlay = null;
-  // The pulseAnimation is no longer needed, but we'll keep the variable for safety.
-  let pulseAnimation = null;
 
   /**
-   * --- REVISED: Creates a minimal visual indicator ---
-   * This version features only the microphone icon with a red background,
-   * positioned on the right side of the input field.
+   * --- REVISED: Creates a precisely positioned visual indicator ---
+   * This version uses absolute positioning and CSS transforms to perfectly
+   * center the icon vertically and place it closer to the input field's edge.
    * @param {HTMLElement} targetElement The element to position the overlay over.
    */
   function showListeningIndicator(targetElement) {
@@ -29,30 +27,34 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     listeningOverlay = document.createElement('div');
     const rect = targetElement.getBoundingClientRect();
 
+    // A balanced SVG icon, sized to fit well within the 30px container.
     const microphoneIconSVG = `
-      <svg xmlns="http://www.w.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-        <line x1="12" y1="19" x2="12" y2="22"></line>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M19 10V12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12V10" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 19V23" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `;
 
     const iconContainer = document.createElement('div');
     Object.assign(iconContainer.style, {
-      width: '32px',
-      height: '32px',
+      position: 'absolute',
+      top: '50%',
+      right: '6px', // Positioned close to the right edge
+      transform: 'translateY(-50%)', // Perfect vertical centering
+      width: '30px',
+      height: '30px',
       borderRadius: '50%',
       backgroundColor: '#E53E3E',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      boxShadow: '0 2px 5px rgba(0,0,0,0.25)',
-      // Add a subtle pulse animation to the icon itself
+      boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
       animation: 'gemini-icon-pulse 1.5s infinite ease-in-out'
     });
     iconContainer.innerHTML = microphoneIconSVG;
 
-    // Style the main overlay container.
+    // Style the main overlay container. It now acts as a positioning context.
     Object.assign(listeningOverlay.style, {
       position: 'absolute',
       top: `${rect.top + window.scrollY}px`,
@@ -60,28 +62,23 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       width: `${rect.width}px`,
       height: `${rect.height}px`,
       borderRadius: getComputedStyle(targetElement).borderRadius,
-      boxSizing: 'border-box',
-      pointerEvents: 'none',
+      pointerEvents: 'none', // Allows clicks to pass through the overlay itself
       zIndex: '2147483647',
-      display: 'flex',
-      justifyContent: 'flex-end',
-      alignItems: 'center',
-      padding: '0 8px',
       opacity: '0',
-      // The left border has been removed.
     });
+    // The icon is a child, but pointerEvents must be set on it separately.
+    iconContainer.style.pointerEvents = 'none';
 
-    // We inject a single keyframe animation for the icon's pulse effect
-    // This is more robust than using the Web Animations API for a simple, repeating effect
+    // Inject the CSS animation for the pulse effect if it doesn't already exist
     const styleId = 'gemini-listening-style';
     if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
         style.id = styleId;
         style.innerHTML = `
           @keyframes gemini-icon-pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); }
-            50% { transform: scale(1.05); box-shadow: 0 0 0 5px rgba(229, 62, 62, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); }
+            0% { transform: scale(1) translateY(-50%); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); }
+            50% { transform: scale(1.05) translateY(-50%); box-shadow: 0 0 0 5px rgba(229, 62, 62, 0); }
+            100% { transform: scale(1) translateY(-50%); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); }
           }
         `;
         document.head.appendChild(style);
@@ -97,9 +94,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     );
   }
 
-  /**
-   * Hides and removes the overlay with a smooth fade-out animation.
-   */
   function hideListeningIndicator() {
     if (listeningOverlay) {
       const fadeOutAnimation = listeningOverlay.animate(
