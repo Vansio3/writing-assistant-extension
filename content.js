@@ -12,12 +12,13 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   let dictationCancelled = false;
 
   let listeningOverlay = null;
+  // The pulseAnimation is no longer needed, but we'll keep the variable for safety.
   let pulseAnimation = null;
 
   /**
-   * --- REVISED: Creates and displays a focused visual indicator ---
-   * This version features a pulsing red left border and a microphone icon
-   * with a distinct red background for improved visibility.
+   * --- REVISED: Creates a minimal visual indicator ---
+   * This version features only the microphone icon with a red background,
+   * positioned on the right side of the input field.
    * @param {HTMLElement} targetElement The element to position the overlay over.
    */
   function showListeningIndicator(targetElement) {
@@ -28,7 +29,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     listeningOverlay = document.createElement('div');
     const rect = targetElement.getBoundingClientRect();
 
-    // A smaller, white SVG icon to fit inside the new circular background.
     const microphoneIconSVG = `
       <svg xmlns="http://www.w.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
@@ -37,17 +37,18 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       </svg>
     `;
 
-    // Create a dedicated container for the icon.
     const iconContainer = document.createElement('div');
     Object.assign(iconContainer.style, {
       width: '32px',
       height: '32px',
       borderRadius: '50%',
-      backgroundColor: '#E53E3E', // The requested red background
+      backgroundColor: '#E53E3E',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       boxShadow: '0 2px 5px rgba(0,0,0,0.25)',
+      // Add a subtle pulse animation to the icon itself
+      animation: 'gemini-icon-pulse 1.5s infinite ease-in-out'
     });
     iconContainer.innerHTML = microphoneIconSVG;
 
@@ -65,31 +66,35 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       display: 'flex',
       justifyContent: 'flex-end',
       alignItems: 'center',
-      padding: '0 8px', // Only horizontal padding for the icon
+      padding: '0 8px',
       opacity: '0',
-      borderLeft: '3px solid #E53E3E', // The requested left border
+      // The left border has been removed.
     });
+
+    // We inject a single keyframe animation for the icon's pulse effect
+    // This is more robust than using the Web Animations API for a simple, repeating effect
+    const styleId = 'gemini-listening-style';
+    if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.innerHTML = `
+          @keyframes gemini-icon-pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); }
+            50% { transform: scale(1.05); box-shadow: 0 0 0 5px rgba(229, 62, 62, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); }
+          }
+        `;
+        document.head.appendChild(style);
+    }
 
     listeningOverlay.appendChild(iconContainer);
     document.body.appendChild(listeningOverlay);
 
-    // --- Animations ---
-    // 1. Fade-in animation (no scale)
+    // Fade-in animation
     listeningOverlay.animate(
-      [{ opacity: 0 }, { opacity: 1 }], 
+      [{ opacity: 0 }, { opacity: 1 }],
       { duration: 200, easing: 'ease-out', fill: 'forwards' }
     );
-
-    // 2. Pulse animation for the left border's color
-    pulseAnimation = listeningOverlay.animate([
-      { borderLeftColor: 'rgba(229, 62, 62, 0.4)' },
-      { borderLeftColor: 'rgba(229, 62, 62, 1)' },
-      { borderLeftColor: 'rgba(229, 62, 62, 0.4)' }
-    ], {
-      duration: 1500,
-      iterations: Infinity,
-      easing: 'ease-in-out'
-    });
   }
 
   /**
@@ -97,10 +102,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
    */
   function hideListeningIndicator() {
     if (listeningOverlay) {
-      if (pulseAnimation) {
-        pulseAnimation.cancel();
-      }
-
       const fadeOutAnimation = listeningOverlay.animate(
         [{ opacity: 1 }, { opacity: 0 }],
         { duration: 150, easing: 'ease-in' }
