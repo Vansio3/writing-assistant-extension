@@ -12,10 +12,73 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   let onFocusMicIcon = null;
   let focusOutTimeout = null;
   let lastFocusedEditableElement = null;
-
   let cancellationReason = null;
-
   let resizeObserver = null;
+
+  // --- NEW: Floating Action Button (FAB) variables ---
+  let fab = null; // Holds the FAB element
+  let typingTimer = null; // setTimeout reference for detecting typing pause
+  const TYPING_DELAY = 1000; // 1 second delay
+
+  // --- NEW: Function to create the Floating Action Button ---
+  function createFab() {
+    if (fab) return;
+    fab = document.createElement('div');
+    const svg = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15.25 10.75L12 7.5L8.75 10.75" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M15.25 16.75L12 13.5L8.75 16.75" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+    Object.assign(fab.style, {
+      position: 'absolute', width: '32px', height: '32px', borderRadius: '50%',
+      backgroundColor: '#007aff', display: 'none', alignItems: 'center',
+      justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', cursor: 'pointer',
+      zIndex: '2147483647', transition: 'opacity 0.2s ease-in-out, transform 0.2s ease-out',
+      opacity: '0', transform: 'scale(0.8)', pointerEvents: 'auto'
+    });
+    fab.innerHTML = svg;
+    fab.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (lastFocusedEditableElement) {
+        processSelectedText(); // Reuse existing function to process text
+      }
+      hideFab(true);
+    });
+    document.body.appendChild(fab);
+  }
+
+  // --- NEW: Function to position and show the FAB ---
+  function showFab(targetElement) {
+    if (!fab) return;
+    const rect = targetElement.getBoundingClientRect();
+    // Position it vertically centered and to the left of the text area
+    fab.style.top = `${rect.top + window.scrollY + (rect.height / 2) - 16}px`; // Vertically centered
+    fab.style.left = `${rect.left + window.scrollX - 35}px`; // To the left
+    fab.style.display = 'flex';
+    setTimeout(() => { // Allow the display property to apply before transitioning
+        fab.style.opacity = '1';
+        fab.style.transform = 'scale(1)';
+    }, 10);
+  }
+
+  // --- NEW: Function to hide the FAB ---
+  function hideFab(immediately = false) {
+    if (!fab) return;
+    clearTimeout(typingTimer);
+    if (immediately) {
+      fab.style.display = 'none';
+      fab.style.opacity = '0';
+    } else {
+      fab.style.opacity = '0';
+      fab.style.transform = 'scale(0.8)';
+      setTimeout(() => {
+        if (fab.style.opacity === '0') { // Check if it hasn't been re-shown
+          fab.style.display = 'none';
+        }
+      }, 200); // Matches transition duration
+    }
+  }
 
   const repositionIcon = () => {
     // Only reposition if the icon is meant to be visible and attached to an element
@@ -76,8 +139,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       onFocusMicIcon.style.opacity = '0';
       setTimeout(() => { 
         if(onFocusMicIcon) onFocusMicIcon.style.display = 'none'; 
-        // Disconnect the observer only AFTER the icon is fully hidden.
-        // This allows it to track resizing during the fade-out animation.
         if (resizeObserver) {
           resizeObserver.disconnect();
         }
@@ -152,7 +213,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
   function playSound(soundFile) {
     chrome.storage.local.get('soundEnabled', (result) => {
-      // Sounds are enabled by default if the setting is not present (undefined)
       if (result.soundEnabled !== false) {
         const audio = new Audio(chrome.runtime.getURL(soundFile));
         audio.play();
@@ -202,8 +262,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-
-    // Set a default language initially, which will be updated before each use.
     chrome.storage.local.get('selectedLanguage', (result) => {
       recognition.lang = result.selectedLanguage || 'en-US';
     });
@@ -217,13 +275,10 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     recognition.onend = () => {
       playSound('assets/audio/end.mp3');
       hideListeningIndicator();
-      
       const finishedTargetElement = dictationTargetElement;
-
       if (finishedTargetElement) {
         finishedTargetElement.removeEventListener('blur', handleFocusLoss);
       }
-
       try {
         chrome.runtime.sendMessage({ command: "update-recording-state", isRecording: false });
       } catch(e) { console.warn("Could not update background state. Context may be invalidated."); }
@@ -290,14 +345,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (recognition) {
         dictationTargetElement = activeElement;
         if (dictationTargetElement) {
-          // Fetch the latest language setting right before starting
           chrome.storage.local.get('selectedLanguage', (result) => {
             recognition.lang = result.selectedLanguage || 'en-US';
-            
             try {
               chrome.runtime.sendMessage({ command: "update-recording-state", isRecording: true });
             } catch(e) { console.warn("Could not update background state. Context may be invalidated."); }
-            
             playSound('assets/audio/start.mp3');
             originalInputText = dictationTargetElement.value || dictationTargetElement.textContent;
             dictationTargetElement.addEventListener('blur', handleFocusLoss, { once: true });
@@ -316,7 +368,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   }
 
   function initializeExtension() {
-    // Initialize the observer once
     resizeObserver = new ResizeObserver(repositionIcon);
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -328,10 +379,26 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       sendResponse(true); return true;
     });
 
+    // --- NEW: Event listener for typing detection ---
+    document.addEventListener('keyup', (event) => {
+        if (lastFocusedEditableElement) {
+            clearTimeout(typingTimer);
+            hideFab(); // Hide FAB as soon as user starts typing again
+            const text = lastFocusedEditableElement.value || lastFocusedEditableElement.textContent;
+            // Only show the FAB if there is text to process
+            if (text && text.trim().length > 0) {
+              typingTimer = setTimeout(() => {
+                // Ensure the element still has focus before showing
+                if (document.activeElement === lastFocusedEditableElement) {
+                  showFab(lastFocusedEditableElement);
+                }
+              }, TYPING_DELAY);
+            }
+        }
+    });
+
     document.addEventListener('focusin', (event) => {
       const target = event.target;
-
-      // Quick exit for invalid targets
       if (!target || target.disabled || target.readOnly) {
         return;
       }
@@ -339,15 +406,12 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       const tagName = target.tagName.toUpperCase();
       let isSuitable = false;
 
-      // Rule 1: contentEditable elements are suitable
       if (target.isContentEditable) {
         isSuitable = true;
       }
-      // Rule 2: <textarea> is suitable
       else if (tagName === 'TEXTAREA') {
         isSuitable = true;
       }
-      // Rule 3: Check <input> types carefully
       else if (tagName === 'INPUT') {
         const unsuitableTypes = [
           'button', 'checkbox', 'color', 'date', 'datetime-local', 'email',
@@ -363,6 +427,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (isSuitable) {
         lastFocusedEditableElement = target;
         showOnFocusMicIcon(target);
+      } else {
+        // --- NEW: If the new focused element isn't suitable, hide icons
+        hideOnFocusMicIcon();
+        hideFab();
+        lastFocusedEditableElement = null;
       }
     });
 
@@ -370,18 +439,20 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       const target = event.target;
       if (target === lastFocusedEditableElement) {
         hideOnFocusMicIcon();
-        // We leave lastFocusedEditableElement set until after the hide animation
-        // so the repositionIcon function has a valid target.
+        // --- NEW: Also hide the FAB on focus out ---
+        hideFab();
         setTimeout(() => {
           if (document.activeElement !== lastFocusedEditableElement) {
             lastFocusedEditableElement = null;
           }
-        }, 400); // Should be the total duration of the hide animation.
+        }, 400); 
       }
     });
 
     createOnFocusMicIcon();
     initializeSpeechRecognition();
+    // --- NEW: Create the FAB when the extension initializes ---
+    createFab();
   }
   
   initializeExtension();
