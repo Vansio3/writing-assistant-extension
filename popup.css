@@ -137,6 +137,38 @@ p.status-message {
   margin-bottom: 0;
 }
 
+p.language-label {
+  margin: 5px 0;
+  color: #bdc1c6;
+  font-size: 13px;
+}
+
+.language-select {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 12px;
+  border: 1px solid #5f6368;
+  border-radius: 6px;
+  padding: 8px;
+  background-color: #2d2e30;
+  color: #e8eaed;
+  font-family: inherit;
+  margin-top: 5px;
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5H7z%22%20fill%3D%22%239aa0a6%22%2F%3E%3C%2Fsvg%3E');
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px 16px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.language-select:focus {
+  outline: none;
+  border-color: #8ab4f8;
+  box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.3);
+}
+
 /* Custom Scrollbar Styles */
 textarea::-webkit-scrollbar {
   width: 6px;

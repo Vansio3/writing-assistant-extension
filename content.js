@@ -197,6 +197,12 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
+
+    // Set a default language initially, which will be updated before each use.
+    chrome.storage.local.get('selectedLanguage', (result) => {
+      recognition.lang = result.selectedLanguage || 'en-US';
+    });
+    
     recognition.onresult = (event) => {
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
@@ -279,14 +285,20 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (recognition) {
         dictationTargetElement = activeElement;
         if (dictationTargetElement) {
-          try {
-            chrome.runtime.sendMessage({ command: "update-recording-state", isRecording: true });
-          } catch(e) { console.warn("Could not update background state. Context may be invalidated."); }
-          playSound('assets/audio/start.mp3');
-          originalInputText = dictationTargetElement.value || dictationTargetElement.textContent;
-          dictationTargetElement.addEventListener('blur', handleFocusLoss, { once: true });
-          showListeningIndicator(dictationTargetElement);
-          recognition.start();
+          // Fetch the latest language setting right before starting
+          chrome.storage.local.get('selectedLanguage', (result) => {
+            recognition.lang = result.selectedLanguage || 'en-US';
+            
+            try {
+              chrome.runtime.sendMessage({ command: "update-recording-state", isRecording: true });
+            } catch(e) { console.warn("Could not update background state. Context may be invalidated."); }
+            
+            playSound('assets/audio/start.mp3');
+            originalInputText = dictationTargetElement.value || dictationTargetElement.textContent;
+            dictationTargetElement.addEventListener('blur', handleFocusLoss, { once: true });
+            showListeningIndicator(dictationTargetElement);
+            recognition.start();
+          });
         }
       } else {
         alert("Speech recognition not available in this browser.");
@@ -331,7 +343,9 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         // We leave lastFocusedEditableElement set until after the hide animation
         // so the repositionIcon function has a valid target.
         setTimeout(() => {
-          lastFocusedEditableElement = null;
+          if (document.activeElement !== lastFocusedEditableElement) {
+            lastFocusedEditableElement = null;
+          }
         }, 400); // Should be the total duration of the hide animation.
       }
     });
