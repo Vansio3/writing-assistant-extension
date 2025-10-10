@@ -7,80 +7,96 @@
 </head>
 <body>
 
-  <div class="header">
+  <header class="header">
     <h3>Gemini Writing Assistant</h3>
     <p>Use <strong>Alt+R</strong> to process text or <strong>Alt+L</strong> for dictation.</p>
-  </div>
+  </header>
 
-  <div class="layout-container">
+  <main class="layout-container">
     <!-- Left Column -->
-    <div class="column-left">
+    <section class="column-left">
       <!-- API Key Configuration Section -->
       <div id="apiKeySection">
-        <h4>API Key</h4>
         <div class="card">
-          <p class="api-key-label">Enter your Gemini API Key:</p>
-          <input type="password" id="apiKeyInput" placeholder="Paste your API key here">
-          <button id="saveApiKeyButton" class="button-primary">Save Key</button>
-          <p id="apiKeyStatus" class="status-message"></p>
+          <div class="card-header">
+            <h4>API Key</h4>
+          </div>
+          <div class="card-body">
+            <p class="api-key-label">Enter your Gemini API Key:</p>
+            <input type="password" id="apiKeyInput" placeholder="Paste your API key here">
+            <button id="saveApiKeyButton" class="button-primary">Save Key</button>
+            <p id="apiKeyStatus" class="status-message"></p>
+          </div>
         </div>
       </div>
 
-      <!-- API Usage Section - for when mainContent is visible -->
+      <!-- API Usage Section -->
       <div id="apiUsageSection" style="display: none;">
-        <h4>API Usage</h4>
-        <div class="card usage-stats">
-          <div class="usage-item">
-            <span>Today:</span>
-            <strong id="dailyCount">0</strong>
+        <div class="card">
+          <div class="card-header">
+            <h4>API Usage</h4>
           </div>
-          <div class="usage-item">
-            <span>Total:</span>
-            <strong id="totalCount">0</strong>
+          <div class="card-body usage-stats">
+            <div class="usage-item">
+              <span>Today</span>
+              <strong id="dailyCount">0</strong>
+            </div>
+            <div class="usage-item">
+              <span>Total</span>
+              <strong id="totalCount">0</strong>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Right Column: This is part of mainContent and will be shown/hidden -->
-    <div class="column-right" id="mainContent" style="display: none;">
-      <h4>Settings</h4>
+    <!-- Right Column -->
+    <section class="column-right" id="mainContent" style="display: none;">
       <div class="card">
-        <div class="setting-row">
-          <label for="languageSelect">Language:</label>
-          <select id="languageSelect" class="select-css"></select>
+        <div class="card-header">
+          <h4>Settings</h4>
         </div>
-        <div class="setting-row">
-          <label for="outputStyleSelect">Style:</label>
-          <select id="outputStyleSelect" class="select-css"></select>
-        </div>
-        <div class="setting-row">
-          <label for="outputLengthSelect">Length:</label>
-          <select id="outputLengthSelect" class="select-css"></select>
-        </div>
-        <div class="setting-row toggle-row">
-          <label for="aiProcessingToggle">AI Processing</label>
-          <label class="switch">
-            <input type="checkbox" id="aiProcessingToggle">
-            <span class="slider round"></span>
-          </label>
-        </div>
-        <div class="setting-row toggle-row">
-          <label for="soundToggle">Sounds</label>
-          <label class="switch">
-            <input type="checkbox" id="soundToggle">
-            <span class="slider round"></span>
-          </label>
+        <div class="card-body">
+          <div class="setting-row">
+            <label for="languageSelect">Language</label>
+            <select id="languageSelect" class="select-css"></select>
+          </div>
+          <div class="setting-row">
+            <label for="outputStyleSelect">Style</label>
+            <select id="outputStyleSelect" class="select-css"></select>
+          </div>
+          <div class="setting-row">
+            <label for="outputLengthSelect">Length</label>
+            <select id="outputLengthSelect" class="select-css"></select>
+          </div>
+          <div class="setting-row toggle-row">
+            <label for="aiProcessingToggle">AI Processing</label>
+            <label class="switch">
+              <input type="checkbox" id="aiProcessingToggle">
+              <span class="slider round"></span>
+            </label>
+          </div>
+          <div class="setting-row toggle-row">
+            <label for="soundToggle">Sounds</label>
+            <label class="switch">
+              <input type="checkbox" id="soundToggle">
+              <span class="slider round"></span>
+            </label>
+          </div>
         </div>
       </div>
 
-      <h4>Last Original Input</h4>
       <div class="card">
-        <textarea id="lastOriginalText" readonly placeholder="No text processed yet."></textarea>
-        <button id="copyButton" class="button-secondary">Copy Text</button>
+        <div class="card-header">
+          <h4>Last Original Input</h4>
+        </div>
+        <div class="card-body">
+          <textarea id="lastOriginalText" readonly placeholder="No text processed yet."></textarea>
+          <button id="copyButton" class="button-secondary">Copy Text</button>
+        </div>
       </div>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <script src="popup.js"></script>
 </body>
