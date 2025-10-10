@@ -81,8 +81,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       chrome.storage.local.set({ lastOriginalText: request.prompt });
 
-      // New: Transcription-only mode
-      if (aiProcessingEnabled === false) {
+      // MODIFICATION: Transcription-only mode can now be triggered by a temporary
+      // flag from the content script OR the persistent setting.
+      if (request.bypassAi === true || aiProcessingEnabled === false) {
         sendResponse({ generatedText: request.prompt });
         return;
       }

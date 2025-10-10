@@ -14,6 +14,13 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   let lastFocusedEditableElement = null;
   let cancellationReason = null;
   let resizeObserver = null;
+  
+  // --- NEW: Variables for click-and-hold feature ---
+  let transcriptionOnlyButton = null; 
+  let currentDictationBypassesAi = false;
+  let isMouseDownOnMic = false;
+  let isOverSecondaryButton = false;
+  let micHoldTimeout = null;
 
   // --- NEW: Floating Action Button (FAB) variables ---
   let fab = null; // Holds the FAB element
@@ -52,11 +59,10 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   function showFab(targetElement) {
     if (!fab) return;
     const rect = targetElement.getBoundingClientRect();
-    // Position it vertically centered and to the left of the text area
-    fab.style.top = `${rect.top + window.scrollY + (rect.height / 2) - 16}px`; // Vertically centered
-    fab.style.left = `${rect.left + window.scrollX - 35}px`; // To the left
+    fab.style.top = `${rect.top + window.scrollY + (rect.height / 2) - 16}px`; 
+    fab.style.left = `${rect.left + window.scrollX - 35}px`; 
     fab.style.display = 'flex';
-    setTimeout(() => { // Allow the display property to apply before transitioning
+    setTimeout(() => { 
         fab.style.opacity = '1';
         fab.style.transform = 'scale(1)';
     }, 10);
@@ -73,21 +79,40 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       fab.style.opacity = '0';
       fab.style.transform = 'scale(0.8)';
       setTimeout(() => {
-        if (fab.style.opacity === '0') { // Check if it hasn't been re-shown
+        if (fab.style.opacity === '0') { 
           fab.style.display = 'none';
         }
-      }, 200); // Matches transition duration
+      }, 200); 
     }
   }
 
   const repositionIcon = () => {
-    // Only reposition if the icon is meant to be visible and attached to an element
     if (onFocusMicIcon && lastFocusedEditableElement && onFocusMicIcon.style.display === 'flex') {
       const rect = lastFocusedEditableElement.getBoundingClientRect();
       onFocusMicIcon.style.top = `${rect.top + window.scrollY + (rect.height / 2) - 14}px`;
       onFocusMicIcon.style.left = `${rect.right + window.scrollX - 34}px`;
     }
   };
+  
+  // --- NEW: Function to create the transcription-only button ---
+  function createTranscriptionOnlyButton() {
+    if (transcriptionOnlyButton) return;
+    transcriptionOnlyButton = document.createElement('div');
+    const svg = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 7V5H20V7L13 14V21H11V14L4 7Z" fill="#606367"/>
+        <path d="M4 7V5H20V7L13 14V21H11V14L4 7Z" stroke="#606367" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`; // A filter icon to represent "no processing"
+    Object.assign(transcriptionOnlyButton.style, {
+      position: 'absolute', width: '28px', height: '28px', borderRadius: '50%',
+      backgroundColor: '#f0f0f0', display: 'none', alignItems: 'center',
+      justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', cursor: 'pointer',
+      zIndex: '2147483648', transition: 'transform 0.2s ease-out, background-color 0.2s ease',
+      transform: 'translateY(10px)'
+    });
+    transcriptionOnlyButton.innerHTML = svg;
+    document.body.appendChild(transcriptionOnlyButton);
+  }
 
   function createOnFocusMicIcon() {
     if (onFocusMicIcon) return;
@@ -106,12 +131,26 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       opacity: '0', pointerEvents: 'auto'
     });
     onFocusMicIcon.innerHTML = svg;
-    onFocusMicIcon.addEventListener('mouseenter', () => { onFocusMicIcon.style.backgroundColor = '#e0e0e0'; });
-    onFocusMicIcon.addEventListener('mouseleave', () => { onFocusMicIcon.style.backgroundColor = '#f0f0f0'; });
+    onFocusMicIcon.addEventListener('mouseenter', () => { if(!isMouseDownOnMic) onFocusMicIcon.style.backgroundColor = '#e0e0e0'; });
+    onFocusMicIcon.addEventListener('mouseleave', () => { if(!isMouseDownOnMic) onFocusMicIcon.style.backgroundColor = '#f0f0f0'; });
+    
+    // --- MODIFICATION: Reworked mousedown to handle click-and-hold ---
     onFocusMicIcon.addEventListener('mousedown', (event) => {
       event.preventDefault();
-      handleToggleDictation({ start: true });
+      event.stopPropagation();
+      isMouseDownOnMic = true;
+
+      // After a short delay, show the secondary button
+      micHoldTimeout = setTimeout(() => {
+        if (!isMouseDownOnMic || !transcriptionOnlyButton) return;
+        const micRect = onFocusMicIcon.getBoundingClientRect();
+        transcriptionOnlyButton.style.top = `${micRect.top + window.scrollY - 34}px`; // Position above
+        transcriptionOnlyButton.style.left = `${micRect.left + window.scrollX}px`;
+        transcriptionOnlyButton.style.display = 'flex';
+        setTimeout(() => transcriptionOnlyButton.style.transform = 'translateY(0px)', 10);
+      }, 200);
     });
+
     document.body.appendChild(onFocusMicIcon);
   }
 
@@ -119,7 +158,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     if (!onFocusMicIcon) return;
     clearTimeout(focusOutTimeout);
     
-    // Ensure the observer is watching the new target
     if (resizeObserver) {
       resizeObserver.disconnect();
       resizeObserver.observe(targetElement);
@@ -301,7 +339,12 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (finishedTargetElement && finalTranscript.trim()) {
         finishedTargetElement.style.opacity = '0.5';
         finishedTargetElement.style.cursor = 'wait';
-        chrome.runtime.sendMessage({ prompt: finalTranscript.trim() }, (response) => {
+        
+        // --- MODIFICATION: Send the bypassAi flag with the prompt ---
+        chrome.runtime.sendMessage({ 
+          prompt: finalTranscript.trim(),
+          bypassAi: currentDictationBypassesAi 
+        }, (response) => {
           finishedTargetElement.style.opacity = '1';
           finishedTargetElement.style.cursor = 'auto';
           if (response && response.generatedText) {
@@ -344,6 +387,9 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     if (request.start) {
       if (recognition) {
         dictationTargetElement = activeElement;
+        // --- MODIFICATION: Store the bypass choice for this session ---
+        currentDictationBypassesAi = request.bypassAi || false;
+
         if (dictationTargetElement) {
           chrome.storage.local.get('selectedLanguage', (result) => {
             recognition.lang = result.selectedLanguage || 'en-US';
@@ -374,6 +420,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (request.command === "process-text") {
         processSelectedText();
       } else if (request.command === "toggle-dictation") {
+        // This path is used by the keyboard shortcut
         handleToggleDictation(request);
       }
       sendResponse(true); return true;
@@ -383,12 +430,10 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     document.addEventListener('keyup', (event) => {
         if (lastFocusedEditableElement) {
             clearTimeout(typingTimer);
-            hideFab(); // Hide FAB as soon as user starts typing again
+            hideFab(); 
             const text = lastFocusedEditableElement.value || lastFocusedEditableElement.textContent;
-            // Only show the FAB if there is text to process
             if (text && text.trim().length > 0) {
               typingTimer = setTimeout(() => {
-                // Ensure the element still has focus before showing
                 if (document.activeElement === lastFocusedEditableElement) {
                   showFab(lastFocusedEditableElement);
                 }
@@ -428,7 +473,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         lastFocusedEditableElement = target;
         showOnFocusMicIcon(target);
       } else {
-        // --- NEW: If the new focused element isn't suitable, hide icons
         hideOnFocusMicIcon();
         hideFab();
         lastFocusedEditableElement = null;
@@ -439,7 +483,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       const target = event.target;
       if (target === lastFocusedEditableElement) {
         hideOnFocusMicIcon();
-        // --- NEW: Also hide the FAB on focus out ---
         hideFab();
         setTimeout(() => {
           if (document.activeElement !== lastFocusedEditableElement) {
@@ -448,10 +491,51 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         }, 400); 
       }
     });
+    
+    // --- NEW: Global mouse listeners for the click-and-hold feature ---
+    document.addEventListener('mousemove', (event) => {
+      if (!isMouseDownOnMic || !transcriptionOnlyButton || transcriptionOnlyButton.style.display !== 'flex') return;
+      const { clientX, clientY } = event;
+      const secondaryRect = transcriptionOnlyButton.getBoundingClientRect();
+
+      if (clientX >= secondaryRect.left && clientX <= secondaryRect.right &&
+          clientY >= secondaryRect.top && clientY <= secondaryRect.bottom) {
+        isOverSecondaryButton = true;
+        transcriptionOnlyButton.style.backgroundColor = '#d0d0d0'; // Highlight
+      } else {
+        isOverSecondaryButton = false;
+        transcriptionOnlyButton.style.backgroundColor = '#f0f0f0'; // Default
+      }
+    });
+    
+    document.addEventListener('mouseup', (event) => {
+      if (!isMouseDownOnMic) return;
+      clearTimeout(micHoldTimeout);
+      isMouseDownOnMic = false;
+
+      // If the secondary button was visible when mouse was released
+      if (transcriptionOnlyButton && transcriptionOnlyButton.style.display === 'flex') {
+        if (isOverSecondaryButton) {
+          handleToggleDictation({ start: true, bypassAi: true });
+        } else {
+          // If mouse wasn't over the secondary button, treat as regular click
+          handleToggleDictation({ start: true, bypassAi: false });
+        }
+        // Hide the secondary button
+        transcriptionOnlyButton.style.display = 'none';
+        transcriptionOnlyButton.style.transform = 'translateY(10px)';
+      } else {
+        // If it was just a quick click (secondary button never appeared)
+        handleToggleDictation({ start: true, bypassAi: false });
+      }
+
+      isOverSecondaryButton = false;
+      if (onFocusMicIcon) onFocusMicIcon.style.backgroundColor = '#f0f0f0';
+    });
 
     createOnFocusMicIcon();
+    createTranscriptionOnlyButton(); // NEW
     initializeSpeechRecognition();
-    // --- NEW: Create the FAB when the extension initializes ---
     createFab();
   }
   
