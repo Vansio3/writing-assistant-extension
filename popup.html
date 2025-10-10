@@ -6,65 +6,79 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <h3>Gemini Writing Assistant</h3>
-  <p>Use <strong>Alt+R</strong> or the context menu to process text.</p>
-  <hr>
 
-  <!-- API Key Configuration Section -->
-  <div class="container" id="apiKeySection">
-    <h4>API Key Configuration</h4>
-    <p class="api-key-label">Enter your Gemini API Key:</p>
-    <input type="password" id="apiKeyInput" placeholder="Paste your API key here">
-    <button id="saveApiKeyButton" class="save-button">Save Key</button>
-    <p id="apiKeyStatus" class="status-message"></p>
+  <div class="header">
+    <h3>Gemini Writing Assistant</h3>
+    <p>Use <strong>Alt+R</strong> to process text or <strong>Alt+L</strong> for dictation.</p>
   </div>
 
-  <!-- Main Content - Initially hidden -->
-  <div id="mainContent" style="display: none;">
-    <div class="container">
-        <h4>Settings</h4>
-        <p class="language-label">Dictation & Output Language:</p>
-        <select id="languageSelect" class="language-select"></select>
-
-        <!-- New: Output Style -->
-        <p class="setting-label">Output Style:</p>
-        <select id="outputStyleSelect" class="setting-select"></select>
-
-        <!-- New: Output Length -->
-        <p class="setting-label">Output Length:</p>
-        <select id="outputLengthSelect" class="setting-select"></select>
-        
-        <!-- New: AI Processing Toggle -->
-        <div class="toggle-container">
-            <p class="setting-label">AI Processing:</p>
-            <label class="switch">
-                <input type="checkbox" id="aiProcessingToggle">
-                <span class="slider round"></span>
-            </label>
+  <div class="layout-container">
+    <!-- Left Column -->
+    <div class="column-left">
+      <!-- API Key Configuration Section -->
+      <div id="apiKeySection">
+        <h4>API Key</h4>
+        <div class="card">
+          <p class="api-key-label">Enter your Gemini API Key:</p>
+          <input type="password" id="apiKeyInput" placeholder="Paste your API key here">
+          <button id="saveApiKeyButton" class="button-primary">Save Key</button>
+          <p id="apiKeyStatus" class="status-message"></p>
         </div>
+      </div>
 
-        <!-- New: Sound Notifications Toggle -->
-        <div class="toggle-container">
-            <p class="setting-label">Sound Notifications:</p>
-            <label class="switch">
-                <input type="checkbox" id="soundToggle">
-                <span class="slider round"></span>
-            </label>
+      <!-- API Usage Section - for when mainContent is visible -->
+      <div id="apiUsageSection" style="display: none;">
+        <h4>API Usage</h4>
+        <div class="card usage-stats">
+          <div class="usage-item">
+            <span>Today:</span>
+            <strong id="dailyCount">0</strong>
+          </div>
+          <div class="usage-item">
+            <span>Total:</span>
+            <strong id="totalCount">0</strong>
+          </div>
         </div>
-    </div>
-    <div class="container">
-      <h4>API Usage</h4>
-      <div class="usage-stats">
-        <p>Today: <strong id="dailyCount">0</strong></p>
-        <p>Total: <strong id="totalCount">0</strong></p>
       </div>
     </div>
-    <div class="container">
-      <div class="header-container">
-        <h4>Last Original Input</h4>
-        <button id="copyButton" class="copy-button">Copy</button>
+
+    <!-- Right Column: This is part of mainContent and will be shown/hidden -->
+    <div class="column-right" id="mainContent" style="display: none;">
+      <h4>Settings</h4>
+      <div class="card">
+        <div class="setting-row">
+          <label for="languageSelect">Language:</label>
+          <select id="languageSelect" class="select-css"></select>
+        </div>
+        <div class="setting-row">
+          <label for="outputStyleSelect">Style:</label>
+          <select id="outputStyleSelect" class="select-css"></select>
+        </div>
+        <div class="setting-row">
+          <label for="outputLengthSelect">Length:</label>
+          <select id="outputLengthSelect" class="select-css"></select>
+        </div>
+        <div class="setting-row toggle-row">
+          <label for="aiProcessingToggle">AI Processing</label>
+          <label class="switch">
+            <input type="checkbox" id="aiProcessingToggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+        <div class="setting-row toggle-row">
+          <label for="soundToggle">Sounds</label>
+          <label class="switch">
+            <input type="checkbox" id="soundToggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
       </div>
-      <textarea id="lastOriginalText" readonly placeholder="No text has been processed yet."></textarea>
+
+      <h4>Last Original Input</h4>
+      <div class="card">
+        <textarea id="lastOriginalText" readonly placeholder="No text processed yet."></textarea>
+        <button id="copyButton" class="button-secondary">Copy Text</button>
+      </div>
     </div>
   </div>
 

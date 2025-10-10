@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const lastOriginalTextEl = document.getElementById('lastOriginalText');
   const copyButton = document.getElementById('copyButton');
   const mainContent = document.getElementById('mainContent');
+  const apiUsageSection = document.getElementById('apiUsageSection'); // New handle for usage section
 
   // API Key elements
   const apiKeyInput = document.getElementById('apiKeyInput');
@@ -96,8 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
   populateSelect(outputStyleSelect, outputStyles);
   populateSelect(outputLengthSelect, outputLengths);
 
-
-  // Function to check for API key and load content
+  // MODIFIED Function to check for API key and load content
   function checkApiKeyAndLoadContent() {
     const storageKeys = [
       'geminiApiKey', 'totalCount', 'dailyCount', 'lastOriginalText', 
@@ -108,7 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.get(storageKeys, (result) => {
       if (result.geminiApiKey) {
         apiKeyInput.value = result.geminiApiKey;
-        mainContent.style.display = 'block';
+        mainContent.style.display = 'flex'; // Use flex to show the right column
+        apiUsageSection.style.display = 'block'; // Show the API usage section
         
         dailyCountEl.textContent = result.dailyCount ?? 0;
         totalCountEl.textContent = result.totalCount ?? 0;
@@ -122,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         soundToggle.checked = result.soundEnabled !== false; // Default to true
       } else {
         mainContent.style.display = 'none';
+        apiUsageSection.style.display = 'none'; // Hide usage if no key
       }
     });
   }
@@ -147,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (textToCopy) {
       navigator.clipboard.writeText(textToCopy).then(() => {
         copyButton.textContent = 'Copied!';
-        setTimeout(() => { copyButton.textContent = 'Copy'; }, 2000);
+        setTimeout(() => { copyButton.textContent = 'Copy Text'; }, 2000);
       });
     }
   });
