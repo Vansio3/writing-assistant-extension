@@ -1,4 +1,4 @@
-/* popup.css - Professional UI Redesign */
+/* popup.css - Professional UI Redesign (Three-Column) */
 
 :root {
   --background-primary: #1a1b1e;
@@ -20,7 +20,7 @@ body {
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--background-primary);
   color: var(--text-primary);
-  width: 480px;
+  width: 720px; /* Increased width for three columns */
   padding: 16px;
   margin: 0;
   box-sizing: border-box;
@@ -63,11 +63,16 @@ strong {
   gap: 16px;
 }
 
-.column-left, .column-right {
-  flex: 1;
+.column-left, .column-middle, .column-right {
+  flex: 1; /* All columns share space equally */
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* Ensure the middle column's card fills the available height */
+.column-middle .card, .column-middle .card-body {
+  flex-grow: 1;
 }
 
 .card {
@@ -111,7 +116,7 @@ input[type="password"]:focus, textarea:focus, .select-css:focus {
 }
 
 textarea {
-  height: 95px;
+  flex-grow: 1; /* Allow textarea to fill space */
   resize: none;
 }
 
@@ -167,10 +172,11 @@ textarea {
 .setting-row label {
   color: var(--text-secondary);
   font-size: 14px;
+  margin-right: 8px; /* Added margin for spacing */
 }
 
 .select-css {
-  max-width: 60%;
+  max-width: 65%;
   background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5H7z%22%20fill%3D%22%23a8a8b3%22%2F%3E%3C%2Fsvg%3E');
   background-repeat: no-repeat;
   background-position: right 8px center;

@@ -67,8 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const totalCountEl = document.getElementById('totalCount');
   const lastOriginalTextEl = document.getElementById('lastOriginalText');
   const copyButton = document.getElementById('copyButton');
-  const mainContent = document.getElementById('mainContent');
-  const apiUsageSection = document.getElementById('apiUsageSection'); // New handle for usage section
+  const mainContent = document.getElementById('mainContent'); // Right column
+  const middleColumn = document.getElementById('middleColumn'); // Middle column
+  const apiUsageSection = document.getElementById('apiUsageSection');
 
   // API Key elements
   const apiKeyInput = document.getElementById('apiKeyInput');
@@ -108,8 +109,9 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.get(storageKeys, (result) => {
       if (result.geminiApiKey) {
         apiKeyInput.value = result.geminiApiKey;
-        mainContent.style.display = 'flex'; // Use flex to show the right column
-        apiUsageSection.style.display = 'block'; // Show the API usage section
+        mainContent.style.display = 'flex'; // Show right column
+        middleColumn.style.display = 'flex'; // Show middle column
+        apiUsageSection.style.display = 'block';
         
         dailyCountEl.textContent = result.dailyCount ?? 0;
         totalCountEl.textContent = result.totalCount ?? 0;
@@ -123,7 +125,8 @@ document.addEventListener('DOMContentLoaded', () => {
         soundToggle.checked = result.soundEnabled !== false; // Default to true
       } else {
         mainContent.style.display = 'none';
-        apiUsageSection.style.display = 'none'; // Hide usage if no key
+        middleColumn.style.display = 'none'; // Hide middle column
+        apiUsageSection.style.display = 'none';
       }
     });
   }
