@@ -98,11 +98,17 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   function createTranscriptionOnlyButton() {
     if (transcriptionOnlyButton) return;
     transcriptionOnlyButton = document.createElement('div');
+    // --- MODIFICATION: Replaced SVG with the user-provided "bot-off" icon ---
     const svg = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M4 7V5H20V7L13 14V21H11V14L4 7Z" fill="#606367"/>
-        <path d="M4 7V5H20V7L13 14V21H11V14L4 7Z" stroke="#606367" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>`; // A filter icon to represent "no processing"
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#606367" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13.67 8H18a2 2 0 0 1 2 2v4.33"/>
+        <path d="M2 14h2"/>
+        <path d="M20 14h2"/>
+        <path d="M22 22 2 2"/>
+        <path d="M8 8H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 1.414-.586"/>
+        <path d="M9 13v2"/>
+        <path d="M9.67 4H12v2.33"/>
+      </svg>`;
     Object.assign(transcriptionOnlyButton.style, {
       position: 'absolute', width: '28px', height: '28px', borderRadius: '50%',
       backgroundColor: '#f0f0f0', display: 'none', alignItems: 'center',
