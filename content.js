@@ -151,8 +151,13 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   });
 
   function playSound(soundFile) {
-    const audio = new Audio(chrome.runtime.getURL(soundFile));
-    audio.play();
+    chrome.storage.local.get('soundEnabled', (result) => {
+      // Sounds are enabled by default if the setting is not present (undefined)
+      if (result.soundEnabled !== false) {
+        const audio = new Audio(chrome.runtime.getURL(soundFile));
+        audio.play();
+      }
+    });
   }
 
   function processSelectedText() {

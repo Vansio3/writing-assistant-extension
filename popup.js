@@ -79,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const outputStyleSelect = document.getElementById('outputStyleSelect');
   const outputLengthSelect = document.getElementById('outputLengthSelect');
   const aiProcessingToggle = document.getElementById('aiProcessingToggle');
+  const soundToggle = document.getElementById('soundToggle');
 
   // Function to populate select dropdowns
   function populateSelect(element, options) {
@@ -100,7 +101,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function checkApiKeyAndLoadContent() {
     const storageKeys = [
       'geminiApiKey', 'totalCount', 'dailyCount', 'lastOriginalText', 
-      'selectedLanguage', 'outputStyle', 'outputLength', 'aiProcessingEnabled'
+      'selectedLanguage', 'outputStyle', 'outputLength', 'aiProcessingEnabled',
+      'soundEnabled'
     ];
 
     chrome.storage.local.get(storageKeys, (result) => {
@@ -117,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
         outputStyleSelect.value = result.outputStyle || 'default';
         outputLengthSelect.value = result.outputLength || 'default';
         aiProcessingToggle.checked = result.aiProcessingEnabled !== false; // Default to true
+        soundToggle.checked = result.soundEnabled !== false; // Default to true
       } else {
         mainContent.style.display = 'none';
       }
@@ -163,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
   addSettingChangeListener(outputStyleSelect, 'outputStyle');
   addSettingChangeListener(outputLengthSelect, 'outputLength');
   addSettingChangeListener(aiProcessingToggle, 'aiProcessingEnabled');
+  addSettingChangeListener(soundToggle, 'soundEnabled');
 
   // Initial load
   checkApiKeyAndLoadContent();
