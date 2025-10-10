@@ -58,7 +58,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   
   if (request.prompt) {
-    chrome.storage.local.get('geminiApiKey', (result) => {
+    // MODIFICATION: Fetch 'selectedLanguage' along with the API key.
+    chrome.storage.local.get(['geminiApiKey', 'selectedLanguage'], (result) => {
       const GEMINI_API_KEY = result.geminiApiKey;
 
       if (!GEMINI_API_KEY) {
@@ -67,7 +68,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
 
       chrome.storage.local.set({ lastOriginalText: request.prompt });
-      const finalPrompt = createPrompt(request.prompt);
+      
+      // MODIFICATION: Get the language from storage (or default to 'en-US') and pass it to createPrompt.
+      const language = result.selectedLanguage || 'en-US';
+      const finalPrompt = createPrompt(request.prompt, language);
 
       fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
         method: "POST",
