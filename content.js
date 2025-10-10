@@ -7,12 +7,19 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   let recognition;
   let finalTranscript = '';
   
-  // Variables to manage the state during dictation
   let dictationTargetElement = null;
   let originalInputText = '';
 
+  // --- NEW: Function to play sound effects ---
+  function playSound(soundFile) {
+    const audioUrl = chrome.runtime.getURL(soundFile);
+    const audio = new Audio(audioUrl);
+    audio.play();
+  }
+
   // --- Function to process selected text ---
   function processSelectedText() {
+    // ... (This function remains unchanged)
     const activeElement = document.activeElement;
     if (!activeElement) return;
 
@@ -77,7 +84,8 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     };
 
     recognition.onend = () => {
-      // Restore the original text before processing the transcript
+      playSound('end.mp3'); // --- PLAY END SOUND ---
+
       if (dictationTargetElement) {
         if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
           dictationTargetElement.value = originalInputText;
@@ -95,24 +103,21 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
           dictationTargetElement.style.cursor = 'auto';
 
           if (response.generatedText) {
-            // Insert the processed text where the cursor is
             document.execCommand('insertText', false, response.generatedText);
             const event = new Event('input', { bubbles: true, cancelable: true });
             dictationTargetElement.dispatchEvent(event);
           }
-          // Clean up for the next session
           dictationTargetElement = null;
           originalInputText = '';
         });
       }
-      finalTranscript = ''; // Reset for next use
+      finalTranscript = '';
     };
 
     recognition.onerror = (event) => {
       if (event.error === 'no-speech') return;
       console.error("Speech recognition error:", event.error);
       
-      // Also restore original text on error
       if (dictationTargetElement) {
         if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
           dictationTargetElement.value = originalInputText;
@@ -135,10 +140,9 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         if (recognition) {
           dictationTargetElement = document.activeElement;
           if (dictationTargetElement) {
+            playSound('start.mp3'); // --- PLAY START SOUND ---
             const isTextElement = dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT";
-            // Save the original text
             originalInputText = isTextElement ? dictationTargetElement.value : dictationTargetElement.textContent;
-            // Display the listening indicator
             if (isTextElement) {
               dictationTargetElement.value = "🔴 Listening...";
             } else {
