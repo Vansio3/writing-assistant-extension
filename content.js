@@ -9,6 +9,19 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   
   let dictationTargetElement = null;
   let originalInputText = '';
+  let dictationCancelled = false; // --- NEW: Flag to track cancellation ---
+
+  // --- Listen for Escape key to cancel dictation ---
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && dictationTargetElement) {
+      dictationCancelled = true;
+      if (recognition) {
+        recognition.stop();
+      }
+      // Notify background script to reset its recording state
+      chrome.runtime.sendMessage({ command: "reset-recording-state" });
+    }
+  });
 
   // --- NEW: Function to play sound effects ---
   function playSound(soundFile) {
@@ -84,7 +97,24 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     };
 
     recognition.onend = () => {
-      playSound('end.mp3'); // --- PLAY END SOUND ---
+      playSound('end.mp3'); 
+
+      // --- UPDATED: Handle cancellation first ---
+      if (dictationCancelled) {
+        if (dictationTargetElement) {
+          if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
+            dictationTargetElement.value = originalInputText;
+          } else {
+            dictationTargetElement.textContent = originalInputText;
+          }
+        }
+        // Reset all states
+        dictationTargetElement = null;
+        originalInputText = '';
+        finalTranscript = '';
+        dictationCancelled = false; // Reset the flag
+        return; // Stop further execution
+      }
 
       if (dictationTargetElement) {
         if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
@@ -140,7 +170,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         if (recognition) {
           dictationTargetElement = document.activeElement;
           if (dictationTargetElement) {
-            playSound('start.mp3'); // --- PLAY START SOUND ---
+            playSound('start.mp3'); 
             const isTextElement = dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT";
             originalInputText = isTextElement ? dictationTargetElement.value : dictationTargetElement.textContent;
             if (isTextElement) {

@@ -58,6 +58,13 @@ chrome.commands.onCommand.addListener((command) => {
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // --- NEW: Handle cancellation state from content script ---
+  if (request.command === "reset-recording-state") {
+    isRecording = false;
+    sendResponse({ success: true });
+    return;
+  }
+  
   if (request.prompt) {
     if (!GEMINI_API_KEY || GEMINI_API_KEY === "YOUR_GEMINI_API_KEY_HERE") {
       sendResponse({ error: "API key not set. Please update config.js" });
