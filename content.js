@@ -9,21 +9,19 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
   let dictationTargetElement = null;
   let originalInputText = '';
-  let dictationCancelled = false; // --- NEW: Flag to track cancellation ---
+  let dictationCancelled = false; 
 
-  // --- Listen for Escape key to cancel dictation ---
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && dictationTargetElement) {
       dictationCancelled = true;
       if (recognition) {
         recognition.stop();
       }
-      // Notify background script to reset its recording state
       chrome.runtime.sendMessage({ command: "reset-recording-state" });
     }
   });
 
-  // --- NEW: Function to play sound effects ---
+  // --- Function to play sound effects ---
   function playSound(soundFile) {
     const audioUrl = chrome.runtime.getURL(soundFile);
     const audio = new Audio(audioUrl);
@@ -32,7 +30,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
   // --- Function to process selected text ---
   function processSelectedText() {
-    // ... (This function remains unchanged)
     const activeElement = document.activeElement;
     if (!activeElement) return;
 
@@ -97,9 +94,9 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     };
 
     recognition.onend = () => {
-      playSound('end.mp3');
+      // --- UPDATED: Use the correct path for the sound file ---
+      playSound('assets/audio/end.mp3');
 
-      // --- UPDATED: Handle cancellation first ---
       if (dictationCancelled) {
         if (dictationTargetElement) {
           if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
@@ -108,12 +105,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
             dictationTargetElement.textContent = originalInputText;
           }
         }
-        // Reset all states
         dictationTargetElement = null;
         originalInputText = '';
         finalTranscript = '';
-        dictationCancelled = false; // Reset the flag
-        return; // Stop further execution
+        dictationCancelled = false; 
+        return; 
       }
 
       if (dictationTargetElement) {
@@ -173,7 +169,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       );
 
       if (!isEditable) {
-        // If the element is not editable, do not proceed with dictation.
         return;
       }
 
@@ -182,7 +177,8 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         if (recognition) {
           dictationTargetElement = activeElement;
           if (dictationTargetElement) {
-            playSound('start.mp3');
+            // --- UPDATED: Use the correct path for the sound file ---
+            playSound('assets/audio/start.mp3');
             const isTextElement = dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT";
             originalInputText = isTextElement ? dictationTargetElement.value : dictationTargetElement.textContent;
             if (isTextElement) {

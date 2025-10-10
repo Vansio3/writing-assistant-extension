@@ -29,14 +29,14 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_icon": "icon.png"
+    "default_icon": "assets/icons/icon.png"
   },
   "icons": {
-    "48": "icon.png"
+    "48": "assets/icons/icon.png"
   },
   "web_accessible_resources": [
     {
-      "resources": ["start.mp3", "end.mp3"],
+      "resources": ["assets/audio/start.mp3", "assets/audio/end.mp3"],
       "matches": ["<all_urls>"]
     }
   ]
