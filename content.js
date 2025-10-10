@@ -93,7 +93,15 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       finalTranscript = '';
     };
 
-    recognition.onerror = (event) => console.error("Speech recognition error:", event.error);
+    // --- MODIFIED ERROR HANDLER ---
+    recognition.onerror = (event) => {
+      // Ignore the 'no-speech' error, as it's not a true error.
+      if (event.error === 'no-speech') {
+        return;
+      }
+      // Log any other errors.
+      console.error("Speech recognition error:", event.error);
+    };
   }
 
   // --- Main message listener that waits for commands ---
