@@ -19,6 +19,12 @@
         "default": "Alt+R"
       },
       "description": "Generate text with Gemini"
+    },
+    "dictate-and-process": {
+      "suggested_key": {
+        "default": "Alt+L"
+      },
+      "description": "Start or stop dictation"
     }
   },
   "action": {

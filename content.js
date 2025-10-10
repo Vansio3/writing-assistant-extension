@@ -1,6 +1,10 @@
-// content.js (Intelligent Selection Logic)
+// content.js (Logic is now triggered by messages)
 
-(function() {
+let recognition;
+let finalTranscript = '';
+
+// --- Function to process selected text ---
+function processSelectedText() {
   const activeElement = document.activeElement;
   if (!activeElement) return;
 
@@ -10,17 +14,16 @@
 
   let processingMode;
 
-  // If text is selected, use it. Otherwise, select the entire content of the input field.
   if (promptText) {
     processingMode = 'selection';
   } else if (isTextareaOrInput || activeElement.isContentEditable) {
     processingMode = 'full';
     const text = isTextareaOrInput ? activeElement.value : activeElement.textContent;
-    if (!text.trim()) return; // Do nothing if the field is empty.
-    activeElement.select(); // Select all text for visual feedback.
+    if (!text.trim()) return;
+    activeElement.select();
     promptText = text;
   } else {
-    return; // Do nothing if no text is selected and it's not an editable field.
+    return;
   }
 
   activeElement.style.opacity = '0.5';
@@ -30,26 +33,83 @@
     activeElement.style.opacity = '1';
     activeElement.style.cursor = 'auto';
 
-    if (chrome.runtime.lastError) {
-      console.error(chrome.runtime.lastError.message);
-      return;
-    }
+    if (chrome.runtime.lastError) return console.error(chrome.runtime.lastError.message);
+    if (response.error) return alert(`Error: ${response.error}`);
 
-    if (response.error) {
-      alert(`Error: ${response.error}`);
-    } else if (response.generatedText) {
+    if (response.generatedText) {
       if (processingMode === 'full') {
-        if (isTextareaOrInput) {
-          activeElement.value = response.generatedText;
-        } else if (activeElement.isContentEditable) {
-          activeElement.textContent = response.generatedText;
-        }
+        if (isTextareaOrInput) activeElement.value = response.generatedText;
+        else if (activeElement.isContentEditable) activeElement.textContent = response.generatedText;
       } else {
         document.execCommand('insertText', false, response.generatedText);
       }
-
       const event = new Event('input', { bubbles: true, cancelable: true });
       activeElement.dispatchEvent(event);
     }
   });
-})();
+}
+
+// --- Function to initialize speech recognition ---
+function initializeSpeechRecognition() {
+  if (recognition) return; // Avoid re-initializing
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return;
+  
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.onresult = (event) => {
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript;
+      }
+    }
+  };
+
+  recognition.onend = () => {
+    const activeElement = document.activeElement;
+    if (activeElement) activeElement.placeholder = ""; // Reset placeholder
+    if (activeElement && finalTranscript) {
+      activeElement.style.opacity = '0.5';
+      activeElement.style.cursor = 'wait';
+      
+      chrome.runtime.sendMessage({ prompt: finalTranscript.trim() }, (response) => {
+        activeElement.style.opacity = '1';
+        activeElement.style.cursor = 'auto';
+
+        if (response.generatedText) {
+          document.execCommand('insertText', false, response.generatedText);
+          const event = new Event('input', { bubbles: true, cancelable: true });
+          activeElement.dispatchEvent(event);
+        }
+      });
+    }
+    finalTranscript = ''; // Reset for next use
+  };
+
+  recognition.onerror = (event) => console.error("Speech recognition error:", event.error);
+}
+
+// --- Main message listener that waits for commands ---
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.command === "process-text") {
+    processSelectedText();
+  } else if (request.command === "toggle-dictation") {
+    initializeSpeechRecognition(); // Ensures recognition is ready
+    if (request.start) {
+      if (recognition) {
+        recognition.start();
+        const activeElement = document.activeElement;
+        if (activeElement) activeElement.placeholder = "Listening...";
+      } else {
+        alert("Speech recognition not available in this browser.");
+      }
+    } else {
+      if (recognition) recognition.stop();
+    }
+  }
+  sendResponse(true); // Acknowledge message has been received
+  return true;
+});

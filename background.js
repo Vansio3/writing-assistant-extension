@@ -3,45 +3,58 @@
 import { GEMINI_API_KEY, GEMINI_MODEL } from './config.js';
 import { createPrompt } from './prompt.js';
 
-// --- Function to inject the content script ---
-function injectContentScript(tab) {
-  if (!tab) return;
-  // Prevent injection on special Chrome pages
-  if (tab.url && (tab.url.startsWith("chrome://") || tab.url.startsWith("https://chrome.google.com/"))) {
-    return;
-  }
-  chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    files: ["content.js"]
-  }).catch(err => console.error("Failed to inject content script:", err));
-}
-
 // --- START: CONTEXT MENU IMPLEMENTATION ---
-// Create the context menu item upon installation.
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "gemini-rewrite",
     title: "Process with Gemini",
-    contexts: ["selection"] // This menu item will only appear when text is selected
+    contexts: ["selection"]
   });
 });
 
-// Listen for clicks on the context menu item.
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "gemini-rewrite") {
-    injectContentScript(tab);
+    // Inject script, then send a message to process the text
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["content.js"]
+    }).then(() => {
+      chrome.tabs.sendMessage(tab.id, { command: "process-text" });
+    }).catch(err => console.error(err));
   }
 });
 // --- END: CONTEXT MENU IMPLEMENTATION ---
 
+let isRecording = false;
 
-// Listen for the keyboard shortcut command.
+// Listen for keyboard shortcut commands
 chrome.commands.onCommand.addListener((command) => {
-  if (command === "generate-text") {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      injectContentScript(tabs[0]);
-    });
-  }
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const tab = tabs[0];
+    if (!tab) return;
+    
+    // Prevent injection on special Chrome pages
+    if (tab.url && (tab.url.startsWith("chrome://") || tab.url.startsWith("https://chrome.google.com/"))) {
+      return;
+    }
+
+    // Always inject the script first to ensure it's ready to receive messages
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["content.js"]
+    }).then(() => {
+      // After injection, send the appropriate command
+      if (command === "generate-text") {
+        chrome.tabs.sendMessage(tab.id, { command: "process-text" });
+      } else if (command === "dictate-and-process") {
+        isRecording = !isRecording;
+        chrome.tabs.sendMessage(tab.id, {
+          command: "toggle-dictation",
+          start: isRecording
+        });
+      }
+    }).catch(err => console.error("Script injection or messaging failed:", err));
+  });
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -51,7 +64,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
     }
 
-    // Save the original prompt before processing
     chrome.storage.local.set({ lastOriginalText: request.prompt });
 
     const finalPrompt = createPrompt(request.prompt);
@@ -84,15 +96,12 @@ function updateApiCallCount() {
 
   chrome.storage.local.get(['totalCount', 'dailyCount', 'lastCallDate'], (result) => {
     let { totalCount = 0, dailyCount = 0, lastCallDate } = result;
-
     totalCount++;
-
     if (lastCallDate === today) {
       dailyCount++;
     } else {
       dailyCount = 1;
     }
-    
     chrome.storage.local.set({
       totalCount: totalCount,
       dailyCount: dailyCount,
