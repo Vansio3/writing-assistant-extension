@@ -11,60 +11,109 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   let originalInputText = '';
   let dictationCancelled = false;
 
-  // --- NEW: A variable to hold our visual indicator overlay ---
   let listeningOverlay = null;
+  let pulseAnimation = null;
 
   /**
-   * --- NEW: Creates and displays a visual overlay on top of the target element ---
-   * This avoids modifying the element directly, bypassing issues with CSPs and
-   * dynamic UI frameworks that might revert style or class changes.
+   * --- REVISED: Creates and displays a focused visual indicator ---
+   * This version features a pulsing red left border and a microphone icon
+   * with a distinct red background for improved visibility.
    * @param {HTMLElement} targetElement The element to position the overlay over.
    */
   function showListeningIndicator(targetElement) {
-    // Remove any existing overlay first
     if (listeningOverlay) {
       listeningOverlay.remove();
     }
 
-    // Create the overlay element
     listeningOverlay = document.createElement('div');
     const rect = targetElement.getBoundingClientRect();
 
-    // Style the overlay
+    // A smaller, white SVG icon to fit inside the new circular background.
+    const microphoneIconSVG = `
+      <svg xmlns="http://www.w.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+        <line x1="12" y1="19" x2="12" y2="22"></line>
+      </svg>
+    `;
+
+    // Create a dedicated container for the icon.
+    const iconContainer = document.createElement('div');
+    Object.assign(iconContainer.style, {
+      width: '32px',
+      height: '32px',
+      borderRadius: '50%',
+      backgroundColor: '#E53E3E', // The requested red background
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      boxShadow: '0 2px 5px rgba(0,0,0,0.25)',
+    });
+    iconContainer.innerHTML = microphoneIconSVG;
+
+    // Style the main overlay container.
     Object.assign(listeningOverlay.style, {
       position: 'absolute',
       top: `${rect.top + window.scrollY}px`,
       left: `${rect.left + window.scrollX}px`,
       width: `${rect.width}px`,
       height: `${rect.height}px`,
-      border: '2px solid #E53E3E', // A clear red border
-      borderRadius: getComputedStyle(targetElement).borderRadius, // Match the target's border-radius
-      boxSizing: 'border-box', // Ensures border is included in width/height
-      pointerEvents: 'none', // Allows clicks to pass through to the element underneath
-      zIndex: '2147483647', // Max z-index to ensure it's on top
-      transition: 'opacity 0.2s ease-in-out', // Fade out smoothly
-      opacity: '1'
+      borderRadius: getComputedStyle(targetElement).borderRadius,
+      boxSizing: 'border-box',
+      pointerEvents: 'none',
+      zIndex: '2147483647',
+      display: 'flex',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+      padding: '0 8px', // Only horizontal padding for the icon
+      opacity: '0',
+      borderLeft: '3px solid #E53E3E', // The requested left border
     });
 
+    listeningOverlay.appendChild(iconContainer);
     document.body.appendChild(listeningOverlay);
+
+    // --- Animations ---
+    // 1. Fade-in animation (no scale)
+    listeningOverlay.animate(
+      [{ opacity: 0 }, { opacity: 1 }], 
+      { duration: 200, easing: 'ease-out', fill: 'forwards' }
+    );
+
+    // 2. Pulse animation for the left border's color
+    pulseAnimation = listeningOverlay.animate([
+      { borderLeftColor: 'rgba(229, 62, 62, 0.4)' },
+      { borderLeftColor: 'rgba(229, 62, 62, 1)' },
+      { borderLeftColor: 'rgba(229, 62, 62, 0.4)' }
+    ], {
+      duration: 1500,
+      iterations: Infinity,
+      easing: 'ease-in-out'
+    });
   }
 
   /**
-   * --- NEW: Hides and removes the listening overlay from the DOM ---
+   * Hides and removes the overlay with a smooth fade-out animation.
    */
   function hideListeningIndicator() {
     if (listeningOverlay) {
-      // Fade out before removing for a smoother experience
-      listeningOverlay.style.opacity = '0';
-      setTimeout(() => {
+      if (pulseAnimation) {
+        pulseAnimation.cancel();
+      }
+
+      const fadeOutAnimation = listeningOverlay.animate(
+        [{ opacity: 1 }, { opacity: 0 }],
+        { duration: 150, easing: 'ease-in' }
+      );
+      
+      fadeOutAnimation.onfinish = () => {
         if (listeningOverlay) {
           listeningOverlay.remove();
           listeningOverlay = null;
         }
-      }, 200); // Wait for fade-out transition
+      };
     }
   }
-
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && dictationTargetElement) {
@@ -76,14 +125,12 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     }
   });
 
-  // --- Function to play sound effects ---
   function playSound(soundFile) {
     const audioUrl = chrome.runtime.getURL(soundFile);
     const audio = new Audio(audioUrl);
     audio.play();
   }
 
-  // --- Function to process selected text ---
   function processSelectedText() {
     const activeElement = document.activeElement;
     if (!activeElement) return;
@@ -129,7 +176,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     });
   }
 
-  // --- Function to initialize speech recognition ---
   function initializeSpeechRecognition() {
     if (recognition) return;
 
@@ -150,10 +196,9 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
     recognition.onend = () => {
       playSound('assets/audio/end.mp3');
-      hideListeningIndicator(); // Hide the overlay
+      hideListeningIndicator();
 
       if (dictationCancelled) {
-        // Restore original text on cancellation
         if (dictationTargetElement) {
           if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
             dictationTargetElement.value = originalInputText;
@@ -191,7 +236,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     recognition.onerror = (event) => {
       if (event.error === 'no-speech') return;
       console.error("Speech recognition error:", event.error);
-      hideListeningIndicator(); // Hide the overlay on error
+      hideListeningIndicator();
 
       if (dictationTargetElement) {
         if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
@@ -205,7 +250,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     };
   }
 
-  // --- Main message listener that waits for commands ---
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.command === "process-text") {
       processSelectedText();
@@ -218,7 +262,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       );
 
       if (!isEditable) {
-        hideListeningIndicator(); // Hide indicator if no editable element is focused
+        hideListeningIndicator();
         return;
       }
 
@@ -230,9 +274,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
             playSound('assets/audio/start.mp3');
             const isTextElement = dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT";
             originalInputText = isTextElement ? dictationTargetElement.value : dictationTargetElement.textContent;
-
-            // --- AMENDED BEHAVIOR ---
-            // Show the non-intrusive overlay indicator
+            
             showListeningIndicator(dictationTargetElement);
 
             recognition.start();
