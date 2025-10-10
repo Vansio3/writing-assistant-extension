@@ -8,6 +8,7 @@ This Chrome extension provides a powerful writing assistant powered by the Gemin
 *   **Two Ways to Activate**:
     *   **Keyboard Shortcut**: Press `Alt+R` to process the selected text or the entire content of a text field.
     *   **Context Menu**: Right-click on selected text and choose "Process with Gemini" to rewrite it.
+*   **User-Friendly API Key Setup**: Securely save your API key directly in the extension's popup.
 *   **Smart Selection**: If you haven't selected any text in an editable field, the extension will automatically process the entire content.
 *   **API Usage Tracking**: The extension's popup keeps track of your daily and total API calls.
 *   **Preserves Your Original Text**: The popup also displays the last original text you processed, so you can easily copy it if needed.
@@ -29,14 +30,11 @@ This Chrome extension provides a powerful writing assistant powered by the Gemin
 To use the extension, you need to add your Gemini API key.
 
 1.  **Get your Gemini API Key**: If you don't have one, you can get it from [Google AI Studio](https://aistudio.google.com/app/apikey).
-2.  **Add the key to the `config.js` file**:
-    *   Rename `config.js.example` to `config.js`.
-    *   Open the `config.js` file in a text editor.
-    *   Replace `"YOUR_GEMINI_API_KEY_HERE"` with your actual API key.
-    *   Save the file.
-3.  **Reload the extension**:
-    *   Go back to `chrome://extensions`.
-    *   Click the reload icon for the Gemini Writing Assistant extension.
+2.  **Add the key in the Extension Popup**:
+    *   Click on the Gemini Writing Assistant icon in your Chrome toolbar to open the popup.
+    *   Paste your API key into the input field.
+    *   Click "Save Key".
+3.  **Start Using**: Once the key is saved, you are ready to use the extension.
 
 ## How to Use
 
@@ -53,12 +51,12 @@ To use the extension, you need to add your Gemini API key.
 
 ## Project Files
 
-*   `manifest.json`: The manifest file that defines the extension's properties and permissions.
-*   `background.js`: The service worker that handles API calls, context menu creation, and keyboard shortcuts.
-*   `content.js`: The script that is injected into the active tab to interact with the webpage content.
+*   `manifest.json`: Defines the extension's properties and permissions.
+*   `background.js`: Handles API calls, context menu creation, and keyboard shortcuts.
+*   `content.js`: Injected into the active tab to interact with webpage content.
 *   `popup.html`: The HTML structure for the extension's popup.
-*   `popup.js`: The JavaScript that powers the popup, displaying API usage and the last original text.
+*   `popup.js`: Powers the popup, including API key management and usage stats.
 *   `popup.css`: The CSS for styling the popup with a dark theme.
-*   `prompt.js`: A module that constructs the prompt sent to the Gemini API for text rewriting.
-*   `config.js`: The configuration file where you need to add your Gemini API key.
+*   `prompt.js`: Constructs the prompt sent to the Gemini API.
+*   `config.js`: Configuration file for the Gemini model.
 *   `icon.png`: The extension's icon.

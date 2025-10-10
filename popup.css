@@ -52,22 +52,29 @@ h4 {
   color: #8ab4f8;
 }
 
-textarea {
+textarea, input[type="password"] {
   width: 100%;
   box-sizing: border-box;
-  height: 70px;
-  margin-top: 5px;
   font-size: 12px;
   border: 1px solid #5f6368;
   border-radius: 6px;
   padding: 8px;
   background-color: #2d2e30;
   color: #e8eaed;
-  resize: none;
   font-family: inherit;
 }
 
-textarea:focus {
+textarea {
+  height: 70px;
+  margin-top: 5px;
+  resize: none;
+}
+
+input[type="password"] {
+  margin-bottom: 10px;
+}
+
+textarea:focus, input[type="password"]:focus {
   outline: none;
   border-color: #8ab4f8;
   box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.3);
@@ -77,7 +84,7 @@ textarea:focus {
   background-color: #2d2e30;
   padding: 12px;
   border-radius: 8px;
-  margin-top: 15px;
+  margin-bottom: 15px;
   border: 1px solid #3c4043;
 }
 
@@ -88,24 +95,46 @@ textarea:focus {
   margin-bottom: 8px;
 }
 
-.copy-button {
+.copy-button, .save-button {
   background-color: #8ab4f8;
   color: #202124;
   border: none;
   border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
 
-.copy-button:hover {
+.copy-button {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.save-button {
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.copy-button:hover, .save-button:hover {
   background-color: #9ac0f9;
 }
 
-.copy-button:active {
+.copy-button:active, .save-button:active {
   background-color: #a3c7fa;
+}
+
+p.api-key-label {
+  margin: 5px 0;
+}
+
+p.status-message {
+  font-size: 12px;
+  color: #8ab4f8;
+  margin-top: 8px;
+  min-height: 15px;
+  text-align: center;
+  margin-bottom: 0;
 }
 
 /* Custom Scrollbar Styles */
