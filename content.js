@@ -39,7 +39,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         <path d="M15.25 16.75L12 13.5L8.75 16.75" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>`;
     Object.assign(fab.style, {
-      position: 'absolute', width: '24px', height: '24px', borderRadius: '50%',
+      position: 'absolute', top: '0', left: '0', width: '24px', height: '24px', borderRadius: '50%',
       backgroundColor: '#007aff', display: 'none', alignItems: 'center',
       justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', cursor: 'pointer',
       zIndex: '2147483647', transition: 'opacity 0.2s ease-in-out, transform 0.2s ease-out',
@@ -61,12 +61,12 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   function showFab(targetElement) {
     if (!fab) return;
     const rect = targetElement.getBoundingClientRect();
-    fab.style.top = `${rect.top + window.scrollY + (rect.height / 2) - 12}px`; 
-    fab.style.left = `${rect.left + window.scrollX - 30}px`; 
+    const x = rect.left + window.scrollX - 30;
+    const y = rect.top + window.scrollY + (rect.height / 2) - 12;
+    fab.style.transform = `translate(${x}px, ${y}px) scale(1)`;
     fab.style.display = 'flex';
     setTimeout(() => { 
         fab.style.opacity = '1';
-        fab.style.transform = 'scale(1)';
     }, 10);
   }
 
@@ -79,7 +79,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       fab.style.opacity = '0';
     } else {
       fab.style.opacity = '0';
-      fab.style.transform = 'scale(0.8)';
+      fab.style.transform = `${fab.style.transform.split('scale')[0]} scale(0.8)`;
       setTimeout(() => {
         if (fab.style.opacity === '0') { 
           fab.style.display = 'none';
@@ -91,8 +91,9 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   const repositionIcon = () => {
     if (onFocusMicIcon && lastFocusedEditableElement && onFocusMicIcon.style.display === 'flex') {
       const rect = lastFocusedEditableElement.getBoundingClientRect();
-      onFocusMicIcon.style.top = `${rect.top + window.scrollY + (rect.height / 2) - 14}px`;
-      onFocusMicIcon.style.left = `${rect.right + window.scrollX - 34}px`;
+      const x = rect.right + window.scrollX - 34;
+      const y = rect.top + window.scrollY + (rect.height / 2) - 14;
+      onFocusMicIcon.style.transform = `translate(${x}px, ${y}px)`;
     }
   };
   
@@ -112,7 +113,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         <path d="M9.67 4H12v2.33"/>
       </svg>`;
     Object.assign(transcriptionOnlyButton.style, {
-      position: 'absolute', width: '28px', height: '28px', borderRadius: '50%',
+      position: 'absolute', top: '0', left: '0', width: '28px', height: '28px', borderRadius: '50%',
       backgroundColor: '#f0f0f0', display: 'none', alignItems: 'center',
       justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', cursor: 'pointer',
       zIndex: '2147483648', transition: 'transform 0.2s ease-out, background-color 0.2s ease',
@@ -132,7 +133,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         <path d="M12 19V23" stroke="#606367" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>`;
     Object.assign(onFocusMicIcon.style, {
-      position: 'absolute', width: '28px', height: '28px', borderRadius: '50%',
+      position: 'absolute', top: '0', left: '0', width: '28px', height: '28px', borderRadius: '50%',
       backgroundColor: '#f0f0f0', display: 'none', alignItems: 'center',
       justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', cursor: 'pointer',
       zIndex: '2147483646', transition: 'opacity 0.2s ease-in-out, background-color 0.2s ease',
@@ -152,10 +153,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       micHoldTimeout = setTimeout(() => {
         if (!isMouseDownOnMic || !transcriptionOnlyButton) return;
         const micRect = onFocusMicIcon.getBoundingClientRect();
-        transcriptionOnlyButton.style.top = `${micRect.top + window.scrollY - 34}px`; // Position above
-        transcriptionOnlyButton.style.left = `${micRect.left + window.scrollX}px`;
+        const x = micRect.left + window.scrollX;
+        const y = micRect.top + window.scrollY - 34;
+        transcriptionOnlyButton.style.transform = `translate(${x}px, ${y}px)`;
         transcriptionOnlyButton.style.display = 'flex';
-        setTimeout(() => transcriptionOnlyButton.style.transform = 'translateY(0px)', 10);
+        // The visual transition is handled by the CSS transition on the transform property.
       }, 200);
     });
 
@@ -217,9 +219,10 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       handleToggleDictation({ start: false });
     });
     Object.assign(listeningOverlay.style, {
-      position: 'absolute', top: `${rect.top + window.scrollY}px`, left: `${rect.left + window.scrollX}px`,
+      position: 'absolute', top: `0px`, left: `0px`,
       width: `${rect.width}px`, height: `${rect.height}px`, borderRadius: getComputedStyle(targetElement).borderRadius,
       pointerEvents: 'none', zIndex: '2147483647', opacity: '0',
+      transform: `translate(${rect.left + window.scrollX}px, ${rect.top + window.scrollY}px)`
     });
     const styleId = 'gemini-listening-style';
     if (!document.getElementById(styleId)) {
@@ -557,7 +560,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         }
         // Hide the secondary button
         transcriptionOnlyButton.style.display = 'none';
-        transcriptionOnlyButton.style.transform = 'translateY(10px)';
+        transcriptionOnlyButton.style.transform = `translateY(10px)`;
       } else {
         // If it was just a quick click (secondary button never appeared)
         handleToggleDictation({ start: true, bypassAi: false });
