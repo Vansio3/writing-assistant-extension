@@ -297,6 +297,8 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
           document.execCommand('insertText', false, response.generatedText);
         }
         activeElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+        
+        setTimeout(repositionIcon, 200);
       }
     });
   }
