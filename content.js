@@ -9,7 +9,62 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
   let dictationTargetElement = null;
   let originalInputText = '';
-  let dictationCancelled = false; 
+  let dictationCancelled = false;
+
+  // --- NEW: A variable to hold our visual indicator overlay ---
+  let listeningOverlay = null;
+
+  /**
+   * --- NEW: Creates and displays a visual overlay on top of the target element ---
+   * This avoids modifying the element directly, bypassing issues with CSPs and
+   * dynamic UI frameworks that might revert style or class changes.
+   * @param {HTMLElement} targetElement The element to position the overlay over.
+   */
+  function showListeningIndicator(targetElement) {
+    // Remove any existing overlay first
+    if (listeningOverlay) {
+      listeningOverlay.remove();
+    }
+
+    // Create the overlay element
+    listeningOverlay = document.createElement('div');
+    const rect = targetElement.getBoundingClientRect();
+
+    // Style the overlay
+    Object.assign(listeningOverlay.style, {
+      position: 'absolute',
+      top: `${rect.top + window.scrollY}px`,
+      left: `${rect.left + window.scrollX}px`,
+      width: `${rect.width}px`,
+      height: `${rect.height}px`,
+      border: '2px solid #E53E3E', // A clear red border
+      borderRadius: getComputedStyle(targetElement).borderRadius, // Match the target's border-radius
+      boxSizing: 'border-box', // Ensures border is included in width/height
+      pointerEvents: 'none', // Allows clicks to pass through to the element underneath
+      zIndex: '2147483647', // Max z-index to ensure it's on top
+      transition: 'opacity 0.2s ease-in-out', // Fade out smoothly
+      opacity: '1'
+    });
+
+    document.body.appendChild(listeningOverlay);
+  }
+
+  /**
+   * --- NEW: Hides and removes the listening overlay from the DOM ---
+   */
+  function hideListeningIndicator() {
+    if (listeningOverlay) {
+      // Fade out before removing for a smoother experience
+      listeningOverlay.style.opacity = '0';
+      setTimeout(() => {
+        if (listeningOverlay) {
+          listeningOverlay.remove();
+          listeningOverlay = null;
+        }
+      }, 200); // Wait for fade-out transition
+    }
+  }
+
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && dictationTargetElement) {
@@ -94,10 +149,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     };
 
     recognition.onend = () => {
-      // --- UPDATED: Use the correct path for the sound file ---
       playSound('assets/audio/end.mp3');
+      hideListeningIndicator(); // Hide the overlay
 
       if (dictationCancelled) {
+        // Restore original text on cancellation
         if (dictationTargetElement) {
           if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
             dictationTargetElement.value = originalInputText;
@@ -108,16 +164,8 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         dictationTargetElement = null;
         originalInputText = '';
         finalTranscript = '';
-        dictationCancelled = false; 
-        return; 
-      }
-
-      if (dictationTargetElement) {
-        if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
-          dictationTargetElement.value = originalInputText;
-        } else {
-          dictationTargetElement.textContent = originalInputText;
-        }
+        dictationCancelled = false;
+        return;
       }
 
       if (dictationTargetElement && finalTranscript.trim()) {
@@ -143,12 +191,13 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     recognition.onerror = (event) => {
       if (event.error === 'no-speech') return;
       console.error("Speech recognition error:", event.error);
+      hideListeningIndicator(); // Hide the overlay on error
 
       if (dictationTargetElement) {
         if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
-          dictationTargetElement.value = originalInputText;
+            dictationTargetElement.value = originalInputText;
         } else {
-          dictationTargetElement.textContent = originalInputText;
+            dictationTargetElement.textContent = originalInputText;
         }
         dictationTargetElement = null;
         originalInputText = '';
@@ -169,6 +218,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       );
 
       if (!isEditable) {
+        hideListeningIndicator(); // Hide indicator if no editable element is focused
         return;
       }
 
@@ -177,15 +227,14 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         if (recognition) {
           dictationTargetElement = activeElement;
           if (dictationTargetElement) {
-            // --- UPDATED: Use the correct path for the sound file ---
             playSound('assets/audio/start.mp3');
             const isTextElement = dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT";
             originalInputText = isTextElement ? dictationTargetElement.value : dictationTargetElement.textContent;
-            if (isTextElement) {
-              dictationTargetElement.value = "🔴 Listening...";
-            } else {
-              dictationTargetElement.textContent = "🔴 Listening...";
-            }
+
+            // --- AMENDED BEHAVIOR ---
+            // Show the non-intrusive overlay indicator
+            showListeningIndicator(dictationTargetElement);
+
             recognition.start();
           }
         } else {
