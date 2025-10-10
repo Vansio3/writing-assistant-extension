@@ -31,13 +31,15 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   function createFab() {
     if (fab) return;
     fab = document.createElement('div');
+    // --- MODIFICATION: The viewBox is now tightly cropped around the chevrons. ---
+    // This makes the icon itself larger without changing the SVG's element size.
     const svg = `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="10" height="10" viewBox="8 7 8 11" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M15.25 10.75L12 7.5L8.75 10.75" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M15.25 16.75L12 13.5L8.75 16.75" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>`;
     Object.assign(fab.style, {
-      position: 'absolute', width: '32px', height: '32px', borderRadius: '50%',
+      position: 'absolute', width: '24px', height: '24px', borderRadius: '50%',
       backgroundColor: '#007aff', display: 'none', alignItems: 'center',
       justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', cursor: 'pointer',
       zIndex: '2147483647', transition: 'opacity 0.2s ease-in-out, transform 0.2s ease-out',
@@ -48,7 +50,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       event.preventDefault();
       event.stopPropagation();
       if (lastFocusedEditableElement) {
-        processSelectedText(); // Reuse existing function to process text
+        processSelectedText();
       }
       hideFab(true);
     });
@@ -59,8 +61,8 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   function showFab(targetElement) {
     if (!fab) return;
     const rect = targetElement.getBoundingClientRect();
-    fab.style.top = `${rect.top + window.scrollY + (rect.height / 2) - 16}px`; 
-    fab.style.left = `${rect.left + window.scrollX - 35}px`; 
+    fab.style.top = `${rect.top + window.scrollY + (rect.height / 2) - 12}px`; 
+    fab.style.left = `${rect.left + window.scrollX - 30}px`; 
     fab.style.display = 'flex';
     setTimeout(() => { 
         fab.style.opacity = '1';
