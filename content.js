@@ -13,12 +13,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
   let listeningOverlay = null;
 
-  /**
-   * --- REVISED: Creates a precisely positioned visual indicator ---
-   * This version uses absolute positioning and CSS transforms to perfectly
-   * center the icon vertically and place it closer to the input field's edge.
-   * @param {HTMLElement} targetElement The element to position the overlay over.
-   */
   function showListeningIndicator(targetElement) {
     if (listeningOverlay) {
       listeningOverlay.remove();
@@ -27,7 +21,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     listeningOverlay = document.createElement('div');
     const rect = targetElement.getBoundingClientRect();
 
-    // A balanced SVG icon, sized to fit well within the 30px container.
     const microphoneIconSVG = `
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -40,8 +33,8 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     Object.assign(iconContainer.style, {
       position: 'absolute',
       top: '50%',
-      right: '6px', // Positioned close to the right edge
-      transform: 'translateY(-50%)', // Perfect vertical centering
+      right: '6px',
+      transform: 'translateY(-50%)',
       width: '30px',
       height: '30px',
       borderRadius: '50%',
@@ -50,11 +43,24 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       alignItems: 'center',
       justifyContent: 'center',
       boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-      animation: 'gemini-icon-pulse 1.5s infinite ease-in-out'
+      animation: 'gemini-icon-pulse 1.5s infinite ease-in-out',
+      cursor: 'pointer',
+      pointerEvents: 'auto'
     });
     iconContainer.innerHTML = microphoneIconSVG;
 
-    // Style the main overlay container. It now acts as a positioning context.
+    // --- KEY CHANGE ---
+    // Use 'mousedown' and 'preventDefault' to stop the input field from losing focus.
+    iconContainer.addEventListener('mousedown', (event) => {
+      // This is the crucial step. It prevents the blur event on the input.
+      event.preventDefault();
+
+      if (recognition) {
+        // Now, stopping the recognition will lead to processing, not cancellation.
+        recognition.stop();
+      }
+    });
+
     Object.assign(listeningOverlay.style, {
       position: 'absolute',
       top: `${rect.top + window.scrollY}px`,
@@ -62,14 +68,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       width: `${rect.width}px`,
       height: `${rect.height}px`,
       borderRadius: getComputedStyle(targetElement).borderRadius,
-      pointerEvents: 'none', // Allows clicks to pass through the overlay itself
-      zIndex: '2147483647',
+      pointerEvents: 'none',
+      zIndex: '214783647',
       opacity: '0',
     });
-    // The icon is a child, but pointerEvents must be set on it separately.
-    iconContainer.style.pointerEvents = 'none';
 
-    // Inject the CSS animation for the pulse effect if it doesn't already exist
     const styleId = 'gemini-listening-style';
     if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
@@ -87,7 +90,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     listeningOverlay.appendChild(iconContainer);
     document.body.appendChild(listeningOverlay);
 
-    // Fade-in animation
     listeningOverlay.animate(
       [{ opacity: 0 }, { opacity: 1 }],
       { duration: 200, easing: 'ease-out', fill: 'forwards' }
@@ -110,13 +112,10 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     }
   }
 
-  // --- FOCUS HANDLING ---
-  // Function to gracefully handle the user shifting focus away from the input
   function handleFocusLoss() {
     if (recognition && dictationTargetElement) {
       dictationCancelled = true;
       recognition.stop();
-      // No need to message background here, recognition.onend will fire
     }
   }
 
@@ -126,7 +125,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (recognition) {
         recognition.stop();
       }
-      // Notify the background script to reset its recording state
       chrome.runtime.sendMessage({ command: "reset-recording-state" });
     }
   });
@@ -204,7 +202,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       playSound('assets/audio/end.mp3');
       hideListeningIndicator();
 
-      // Always remove the event listener on cleanup
       if (dictationTargetElement) {
         dictationTargetElement.removeEventListener('blur', handleFocusLoss);
       }
@@ -221,7 +218,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         originalInputText = '';
         finalTranscript = '';
         dictationCancelled = false;
-        // Inform background script to reset its state if not already done by Esc key
         chrome.runtime.sendMessage({ command: "reset-recording-state" });
         return;
       }
@@ -251,7 +247,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       console.error("Speech recognition error:", event.error);
       hideListeningIndicator();
 
-      // Always remove the event listener on cleanup
       if (dictationTargetElement) {
         dictationTargetElement.removeEventListener('blur', handleFocusLoss);
         if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
@@ -290,7 +285,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
             const isTextElement = dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT";
             originalInputText = isTextElement ? dictationTargetElement.value : dictationTargetElement.textContent;
             
-            // Add the blur event listener to handle focus loss
             dictationTargetElement.addEventListener('blur', handleFocusLoss, { once: true });
             
             showListeningIndicator(dictationTargetElement);
