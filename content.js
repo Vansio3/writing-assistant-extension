@@ -13,10 +13,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   let focusOutTimeout = null;
   let lastFocusedEditableElement = null;
 
-  // This observer will react to any size/position changes of the focused input field.
+  // This new variable will track why a dictation was cancelled.
+  let cancellationReason = null;
+
   let resizeObserver = null;
 
-  // This function is the callback for the observer, ensuring the icon is always correctly placed.
   const repositionIcon = () => {
     if (onFocusMicIcon && lastFocusedEditableElement && onFocusMicIcon.style.display === 'flex') {
       const rect = lastFocusedEditableElement.getBoundingClientRect();
@@ -56,11 +57,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     clearTimeout(focusOutTimeout);
     onFocusMicIcon.style.display = 'flex';
     onFocusMicIcon.style.opacity = '1';
-    
-    // Perform the initial positioning.
     repositionIcon();
-    
-    // Start observing the target for any future layout changes.
     if (resizeObserver) {
       resizeObserver.observe(targetElement);
     }
@@ -68,12 +65,9 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
   function hideOnFocusMicIcon(immediately = false) {
     if (!onFocusMicIcon) return;
-    
-    // Stop observing to prevent unnecessary calculations.
     if (resizeObserver) {
       resizeObserver.disconnect();
     }
-
     const delay = immediately ? 0 : 200;
     focusOutTimeout = setTimeout(() => {
       onFocusMicIcon.style.opacity = '0';
@@ -133,6 +127,8 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   function handleFocusLoss() {
     if (recognition && dictationTargetElement) {
       dictationCancelled = true;
+      // Set the cancellation reason to 'blur'
+      cancellationReason = 'blur';
       recognition.stop();
     }
   }
@@ -140,6 +136,8 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && dictationTargetElement) {
       dictationCancelled = true;
+      // Set the cancellation reason to 'escape'
+      cancellationReason = 'escape';
       if (recognition) recognition.stop();
     }
   });
@@ -196,31 +194,64 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
       }
     };
+
     recognition.onend = () => {
       playSound('assets/audio/end.mp3');
       hideListeningIndicator();
-      if (dictationTargetElement) dictationTargetElement.removeEventListener('blur', handleFocusLoss);
+      
+      const finishedTargetElement = dictationTargetElement;
+
+      if (finishedTargetElement) {
+        finishedTargetElement.removeEventListener('blur', handleFocusLoss);
+      }
+
       try {
         chrome.runtime.sendMessage({ command: "update-recording-state", isRecording: false });
       } catch(e) { console.warn("Could not update background state. Context may be invalidated."); }
+      
       if (dictationCancelled) {
-        if (dictationTargetElement) { dictationTargetElement.value = originalInputText; }
-        dictationTargetElement = null; originalInputText = ''; finalTranscript = ''; dictationCancelled = false;
+        if (finishedTargetElement) {
+          finishedTargetElement.value = originalInputText;
+          // Only show the icon again if cancellation was via Escape key,
+          // as the element is still focused.
+          if (cancellationReason === 'escape') {
+            showOnFocusMicIcon(finishedTargetElement);
+          }
+        }
+        // Reset state for the next session
+        dictationTargetElement = null;
+        originalInputText = '';
+        finalTranscript = '';
+        dictationCancelled = false;
+        cancellationReason = null; // Important: Reset the reason
         return;
       }
-      if (dictationTargetElement && finalTranscript.trim()) {
-        dictationTargetElement.style.opacity = '0.5'; dictationTargetElement.style.cursor = 'wait';
+      
+      if (finishedTargetElement && finalTranscript.trim()) {
+        finishedTargetElement.style.opacity = '0.5';
+        finishedTargetElement.style.cursor = 'wait';
         chrome.runtime.sendMessage({ prompt: finalTranscript.trim() }, (response) => {
-          dictationTargetElement.style.opacity = '1'; dictationTargetElement.style.cursor = 'auto';
+          finishedTargetElement.style.opacity = '1';
+          finishedTargetElement.style.cursor = 'auto';
           if (response && response.generatedText) {
             document.execCommand('insertText', false, response.generatedText);
-            dictationTargetElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+            finishedTargetElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
           }
-          dictationTargetElement = null; originalInputText = '';
+          if (document.activeElement === finishedTargetElement) {
+            showOnFocusMicIcon(finishedTargetElement);
+          }
         });
+      } else if (finishedTargetElement) {
+        if (document.activeElement === finishedTargetElement) {
+          showOnFocusMicIcon(finishedTargetElement);
+        }
       }
+      
+      dictationTargetElement = null;
+      originalInputText = '';
       finalTranscript = '';
     };
+
     recognition.onerror = (event) => {
       if (event.error === 'no-speech') return;
       console.error("Speech recognition error:", event.error);
@@ -228,7 +259,8 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (dictationTargetElement) {
         dictationTargetElement.removeEventListener('blur', handleFocusLoss);
         dictationTargetElement.value = originalInputText;
-        dictationTargetElement = null; originalInputText = '';
+        dictationTargetElement = null;
+        originalInputText = '';
       }
     };
   }
@@ -262,7 +294,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   }
 
   function initializeExtension() {
-    // Initialize the ResizeObserver with our repositioning callback function.
     resizeObserver = new ResizeObserver(repositionIcon);
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
