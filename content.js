@@ -13,12 +13,12 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   let focusOutTimeout = null;
   let lastFocusedEditableElement = null;
 
-  // This new variable will track why a dictation was cancelled.
   let cancellationReason = null;
 
   let resizeObserver = null;
 
   const repositionIcon = () => {
+    // Only reposition if the icon is meant to be visible and attached to an element
     if (onFocusMicIcon && lastFocusedEditableElement && onFocusMicIcon.style.display === 'flex') {
       const rect = lastFocusedEditableElement.getBoundingClientRect();
       onFocusMicIcon.style.top = `${rect.top + window.scrollY + (rect.height / 2) - 14}px`;
@@ -55,23 +55,33 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   function showOnFocusMicIcon(targetElement) {
     if (!onFocusMicIcon) return;
     clearTimeout(focusOutTimeout);
+    
+    // Ensure the observer is watching the new target
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+      resizeObserver.observe(targetElement);
+    }
+
     onFocusMicIcon.style.display = 'flex';
     onFocusMicIcon.style.opacity = '1';
     repositionIcon();
-    if (resizeObserver) {
-      resizeObserver.observe(targetElement);
-    }
   }
 
   function hideOnFocusMicIcon(immediately = false) {
     if (!onFocusMicIcon) return;
-    if (resizeObserver) {
-      resizeObserver.disconnect();
-    }
+    
     const delay = immediately ? 0 : 200;
+    
     focusOutTimeout = setTimeout(() => {
       onFocusMicIcon.style.opacity = '0';
-      setTimeout(() => { if(onFocusMicIcon) onFocusMicIcon.style.display = 'none'; }, 200);
+      setTimeout(() => { 
+        if(onFocusMicIcon) onFocusMicIcon.style.display = 'none'; 
+        // Disconnect the observer only AFTER the icon is fully hidden.
+        // This allows it to track resizing during the fade-out animation.
+        if (resizeObserver) {
+          resizeObserver.disconnect();
+        }
+      }, 200);
     }, delay);
   }
 
@@ -127,7 +137,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   function handleFocusLoss() {
     if (recognition && dictationTargetElement) {
       dictationCancelled = true;
-      // Set the cancellation reason to 'blur'
       cancellationReason = 'blur';
       recognition.stop();
     }
@@ -136,7 +145,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && dictationTargetElement) {
       dictationCancelled = true;
-      // Set the cancellation reason to 'escape'
       cancellationReason = 'escape';
       if (recognition) recognition.stop();
     }
@@ -212,18 +220,15 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (dictationCancelled) {
         if (finishedTargetElement) {
           finishedTargetElement.value = originalInputText;
-          // Only show the icon again if cancellation was via Escape key,
-          // as the element is still focused.
           if (cancellationReason === 'escape') {
             showOnFocusMicIcon(finishedTargetElement);
           }
         }
-        // Reset state for the next session
         dictationTargetElement = null;
         originalInputText = '';
         finalTranscript = '';
         dictationCancelled = false;
-        cancellationReason = null; // Important: Reset the reason
+        cancellationReason = null;
         return;
       }
       
@@ -294,6 +299,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   }
 
   function initializeExtension() {
+    // Initialize the observer once
     resizeObserver = new ResizeObserver(repositionIcon);
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -322,7 +328,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       const target = event.target;
       if (target === lastFocusedEditableElement) {
         hideOnFocusMicIcon();
-        lastFocusedEditableElement = null;
+        // We leave lastFocusedEditableElement set until after the hide animation
+        // so the repositionIcon function has a valid target.
+        setTimeout(() => {
+          lastFocusedEditableElement = null;
+        }, 400); // Should be the total duration of the hide animation.
       }
     });
 
