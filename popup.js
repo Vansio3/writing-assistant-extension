@@ -53,7 +53,8 @@ const outputStyles = [
     { value: 'friendly', name: 'Friendly' },
     { value: 'casual', name: 'Casual' },
     { value: 'technical', name: 'Technical' },
-    { value: 'creative', name: 'Creative' }
+    { value: 'creative', name: 'Creative' },
+    { value: 'custom', name: 'Custom' }
 ];
 
 const outputLengths = [
@@ -83,6 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const outputLengthSelect = document.getElementById('outputLengthSelect');
   const aiProcessingToggle = document.getElementById('aiProcessingToggle');
   const soundToggle = document.getElementById('soundToggle');
+  const customStyleRow = document.getElementById('customStyleRow');
+  const customStyleInput = document.getElementById('customStyleInput');
 
   // Function to populate select dropdowns
   function populateSelect(element, options) {
@@ -104,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const storageKeys = [
       'geminiApiKey', 'totalCount', 'dailyCount', 'lastOriginalText', 
       'selectedLanguage', 'outputStyle', 'outputLength', 'aiProcessingEnabled',
-      'soundEnabled'
+      'soundEnabled', 'customOutputStyle'
     ];
 
     chrome.storage.local.get(storageKeys, (result) => {
@@ -124,6 +127,15 @@ document.addEventListener('DOMContentLoaded', () => {
         outputLengthSelect.value = result.outputLength || 'default';
         aiProcessingToggle.checked = result.aiProcessingEnabled !== false; // Default to true
         soundToggle.checked = result.soundEnabled !== false; // Default to true
+        customStyleInput.value = result.customOutputStyle || '';
+
+        // Show/hide custom input based on the loaded style
+        if (outputStyleSelect.value === 'custom') {
+          customStyleRow.style.display = 'flex';
+        } else {
+          customStyleRow.style.display = 'none';
+        }
+
       } else {
         mainContent.style.display = 'none';
         middleColumn.style.display = 'none'; // Hide middle column
@@ -160,19 +172,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Generic event listener for settings changes
   function addSettingChangeListener(element, key) {
-    const eventType = element.type === 'checkbox' ? 'change' : 'change';
+    const eventType = (element.tagName === 'INPUT' && element.type ==='text') ? 'input' : 'change';
     const valueProperty = element.type === 'checkbox' ? 'checked' : 'value';
 
     element.addEventListener(eventType, () => {
       chrome.storage.local.set({ [key]: element[valueProperty] });
     });
   }
+  
+  // Handle style dropdown UI changes separately
+  outputStyleSelect.addEventListener('change', () => {
+    const selectedStyle = outputStyleSelect.value;
+    chrome.storage.local.set({ outputStyle: selectedStyle });
+    if (selectedStyle === 'custom') {
+      customStyleRow.style.display = 'flex';
+    } else {
+      customStyleRow.style.display = 'none';
+    }
+  });
+
 
   addSettingChangeListener(languageSelect, 'selectedLanguage');
-  addSettingChangeListener(outputStyleSelect, 'outputStyle');
   addSettingChangeListener(outputLengthSelect, 'outputLength');
   addSettingChangeListener(aiProcessingToggle, 'aiProcessingEnabled');
   addSettingChangeListener(soundToggle, 'soundEnabled');
+  addSettingChangeListener(customStyleInput, 'customOutputStyle');
 
   // Initial load
   checkApiKeyAndLoadContent();

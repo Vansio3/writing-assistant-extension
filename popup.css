@@ -96,7 +96,7 @@ strong {
   gap: 12px;
 }
 
-input[type="password"], textarea, .select-css {
+input[type="password"], input[type="text"], textarea, .select-css {
   width: 100%;
   box-sizing: border-box;
   font-size: 13px;
@@ -109,7 +109,7 @@ input[type="password"], textarea, .select-css {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-input[type="password"]:focus, textarea:focus, .select-css:focus {
+input[type="password"]:focus, input[type="text"]:focus, textarea:focus, .select-css:focus {
   outline: none;
   border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3);
@@ -173,6 +173,10 @@ textarea {
   color: var(--text-secondary);
   font-size: 14px;
   margin-right: 8px; /* Added margin for spacing */
+}
+
+#customStyleInput {
+  max-width: 65%;
 }
 
 .select-css {

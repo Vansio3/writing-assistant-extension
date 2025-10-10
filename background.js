@@ -60,7 +60,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.prompt) {
     const storageKeys = [
       'geminiApiKey', 'selectedLanguage', 'outputStyle', 
-      'outputLength', 'aiProcessingEnabled'
+      'outputLength', 'aiProcessingEnabled', 'customOutputStyle'
     ];
     
     // MODIFICATION: Fetch all settings from storage.
@@ -70,7 +70,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         selectedLanguage, 
         outputStyle, 
         outputLength,
-        aiProcessingEnabled 
+        aiProcessingEnabled,
+        customOutputStyle
       } = result;
 
       if (!GEMINI_API_KEY) {
@@ -90,7 +91,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const style = outputStyle || 'default';
       const length = outputLength || 'default';
       
-      const finalPrompt = createPrompt(request.prompt, language, style, length);
+      const finalPrompt = createPrompt(request.prompt, language, style, length, customOutputStyle);
 
       fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
         method: "POST",

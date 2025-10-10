@@ -55,14 +55,17 @@ const languageNameMap = {
  * @param {string} languageCode - The language code for the output (e.g., 'es-ES').
  * @param {string} style - The desired writing style ('default', 'professional', etc.).
  * @param {string} length - The desired output length ('default', 'shorter', 'longer').
+ * @param {string} [customStyle] - The user-defined custom style, if applicable.
  * @returns {string} The formatted prompt.
  */
-export function createPrompt(inputText, languageCode = 'en-US', style = 'default', length = 'default') {
+export function createPrompt(inputText, languageCode = 'en-US', style = 'default', length = 'default', customStyle = '') {
   const targetLanguage = languageNameMap[languageCode] || languageCode;
 
   // Build the instruction parts dynamically.
   let styleInstruction = '';
-  if (style !== 'default') {
+  if (style === 'custom' && customStyle.trim()) {
+    styleInstruction = `Your response must adopt a **${customStyle.trim()}** tone.`;
+  } else if (style !== 'default') {
     styleInstruction = `Your response must adopt a **${style}** tone.`;
   }
 
