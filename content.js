@@ -1,4 +1,4 @@
-// content.js (Idempotent - safe to inject multiple times)
+// content.js (Idempotent - safe to inject multiple times) 
 
 if (typeof window.geminiAssistantInitialized === 'undefined') {
   window.geminiAssistantInitialized = true;
