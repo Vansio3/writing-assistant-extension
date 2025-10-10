@@ -6,6 +6,10 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
   let recognition;
   let finalTranscript = '';
+  
+  // Variables to manage the state during dictation
+  let dictationTargetElement = null;
+  let originalInputText = '';
 
   // --- Function to process selected text ---
   function processSelectedText() {
@@ -73,34 +77,51 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     };
 
     recognition.onend = () => {
-      const activeElement = document.activeElement;
-      if (activeElement) activeElement.placeholder = "";
-      if (activeElement && finalTranscript) {
-        activeElement.style.opacity = '0.5';
-        activeElement.style.cursor = 'wait';
+      // Restore the original text before processing the transcript
+      if (dictationTargetElement) {
+        if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
+          dictationTargetElement.value = originalInputText;
+        } else {
+          dictationTargetElement.textContent = originalInputText;
+        }
+      }
+
+      if (dictationTargetElement && finalTranscript.trim()) {
+        dictationTargetElement.style.opacity = '0.5';
+        dictationTargetElement.style.cursor = 'wait';
         
         chrome.runtime.sendMessage({ prompt: finalTranscript.trim() }, (response) => {
-          activeElement.style.opacity = '1';
-          activeElement.style.cursor = 'auto';
+          dictationTargetElement.style.opacity = '1';
+          dictationTargetElement.style.cursor = 'auto';
 
           if (response.generatedText) {
+            // Insert the processed text where the cursor is
             document.execCommand('insertText', false, response.generatedText);
             const event = new Event('input', { bubbles: true, cancelable: true });
-            activeElement.dispatchEvent(event);
+            dictationTargetElement.dispatchEvent(event);
           }
+          // Clean up for the next session
+          dictationTargetElement = null;
+          originalInputText = '';
         });
       }
-      finalTranscript = '';
+      finalTranscript = ''; // Reset for next use
     };
 
-    // --- MODIFIED ERROR HANDLER ---
     recognition.onerror = (event) => {
-      // Ignore the 'no-speech' error, as it's not a true error.
-      if (event.error === 'no-speech') {
-        return;
-      }
-      // Log any other errors.
+      if (event.error === 'no-speech') return;
       console.error("Speech recognition error:", event.error);
+      
+      // Also restore original text on error
+      if (dictationTargetElement) {
+        if (dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT") {
+          dictationTargetElement.value = originalInputText;
+        } else {
+          dictationTargetElement.textContent = originalInputText;
+        }
+        dictationTargetElement = null;
+        originalInputText = '';
+      }
     };
   }
 
@@ -112,9 +133,19 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       initializeSpeechRecognition();
       if (request.start) {
         if (recognition) {
-          recognition.start();
-          const activeElement = document.activeElement;
-          if (activeElement) activeElement.placeholder = "🔴 Listening... 🔴";
+          dictationTargetElement = document.activeElement;
+          if (dictationTargetElement) {
+            const isTextElement = dictationTargetElement.tagName === "TEXTAREA" || dictationTargetElement.tagName === "INPUT";
+            // Save the original text
+            originalInputText = isTextElement ? dictationTargetElement.value : dictationTargetElement.textContent;
+            // Display the listening indicator
+            if (isTextElement) {
+              dictationTargetElement.value = "🔴 Listening...";
+            } else {
+              dictationTargetElement.textContent = "🔴 Listening...";
+            }
+            recognition.start();
+          }
         } else {
           alert("Speech recognition not available in this browser.");
         }
