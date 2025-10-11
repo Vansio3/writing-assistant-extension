@@ -54,7 +54,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       </svg>`;
     Object.assign(fab.style, {
       position: 'absolute', top: '0', left: '0', width: '24px', height: '24px', borderRadius: '50%',
-      backgroundColor: '#007aff', display: 'none', alignItems: 'center',
+      backgroundColor: '#FFBF00', display: 'none', alignItems: 'center',
       justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', cursor: 'pointer',
       zIndex: '2147483647', transition: 'opacity 0.2s ease-in-out',
       opacity: '0', pointerEvents: 'auto'
@@ -117,7 +117,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     const fabRect = fab.getBoundingClientRect();
     const menuRect = fabStyleMenu.getBoundingClientRect();
 
-    const x = fabRect.right + window.scrollX - 30;
+    const x = fabRect.left + window.scrollX - menuRect.width; // Position to the left 
     const y = fabRect.top + window.scrollY + (fabRect.height / 2) - (menuRect.height / 2) - 50;
 
     fabStyleMenu.style.transform = `translate(${x}px, ${y}px)`;
@@ -141,7 +141,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     const fabHeight = fab.offsetHeight;
     const top = (parentHeight / 2) - (fabHeight / 2);
 
-    const left = lastFocusedEditableElement.offsetLeft - 30;
+    const left = lastFocusedEditableElement.offsetLeft + lastFocusedEditableElement.offsetWidth - 64;
 
     fab.style.top = `${top}px`;
     fab.style.left = `${left}px`;
