@@ -235,7 +235,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       }
     });
     onFocusMicIcon.addEventListener('mouseleave', () => { 
-      // Only apply hover effect if NOT in active listening mode
+      // Only apply hover effect if NOT in active listening mode 
       if(!isMouseDownOnMic && !stopDictationClickHandler) {
         onFocusMicIcon.style.backgroundColor = '#f0f0f0'; 
       }
