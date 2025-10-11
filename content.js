@@ -26,6 +26,18 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   let fab = null; // Holds the FAB element
   let typingTimer = null; // setTimeout reference for detecting typing pause
   const TYPING_DELAY = 1000; // 1 second delay
+  let fabStyleMenu = null;
+  let fabHoldTimeout = null;
+  let isMouseDownOnFab = false;
+
+  // --- NEW: Array of output styles for the FAB menu ---
+  const fabOutputStyles = [
+      { value: 'professional', name: 'Professional' },
+      { value: 'friendly', name: 'Friendly' },
+      { value: 'casual', name: 'Casual' },
+      { value: 'technical', name: 'Technical' },
+      { value: 'creative', name: 'Creative' }
+  ];
 
   // --- NEW: Function to create the Floating Action Button ---
   function createFab() {
@@ -46,15 +58,80 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       opacity: '0', transform: 'scale(0.8)', pointerEvents: 'auto'
     });
     fab.innerHTML = svg;
+
     fab.addEventListener('mousedown', (event) => {
       event.preventDefault();
       event.stopPropagation();
-      if (lastFocusedEditableElement) {
-        processSelectedText();
-      }
-      hideFab(true);
+      isMouseDownOnFab = true;
+      fabHoldTimeout = setTimeout(() => {
+        if (isMouseDownOnFab) {
+          showFabStyleMenu();
+        }
+      }, 200);
     });
+
     document.body.appendChild(fab);
+  }
+
+  // --- NEW: Function to create and show the FAB style menu ---
+  function showFabStyleMenu() {
+    if (!fabStyleMenu) {
+      fabStyleMenu = document.createElement('div');
+      Object.assign(fabStyleMenu.style, {
+        position: 'absolute',
+        zIndex: '2147483648',
+        display: 'flex',
+        flexDirection: 'row',
+        gap: '6px',
+        padding: '6px',
+        backgroundColor: 'rgba(44, 45, 48, 0.9)',
+        borderRadius: '20px',
+        backdropFilter: 'blur(5px)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
+      });
+      document.body.appendChild(fabStyleMenu);
+
+      fabOutputStyles.forEach(style => {
+        const button = document.createElement('button');
+        button.textContent = style.name;
+        button.dataset.style = style.value;
+        Object.assign(button.style, {
+          backgroundColor: '#3c3d41',
+          color: '#e1e1e6',
+          border: 'none',
+          borderRadius: '14px',
+          padding: '6px 12px',
+          cursor: 'pointer',
+          fontSize: '13px',
+          transition: 'background-color 0.2s ease',
+        });
+        button.addEventListener('mouseenter', () => button.style.backgroundColor = '#4a4b50');
+        button.addEventListener('mouseleave', () => button.style.backgroundColor = '#3c3d41');
+        fabStyleMenu.appendChild(button);
+      });
+    }
+
+    // MODIFICATION: New positioning logic
+    // First, make the menu visible but off-screen to calculate its dimensions
+    fabStyleMenu.style.visibility = 'hidden';
+    fabStyleMenu.style.display = 'flex';
+
+    const fabRect = fab.getBoundingClientRect();
+    const menuRect = fabStyleMenu.getBoundingClientRect(); // Get the new dimensions
+
+    // MODIFIED: Calculate position to be to the right of and vertically centered with the FAB
+    const x = fabRect.right + window.scrollX - 30; // 8px margin to the right
+    const y = fabRect.top + window.scrollY + (fabRect.height / 2) - (menuRect.height / 2) - 50; // Vertically centers the menu with the FAB
+
+    fabStyleMenu.style.transform = `translate(${x}px, ${y}px)`;
+    fabStyleMenu.style.visibility = 'visible'; // Make it visible at the new position
+  }
+
+  // --- NEW: Function to hide the FAB style menu ---
+  function hideFabStyleMenu() {
+    if (fabStyleMenu) {
+      fabStyleMenu.style.display = 'none';
+    }
   }
 
   // --- NEW: Function to position and show the FAB ---
@@ -86,6 +163,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         }
       }, 200); 
     }
+    hideFabStyleMenu();
   }
 
   const repositionIcon = () => {
@@ -269,7 +347,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     });
   }
 
-  function processSelectedText() {
+  function processSelectedText(style = null) {
     const activeElement = document.activeElement;
     if (!activeElement) return;
     const selection = window.getSelection();
@@ -287,7 +365,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     } else { return; }
     activeElement.style.opacity = '0.5';
     activeElement.style.cursor = 'wait';
-    chrome.runtime.sendMessage({ prompt: promptText }, (response) => {
+    chrome.runtime.sendMessage({ prompt: promptText, style: style }, (response) => {
       activeElement.style.opacity = '1';
       activeElement.style.cursor = 'auto';
       if (chrome.runtime.lastError) return console.error(chrome.runtime.lastError.message);
@@ -546,6 +624,20 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     });
     
     document.addEventListener('mouseup', (event) => {
+      if (isMouseDownOnFab) {
+        isMouseDownOnFab = false;
+        clearTimeout(fabHoldTimeout);
+        if (fabStyleMenu && fabStyleMenu.style.display === 'flex') {
+          const styleButton = event.target.closest('button');
+          if (styleButton && styleButton.dataset.style) {
+            processSelectedText(styleButton.dataset.style);
+          }
+          hideFabStyleMenu();
+        } else {
+          processSelectedText();
+        }
+      }
+
       if (!isMouseDownOnMic) return;
       clearTimeout(micHoldTimeout);
       isMouseDownOnMic = false;

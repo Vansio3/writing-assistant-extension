@@ -99,7 +99,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
       
       const language = selectedLanguage || 'en-US';
-      const style = outputStyle || 'default';
+      const style = request.style || outputStyle || 'default'; // Use request style if available
       const length = outputLength || 'default';
       
       const finalPrompt = createPrompt(request.prompt, language, style, length, customOutputStyle);
