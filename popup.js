@@ -2,13 +2,65 @@
 
 // A comprehensive and alphabetized list of languages supported by the Web Speech API
 const supportedLanguages = [
-    // ... same as original file
+    { code: 'af-ZA', name: 'Afrikaans' },
+    { code: 'ar-AE', name: 'العربية (الإمارات)' },
+    { code: 'ar-SA', name: 'العربية (السعودية)' },
+    { code: 'bg-BG', name: 'Български' },
+    { code: 'ca-ES', name: 'Català' },
+    { code: 'cs-CZ', name: 'Čeština' },
+    { code: 'da-DK', name: 'Dansk' },
+    { code: 'de-DE', name: 'Deutsch' },
+    { code: 'el-GR', name: 'Ελληνικά' },
+    { code: 'en-AU', name: 'English (Australia)' },
+    { code: 'en-GB', name: 'English (UK)' },
+    { code: 'en-IN', name: 'English (India)' },
+    { code: 'en-US', name: 'English (US)' },
+    { code: 'es-ES', name: 'Español (España)' },
+    { code: 'es-MX', name: 'Español (México)' },
+    { code: 'fi-FI', name: 'Suomi' },
+    { code: 'fr-FR', name: 'Français' },
+    { code: 'he-IL', name: 'עברית' },
+    { code: 'hi-IN', name: 'हिन्दी' },
+    { code: 'hu-HU', name: 'Magyar' },
+    { code: 'id-ID', name: 'Bahasa Indonesia' },
+    { code: 'is-IS', name: 'Íslenska' },
+    { code: 'it-IT', name: 'Italiano' },
+    { code: 'ja-JP', name: '日本語' },
+    { code: 'ko-KR', name: '한국어' },
+    { code: 'ms-MY', name: 'Bahasa Melayu' },
+    { code: 'nb-NO', name: 'Norsk bokmål' },
+    { code: 'nl-NL', name: 'Nederlands' },
+    { code: 'pl-PL', name: 'Polski' },
+    { code: 'pt-BR', name: 'Português (Brasil)' },
+    { code: 'pt-PT', name: 'Português (Portugal)' },
+    { code: 'ro-RO', name: 'Română' },
+    { code: 'ru-RU', name: 'Русский' },
+    { code: 'sk-SK', name: 'Slovenčina' },
+    { code: 'sr-RS', name: 'Српски' },
+    { code: 'sv-SE', name: 'Svenska' },
+    { code: 'th-TH', name: 'ไทย' },
+    { code: 'tr-TR', name: 'Türkçe' },
+    { code: 'uk-UA', name: 'Українська' },
+    { code: 'vi-VN', name: 'Tiếng Việt' },
+    { code: 'zh-CN', name: '中文 (简体)' },
+    { code: 'zh-TW', name: '中文 (繁體)' }
 ];
+
+// New: Options for style and length
 const outputStyles = [
-    // ... same as original file
+    { value: 'default', name: 'Default' },
+    { value: 'professional', name: 'Professional' },
+    { value: 'friendly', name: 'Friendly' },
+    { value: 'casual', name: 'Casual' },
+    { value: 'technical', name: 'Technical' },
+    { value: 'creative', name: 'Creative' },
+    { value: 'custom', name: 'Custom' }
 ];
+
 const outputLengths = [
-    // ... same as original file
+    { value: 'default', name: 'Default' },
+    { value: 'shorter', name: 'Shorter' },
+    { value: 'longer', name: 'Longer' }
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
