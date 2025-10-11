@@ -3,14 +3,24 @@
 import { GEMINI_MODEL } from './config.js';
 import { createPrompt } from './prompt.js';
 
-// --- CONTEXT MENU IMPLEMENTATION ---
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: "gemini-rewrite",
-    title: "Process with Gemini",
-    contexts: ["selection"]
+// --- CONTEXT MENU IMPLEMENTATION (MODIFIED FOR ROBUSTNESS) ---
+// This function creates the context menu, ensuring it removes any old versions first.
+const setupContextMenu = () => {
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: "gemini-rewrite",
+      title: "Process with Gemini",
+      contexts: ["selection"]
+    });
   });
-});
+};
+
+// Set up the context menu when the extension is first installed or updated.
+chrome.runtime.onInstalled.addListener(setupContextMenu);
+
+// Also set it up when the browser starts, in case the menu was cleared.
+chrome.runtime.onStartup.addListener(setupContextMenu);
+
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "gemini-rewrite") {
