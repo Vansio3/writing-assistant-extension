@@ -13,28 +13,24 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   let lastFocusedEditableElement = null;
   let cancellationReason = null;
   let resizeObserver = null;
-  let stopDictationClickHandler = null; // --- NEW VARIABLE ---
+  let stopDictationClickHandler = null;
   
-  // --- NEW: Variables for parent-injection logic ---
   let currentIconParent = null;
   let originalParentPosition = '';
   
-  // --- NEW: Variables for click-and-hold feature ---
   let transcriptionOnlyButton = null; 
   let currentDictationBypassesAi = false;
   let isMouseDownOnMic = false;
   let isOverSecondaryButton = false;
   let micHoldTimeout = null;
 
-  // --- NEW: Floating Action Button (FAB) variables ---
-  let fab = null; // Holds the FAB element
-  let typingTimer = null; // setTimeout reference for detecting typing pause
-  const TYPING_DELAY = 1000; // 1 second delay
+  let fab = null;
+  let typingTimer = null;
+  const TYPING_DELAY = 1000;
   let fabStyleMenu = null;
   let fabHoldTimeout = null;
   let isMouseDownOnFab = false;
 
-  // --- NEW: Array of output styles for the FAB menu ---
   const fabOutputStyles = [
       { value: 'professional', name: 'Professional' },
       { value: 'friendly', name: 'Friendly' },
@@ -43,7 +39,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       { value: 'creative', name: 'Creative' }
   ];
 
-  // --- MODIFIED: The FAB is no longer appended to the body on creation. ---
   function createFab() {
     if (fab) return;
     fab = document.createElement('div');
@@ -73,7 +68,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     });
   }
 
-  // --- NEW: Function to create and show the FAB style menu ---
   function showFabStyleMenu() {
     if (!fabStyleMenu) {
       fabStyleMenu = document.createElement('div');
@@ -81,7 +75,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         position: 'absolute',
         zIndex: '2147483648',
         display: 'flex',
-        flexDirection: 'row',
+        flexDirection: 'column',
         gap: '6px',
         padding: '6px',
         backgroundColor: 'rgba(44, 45, 48, 0.9)',
@@ -117,41 +111,72 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     const fabRect = fab.getBoundingClientRect();
     const menuRect = fabStyleMenu.getBoundingClientRect();
 
-    const x = fabRect.left + window.scrollX - menuRect.width; // Position to the left 
-    const y = fabRect.top + window.scrollY + (fabRect.height / 2) - (menuRect.height / 2) - 50;
+    const x = fabRect.left + window.scrollX - menuRect.width;
+    const y = fabRect.top + window.scrollY + (fabRect.height / 2) - (menuRect.height / 2) - 100;
 
     fabStyleMenu.style.transform = `translate(${x}px, ${y}px)`;
     fabStyleMenu.style.visibility = 'visible';
   }
 
-  // --- NEW: Function to hide the FAB style menu ---
   function hideFabStyleMenu() {
     if (fabStyleMenu) {
       fabStyleMenu.style.display = 'none';
     }
   }
 
-  // --- REPLACED: This function now injects and positions the FAB relative to the parent. ---
+  // --- REPLACED: repositionIcon is now a more generic updateIconPositions ---
+  const updateIconPositions = () => {
+    if (!currentIconParent || !lastFocusedEditableElement) return;
+
+    // Use getBoundingClientRect for more reliable positioning relative to the viewport,
+    // which helps avoid issues with complex layouts (e.g., transforms, nested scrolling).
+    const parentRect = currentIconParent.getBoundingClientRect();
+    const targetRect = lastFocusedEditableElement.getBoundingClientRect();
+
+    // Calculate the target's position relative to its parent container.
+    const targetRelativeLeft = targetRect.left - parentRect.left;
+    const targetWidth = targetRect.width;
+    const parentHeight = currentIconParent.offsetHeight;
+
+    // Position the Microphone Icon if it exists and is a child of the current parent.
+    if (onFocusMicIcon && onFocusMicIcon.parentElement === currentIconParent) {
+      const iconHeight = onFocusMicIcon.offsetHeight;
+      const top = (parentHeight / 2) - (iconHeight / 2);
+      const left = targetRelativeLeft + targetWidth - 34; // 34px from the right edge of the input
+
+      onFocusMicIcon.style.top = `${top}px`;
+      onFocusMicIcon.style.left = `${left}px`;
+    }
+
+    // Position the FAB if it exists and is a child of the current parent.
+    if (fab && fab.parentElement === currentIconParent) {
+      const fabHeight = fab.offsetHeight;
+      const top = (parentHeight / 2) - (fabHeight / 2);
+      const left = targetRelativeLeft + targetWidth - 64; // 64px from the right edge of the input
+
+      fab.style.top = `${top}px`;
+      fab.style.left = `${left}px`;
+    }
+  };
+
+  // --- MODIFIED: showFab now calls the unified positioning function ---
   function showFab() {
     if (!fab || !currentIconParent || !lastFocusedEditableElement) return;
 
-    currentIconParent.appendChild(fab);
-
-    const parentHeight = currentIconParent.offsetHeight;
-    const fabHeight = fab.offsetHeight;
-    const top = (parentHeight / 2) - (fabHeight / 2);
-
-    const left = lastFocusedEditableElement.offsetLeft + lastFocusedEditableElement.offsetWidth - 64;
-
-    fab.style.top = `${top}px`;
-    fab.style.left = `${left}px`;
+    // Append to the parent if not already there.
+    if (fab.parentElement !== currentIconParent) {
+        currentIconParent.appendChild(fab);
+    }
+    
     fab.style.display = 'flex';
+    updateIconPositions(); // Position it immediately.
+
     setTimeout(() => { 
         fab.style.opacity = '1';
+        updateIconPositions(); // Re-position after render for maximum accuracy.
     }, 10);
   }
-
-  // --- MODIFIED: This function now removes the FAB from its parent element. ---
+  
   function hideFab(immediately = false) {
     if (!fab || !fab.parentElement) return;
 
@@ -176,21 +201,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     
     hideFabStyleMenu();
   }
-
-  // --- REPLACED: This function now vertically centers the icon within the parent element. ---
-  const repositionIcon = () => {
-    if (onFocusMicIcon && lastFocusedEditableElement && currentIconParent) {
-      const parentHeight = currentIconParent.offsetHeight;
-      const iconHeight = onFocusMicIcon.offsetHeight;
-      const top = (parentHeight / 2) - (iconHeight / 2);
-      const left = lastFocusedEditableElement.offsetLeft + lastFocusedEditableElement.offsetWidth - 34;
-
-      onFocusMicIcon.style.top = `${top}px`;
-      onFocusMicIcon.style.left = `${left}px`;
-    }
-  };
   
-  // --- NEW: Function to create the transcription-only button ---
   function createTranscriptionOnlyButton() {
     if (transcriptionOnlyButton) return;
     transcriptionOnlyButton = document.createElement('div');
@@ -210,7 +221,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     document.body.appendChild(transcriptionOnlyButton);
   }
 
-  // --- MODIFIED: The icon is created but not appended to the body. ---
   function createOnFocusMicIcon() {
     if (onFocusMicIcon) return;
     onFocusMicIcon = document.createElement('div');
@@ -229,13 +239,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     });
     onFocusMicIcon.innerHTML = svg;
     onFocusMicIcon.addEventListener('mouseenter', () => { 
-      // Only apply hover effect if NOT in active listening mode
       if(!isMouseDownOnMic && !stopDictationClickHandler) {
         onFocusMicIcon.style.backgroundColor = '#e0e0e0'; 
       }
     });
     onFocusMicIcon.addEventListener('mouseleave', () => { 
-      // Only apply hover effect if NOT in active listening mode 
       if(!isMouseDownOnMic && !stopDictationClickHandler) {
         onFocusMicIcon.style.backgroundColor = '#f0f0f0'; 
       }
@@ -256,11 +264,13 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     });
   }
 
-  // --- REPLACED: This function now injects the icon into the parent element. ---
+  // --- MODIFIED: showOnFocusMicIcon now calls the unified positioning function ---
   function showOnFocusMicIcon(targetElement) {
     if (!onFocusMicIcon) return;
     clearTimeout(focusOutTimeout);
 
+    // Use parentElement twice as a simple way to get the container.
+    // This may need adjustment for certain complex websites.
     const parent = targetElement.parentElement?.parentElement;
     if (!parent) return;
 
@@ -278,12 +288,15 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       resizeObserver.observe(parent);
     }
     
-    repositionIcon();
     onFocusMicIcon.style.display = 'flex';
-    setTimeout(() => { onFocusMicIcon.style.opacity = '1' }, 10);
+    updateIconPositions(); // Position it immediately.
+
+    setTimeout(() => { 
+      onFocusMicIcon.style.opacity = '1';
+      updateIconPositions(); // Re-position after render for maximum accuracy.
+    }, 10);
   }
 
-  // --- REPLACED: This function now removes the icon and restores parent styles. ---
   function hideOnFocusMicIcon(immediately = false) {
     if (!onFocusMicIcon) return;
     
@@ -314,11 +327,10 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     }
   }
 
-  // --- REPLACED: This function now modifies the existing mic icon to show the listening state. ---
   function showListeningIndicator() {
     if (!onFocusMicIcon) return;
 
-    onFocusMicIcon.style.backgroundColor = '#E53E3E'; // Red background
+    onFocusMicIcon.style.backgroundColor = '#E53E3E';
     onFocusMicIcon.classList.add('gemini-mic-pulsing');
 
     const paths = onFocusMicIcon.querySelectorAll('svg path');
@@ -332,11 +344,10 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     onFocusMicIcon.addEventListener('click', stopDictationClickHandler);
   }
 
-  // --- REPLACED: This function reverts the mic icon back to its inactive state. ---
   function hideListeningIndicator() {
     if (!onFocusMicIcon) return;
 
-    onFocusMicIcon.style.backgroundColor = '#f0f0f0'; // Default grey background
+    onFocusMicIcon.style.backgroundColor = '#f0f0f0';
     onFocusMicIcon.classList.remove('gemini-mic-pulsing');
 
     const paths = onFocusMicIcon.querySelectorAll('svg path');
@@ -405,7 +416,8 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         }
         activeElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
         
-        setTimeout(repositionIcon, 200);
+        // Re-calculate positions after text has changed, as this can affect layout
+        setTimeout(updateIconPositions, 200);
       }
     });
   }
@@ -514,7 +526,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
             playSound('assets/audio/start.mp3');
             originalInputText = dictationTargetElement.value || dictationTargetElement.textContent;
             dictationTargetElement.addEventListener('blur', handleFocusLoss, { once: true });
-            showListeningIndicator(); // --- CHANGED: No longer passes an argument ---
+            showListeningIndicator();
             recognition.start();
           });
         }
@@ -529,7 +541,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   }
 
   function initializeExtension() {
-    // --- NEW: Inject CSS for the pulsing animation class ---
     const styleId = 'gemini-listening-style';
     if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
@@ -545,8 +556,9 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         }`;
         document.head.appendChild(style);
     }
-
-    resizeObserver = new ResizeObserver(repositionIcon);
+    
+    // --- MODIFIED: The observer now calls the unified updateIconPositions function ---
+    resizeObserver = new ResizeObserver(updateIconPositions);
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (request.command === "process-text") {
@@ -686,7 +698,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         transcriptionOnlyButton.style.display = 'none';
         transcriptionOnlyButton.style.transform = `translateY(10px)`;
       } else {
-        // Only trigger dictation if the temporary "stop" handler isn't active
         if(!stopDictationClickHandler) {
           handleToggleDictation({ start: true, bypassAi: false });
         }
