@@ -447,7 +447,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       
       // This is the original, more robust parent selector logic.
       // It prioritizes a semantic class name (if applicable) or goes up two levels
-      // to find a container that is less likely to be affected by internal input field changes.
+      // to find a container that is less likely to be affected by internal input field changes. 
       const parent = targetElement.closest('.input-area') || targetElement.parentElement?.parentElement;
       if (!parent) return;
 
