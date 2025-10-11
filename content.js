@@ -444,6 +444,10 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
     _showOnFocusMicIcon(targetElement) {
       clearTimeout(this.focusOutTimeout);
+      
+      // This is the original, more robust parent selector logic.
+      // It prioritizes a semantic class name (if applicable) or goes up two levels
+      // to find a container that is less likely to be affected by internal input field changes.
       const parent = targetElement.closest('.input-area') || targetElement.parentElement?.parentElement;
       if (!parent) return;
 
@@ -542,18 +546,32 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     
     _updateIconPositions() {
       if (!this.currentIconParent || !this.lastFocusedEditableElement) return;
+
       const parentRect = this.currentIconParent.getBoundingClientRect();
       const targetRect = this.lastFocusedEditableElement.getBoundingClientRect();
+
       const targetRelativeLeft = targetRect.left - parentRect.left;
-      const top = (targetRect.height / 2);
-      
+      const targetWidth = targetRect.width;
+      const parentHeight = this.currentIconParent.offsetHeight; // Key change: using parentHeight
+
       if (this.onFocusMicIcon.parentElement === this.currentIconParent) {
-        this.onFocusMicIcon.style.top = `${top - 14}px`;
-        this.onFocusMicIcon.style.left = `${targetRelativeLeft + targetRect.width - 34}px`;
+        const iconHeight = this.onFocusMicIcon.offsetHeight;
+        // Reverted to original logic: center vertically within the parent's height
+        const top = (parentHeight / 2) - (iconHeight / 2);
+        const left = targetRelativeLeft + targetWidth - 34;
+
+        this.onFocusMicIcon.style.top = `${top}px`;
+        this.onFocusMicIcon.style.left = `${left}px`;
       }
+
       if (this.fab.parentElement === this.currentIconParent) {
-        this.fab.style.top = `${top - 12}px`;
-        this.fab.style.left = `${targetRelativeLeft + targetRect.width - 64}px`;
+        const fabHeight = this.fab.offsetHeight;
+        // Reverted to original logic: center vertically within the parent's height
+        const top = (parentHeight / 2) - (fabHeight / 2);
+        const left = targetRelativeLeft + targetWidth - 64;
+
+        this.fab.style.top = `${top}px`;
+        this.fab.style.left = `${left}px`;
       }
     }
 
