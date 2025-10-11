@@ -43,14 +43,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       this.stopDictationClickHandler = null;
       this.resizeObserver = null;
       
-      this.fabOutputStyles = [
-          { value: 'professional', name: 'Professional' },
-          { value: 'friendly', name: 'Friendly' },
-          { value: 'casual', name: 'Casual' },
-          { value: 'technical', name: 'Technical' },
-          { value: 'creative', name: 'Creative' }
-      ];
-
       // Kick off the initialization process
       this.initialize();
     }
@@ -69,32 +61,22 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       // On-Focus Microphone Icon
       const micSvg = `
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z" stroke="#606367" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M19 10V12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12V10" stroke="#606367" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M12 19V23" stroke="#606367" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M19 10V12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12V10" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 19V23" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>`;
       this.onFocusMicIcon = this._createElement('div');
-      Object.assign(this.onFocusMicIcon.style, {
-        position: 'absolute', top: '0', left: '0', width: '28px', height: '28px', borderRadius: '50%',
-        backgroundColor: '#f0f0f0', display: 'none', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.15)', cursor: 'pointer', zIndex: '2147483646',
-        transition: 'opacity 0.2s ease-in-out, background-color 0.2s ease', opacity: '0', pointerEvents: 'auto'
-      });
+      Object.assign(this.onFocusMicIcon.style, STYLES.MIC_ICON);
       this.onFocusMicIcon.innerHTML = micSvg;
 
       // Transcription-Only Button (secondary mic button)
       const transcriptionSvg = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#606367" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M13.67 8H18a2 2 0 0 1 2 2v4.33"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M22 22 2 2"/>
           <path d="M8 8H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 1.414-.586"/><path d="M9 13v2"/><path d="M9.67 4H12v2.33"/>
         </svg>`;
       this.transcriptionOnlyButton = this._createElement('div');
-      Object.assign(this.transcriptionOnlyButton.style, {
-        position: 'absolute', top: '0', left: '0', width: '28px', height: '28px', borderRadius: '50%',
-        backgroundColor: '#f0f0f0', display: 'none', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.15)', cursor: 'pointer', zIndex: '2147483648',
-        transition: 'transform 0.2s ease-out, background-color 0.2s ease', transform: 'translateY(10px)'
-      });
+      Object.assign(this.transcriptionOnlyButton.style, STYLES.TRANSCRIPTION_BUTTON);
       this.transcriptionOnlyButton.innerHTML = transcriptionSvg;
       document.body.appendChild(this.transcriptionOnlyButton);
 
@@ -105,12 +87,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
           <path d="M15.25 16.75L12 13.5L8.75 16.75" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>`;
       this.fab = this._createElement('div');
-      Object.assign(this.fab.style, {
-        position: 'absolute', top: '0', left: '0', width: '24px', height: '24px', borderRadius: '50%',
-        backgroundColor: '#FFBF00', display: 'none', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.25)', cursor: 'pointer', zIndex: '2147483647',
-        transition: 'opacity 0.2s ease-in-out', opacity: '0', pointerEvents: 'auto'
-      });
+      Object.assign(this.fab.style, STYLES.FAB);
       this.fab.innerHTML = fabSvg;
     }
 
@@ -204,7 +181,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
       if (!promptText) {
           processingMode = 'full';
-          promptText = (typeof activeElement.value !== 'undefined') ? activeElement.value : activeElement.textContent;
+          promptText = this._getElementText(activeElement);
           if (!promptText.trim()) return;
 
           if (typeof activeElement.select === 'function') {
@@ -255,7 +232,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         chrome.storage.local.get('selectedLanguage', ({ selectedLanguage }) => {
           this.recognition.lang = selectedLanguage || 'en-US';
           this._playSound('assets/audio/start.mp3');
-          this.originalInputText = this.dictationTargetElement.value ?? this.dictationTargetElement.textContent;
+          this.originalInputText = this._getElementText(this.dictationTargetElement);
           this.dictationTargetElement.addEventListener('blur', () => this._handleFocusLoss(), { once: true });
           this._showListeningIndicator();
           this.recognition.start();
@@ -344,13 +321,13 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
     _onFocusOut(event) {
       if (event.target === this.lastFocusedEditableElement) {
-        this._hideOnFocusMicIcon();
-        this._hideFab();
-        setTimeout(() => {
-          if (document.activeElement !== this.lastFocusedEditableElement) {
-            this.lastFocusedEditableElement = null;
-          }
-        }, 400); 
+        this.focusOutTimeout = setTimeout(() => {
+            if (document.activeElement !== this.lastFocusedEditableElement) {
+                this._hideOnFocusMicIcon();
+                this._hideFab();
+                this.lastFocusedEditableElement = null;
+            }
+        }, TIMING.FOCUS_OUT_DELAY);
       }
     }
 
@@ -358,13 +335,13 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (!this.lastFocusedEditableElement || window.getSelection().toString().trim().length > 0) return;
       clearTimeout(this.typingTimer);
       this._hideFab();
-      const text = this.lastFocusedEditableElement.value || this.lastFocusedEditableElement.textContent;
+      const text = this._getElementText(this.lastFocusedEditableElement);
       if (text && text.trim().length > 0) {
         this.typingTimer = setTimeout(() => {
           if (document.activeElement === this.lastFocusedEditableElement && window.getSelection().toString().trim().length === 0) {
             this._showFab();
           }
-        }, 1000);
+        }, TIMING.TYPING_DELAY);
       }
     }
 
@@ -390,7 +367,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         const y = micRect.top + window.scrollY - 34; // Position above the main icon
         this.transcriptionOnlyButton.style.transform = `translate(${x}px, ${y}px)`;
         this.transcriptionOnlyButton.style.display = 'flex';
-      }, 200);
+      }, TIMING.HOLD_DURATION);
     }
     
     _onFabMouseDown(event) {
@@ -399,7 +376,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         this.isMouseDownOnFab = true;
         this.fabHoldTimeout = setTimeout(() => {
             if (this.isMouseDownOnFab) this._showFabStyleMenu();
-        }, 200);
+        }, TIMING.HOLD_DURATION);
     }
 
     _onMouseMove(event) {
@@ -408,7 +385,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       const secondaryRect = this.transcriptionOnlyButton.getBoundingClientRect();
       this.isOverSecondaryButton = (clientX >= secondaryRect.left && clientX <= secondaryRect.right &&
                                      clientY >= secondaryRect.top && clientY <= secondaryRect.bottom);
-      this.transcriptionOnlyButton.style.backgroundColor = this.isOverSecondaryButton ? '#d0d0d0' : '#f0f0f0';
+      this.transcriptionOnlyButton.style.backgroundColor = this.isOverSecondaryButton ? COLORS.TRANSCRIPTION_HOVER_BG : COLORS.TRANSCRIPTION_BG;
     }
 
     _onMouseUp(event) {
@@ -442,12 +419,20 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
     // --- 5. UI DISPLAY & MANIPULATION ---
 
+    _toggleUIElement(element, show, parent = null) {
+        if (show && parent && element) {
+            parent.appendChild(element);
+            element.style.display = 'flex';
+            setTimeout(() => { element.style.opacity = '1'; }, 10);
+        } else if (!show && element?.parentElement) {
+            element.style.opacity = '0';
+            setTimeout(() => element.remove(), TIMING.ICON_FADE_DURATION);
+        }
+    }
+    
     _showOnFocusMicIcon(targetElement) {
       clearTimeout(this.focusOutTimeout);
       
-      // This is the original, more robust parent selector logic.
-      // It prioritizes a semantic class name (if applicable) or goes up two levels
-      // to find a container that is less likely to be affected by internal input field changes. 
       const parent = targetElement.closest('.input-area') || targetElement.parentElement?.parentElement;
       if (!parent) return;
 
@@ -455,55 +440,46 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       this.originalParentPosition = window.getComputedStyle(parent).position;
       if (this.originalParentPosition === 'static') parent.style.position = 'relative';
 
-      parent.appendChild(this.onFocusMicIcon);
+      this._toggleUIElement(this.onFocusMicIcon, true, parent);
       if(this.resizeObserver) this.resizeObserver.observe(parent);
       
-      this.onFocusMicIcon.style.display = 'flex';
       this._updateIconPositions();
-      setTimeout(() => { this.onFocusMicIcon.style.opacity = '1'; }, 10);
     }
     
     _hideOnFocusMicIcon(immediately = false) {
       const hideAction = () => {
         if (this.onFocusMicIcon?.parentElement) {
-          this.onFocusMicIcon.style.opacity = '0';
+          this._toggleUIElement(this.onFocusMicIcon, false);
           setTimeout(() => { 
-            this.onFocusMicIcon.remove();
             if (this.currentIconParent) {
               this.currentIconParent.style.position = this.originalParentPosition;
               this.currentIconParent = null;
             }
             if(this.resizeObserver) this.resizeObserver.disconnect();
-          }, 200);
+          }, TIMING.ICON_FADE_DURATION);
         }
       };
       clearTimeout(this.focusOutTimeout);
       if (immediately) hideAction();
-      else this.focusOutTimeout = setTimeout(hideAction, 200);
+      else this.focusOutTimeout = setTimeout(hideAction, TIMING.ICON_FADE_DURATION);
     }
     
     _showFab() {
       if (!this.fab || !this.currentIconParent) return;
-      this.currentIconParent.appendChild(this.fab);
-      this.fab.style.display = 'flex';
+      this._toggleUIElement(this.fab, true, this.currentIconParent);
       this._updateIconPositions();
-      setTimeout(() => { this.fab.style.opacity = '1'; }, 10);
     }
     
     _hideFab(immediately = false) {
       if (!this.fab) return;
       clearTimeout(this.typingTimer);
-      const performHide = () => {
-        this.fab.style.opacity = '0';
-        setTimeout(() => { if (this.fab.parentElement) this.fab.remove(); }, 200);
-      };
-
+      
       if (immediately) {
         this.fab.style.transition = 'none';
-        performHide();
+        this._toggleUIElement(this.fab, false);
         setTimeout(() => { this.fab.style.transition = 'opacity 0.2s ease-in-out'; }, 50);
       } else {
-        performHide();
+        this._toggleUIElement(this.fab, false);
       }
       this._hideFabStyleMenu();
     }
@@ -512,12 +488,12 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (!this.fabStyleMenu) {
         this.fabStyleMenu = this._createElement('div');
         Object.assign(this.fabStyleMenu.style, {
-          position: 'absolute', zIndex: '2147483648', display: 'flex', flexDirection: 'row', gap: '6px',
+          position: 'absolute', zIndex: Z_INDEX.FAB_MENU, display: 'flex', flexDirection: 'row', gap: '6px',
           padding: '6px', backgroundColor: 'rgba(44, 45, 48, 0.9)', borderRadius: '20px',
           backdropFilter: 'blur(5px)', boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
         });
         
-        this.fabOutputStyles.forEach(style => {
+        FAB_OUTPUT_STYLES.forEach(style => {
           const button = this._createElement('button', { textContent: style.name, dataset: { style: style.value }});
           Object.assign(button.style, {
             backgroundColor: '#3c3d41', color: '#e1e1e6', border: 'none', borderRadius: '14px',
@@ -552,24 +528,20 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
       const targetRelativeLeft = targetRect.left - parentRect.left;
       const targetWidth = targetRect.width;
-      const parentHeight = this.currentIconParent.offsetHeight; // Key change: using parentHeight
+      const parentHeight = this.currentIconParent.offsetHeight;
 
       if (this.onFocusMicIcon.parentElement === this.currentIconParent) {
         const iconHeight = this.onFocusMicIcon.offsetHeight;
-        // Reverted to original logic: center vertically within the parent's height
         const top = (parentHeight / 2) - (iconHeight / 2);
         const left = targetRelativeLeft + targetWidth - 34;
-
         this.onFocusMicIcon.style.top = `${top}px`;
         this.onFocusMicIcon.style.left = `${left}px`;
       }
 
       if (this.fab.parentElement === this.currentIconParent) {
         const fabHeight = this.fab.offsetHeight;
-        // Reverted to original logic: center vertically within the parent's height
         const top = (parentHeight / 2) - (fabHeight / 2);
         const left = targetRelativeLeft + targetWidth - 64;
-
         this.fab.style.top = `${top}px`;
         this.fab.style.left = `${left}px`;
       }
@@ -577,9 +549,9 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
     _showListeningIndicator() {
       if (!this.onFocusMicIcon) return;
-      this.onFocusMicIcon.style.backgroundColor = '#E53E3E';
+      this.onFocusMicIcon.style.backgroundColor = COLORS.MIC_ACTIVE_BG;
       this.onFocusMicIcon.classList.add('gemini-mic-pulsing');
-      this.onFocusMicIcon.querySelectorAll('svg path').forEach(p => p.setAttribute('stroke', '#FFFFFF'));
+      this.onFocusMicIcon.querySelectorAll('svg path').forEach(p => p.setAttribute('stroke', COLORS.MIC_ICON_ACTIVE));
       this.stopDictationClickHandler = e => {
         e.preventDefault(); e.stopPropagation();
         this._handleToggleDictation({ start: false });
@@ -589,9 +561,9 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     
     _hideListeningIndicator() {
        if (!this.onFocusMicIcon) return;
-       this.onFocusMicIcon.style.backgroundColor = '#f0f0f0';
+       this.onFocusMicIcon.style.backgroundColor = COLORS.MIC_DEFAULT_BG;
        this.onFocusMicIcon.classList.remove('gemini-mic-pulsing');
-       this.onFocusMicIcon.querySelectorAll('svg path').forEach(p => p.setAttribute('stroke', '#606367'));
+       this.onFocusMicIcon.querySelectorAll('svg path').forEach(p => p.setAttribute('stroke', COLORS.MIC_ICON_DEFAULT));
        if (this.stopDictationClickHandler) {
          this.onFocusMicIcon.removeEventListener('click', this.stopDictationClickHandler);
          this.stopDictationClickHandler = null;
@@ -600,7 +572,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
     _setMicHover(isHovering) {
         if (!this.isMouseDownOnMic && !this.stopDictationClickHandler) {
-            this.onFocusMicIcon.style.backgroundColor = isHovering ? '#e0e0e0' : '#f0f0f0';
+            this.onFocusMicIcon.style.backgroundColor = isHovering ? COLORS.MIC_HOVER_BG : COLORS.MIC_DEFAULT_BG;
         }
     }
 
@@ -614,6 +586,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         else el[key] = value;
       });
       return el;
+    }
+    
+    _getElementText(element) {
+        if (!element) return '';
+        return typeof element.value !== 'undefined' ? element.value : element.textContent;
     }
 
     _isElementSuitable(element) {

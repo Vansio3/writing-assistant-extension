@@ -1,13 +1,13 @@
 // constants.js
 
-export const Z_INDEX = {
+const Z_INDEX = {
   FAB: '2147483647',
   FAB_MENU: '2147483648',
   MIC_ICON: '2147483646',
   TRANSCRIPTION_BUTTON: '2147483648'
 };
 
-export const COLORS = {
+const COLORS = {
   MIC_DEFAULT_BG: '#f0f0f0',
   MIC_HOVER_BG: '#e0e0e0',
   MIC_ACTIVE_BG: '#E53E3E',
@@ -18,7 +18,7 @@ export const COLORS = {
   TRANSCRIPTION_HOVER_BG: '#d0d0d0'
 };
 
-export const STYLES = {
+const STYLES = {
   MIC_ICON: {
     position: 'absolute', top: '0', left: '0', width: '28px', height: '28px', borderRadius: '50%',
     backgroundColor: COLORS.MIC_DEFAULT_BG, display: 'none', alignItems: 'center',
@@ -42,14 +42,14 @@ export const STYLES = {
   }
 };
 
-export const TIMING = {
+const TIMING = {
   TYPING_DELAY: 1000,
   ICON_FADE_DURATION: 200,
   HOLD_DURATION: 200,
   FOCUS_OUT_DELAY: 400
 };
 
-export const FAB_OUTPUT_STYLES = [
+const FAB_OUTPUT_STYLES = [
     { value: 'professional', name: 'Professional' },
     { value: 'friendly', name: 'Friendly' },
     { value: 'casual', name: 'Casual' },
