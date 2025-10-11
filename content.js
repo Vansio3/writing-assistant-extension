@@ -75,7 +75,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         position: 'absolute',
         zIndex: '2147483648',
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         gap: '6px',
         padding: '6px',
         backgroundColor: 'rgba(44, 45, 48, 0.9)',
@@ -112,7 +112,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     const menuRect = fabStyleMenu.getBoundingClientRect();
 
     const x = fabRect.left + window.scrollX - menuRect.width;
-    const y = fabRect.top + window.scrollY + (fabRect.height / 2) - (menuRect.height / 2) - 100;
+    const y = fabRect.top + window.scrollY + (fabRect.height / 2) - (menuRect.height / 2) - 50;
 
     fabStyleMenu.style.transform = `translate(${x}px, ${y}px)`;
     fabStyleMenu.style.visibility = 'visible';
@@ -124,56 +124,48 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     }
   }
 
-  // --- REPLACED: repositionIcon is now a more generic updateIconPositions ---
   const updateIconPositions = () => {
     if (!currentIconParent || !lastFocusedEditableElement) return;
 
-    // Use getBoundingClientRect for more reliable positioning relative to the viewport,
-    // which helps avoid issues with complex layouts (e.g., transforms, nested scrolling).
     const parentRect = currentIconParent.getBoundingClientRect();
     const targetRect = lastFocusedEditableElement.getBoundingClientRect();
 
-    // Calculate the target's position relative to its parent container.
     const targetRelativeLeft = targetRect.left - parentRect.left;
     const targetWidth = targetRect.width;
     const parentHeight = currentIconParent.offsetHeight;
 
-    // Position the Microphone Icon if it exists and is a child of the current parent.
     if (onFocusMicIcon && onFocusMicIcon.parentElement === currentIconParent) {
       const iconHeight = onFocusMicIcon.offsetHeight;
       const top = (parentHeight / 2) - (iconHeight / 2);
-      const left = targetRelativeLeft + targetWidth - 34; // 34px from the right edge of the input
+      const left = targetRelativeLeft + targetWidth - 34;
 
       onFocusMicIcon.style.top = `${top}px`;
       onFocusMicIcon.style.left = `${left}px`;
     }
 
-    // Position the FAB if it exists and is a child of the current parent.
     if (fab && fab.parentElement === currentIconParent) {
       const fabHeight = fab.offsetHeight;
       const top = (parentHeight / 2) - (fabHeight / 2);
-      const left = targetRelativeLeft + targetWidth - 64; // 64px from the right edge of the input
+      const left = targetRelativeLeft + targetWidth - 64;
 
       fab.style.top = `${top}px`;
       fab.style.left = `${left}px`;
     }
   };
 
-  // --- MODIFIED: showFab now calls the unified positioning function ---
   function showFab() {
     if (!fab || !currentIconParent || !lastFocusedEditableElement) return;
 
-    // Append to the parent if not already there.
     if (fab.parentElement !== currentIconParent) {
         currentIconParent.appendChild(fab);
     }
     
     fab.style.display = 'flex';
-    updateIconPositions(); // Position it immediately.
+    updateIconPositions();
 
     setTimeout(() => { 
         fab.style.opacity = '1';
-        updateIconPositions(); // Re-position after render for maximum accuracy.
+        updateIconPositions();
     }, 10);
   }
   
@@ -264,14 +256,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     });
   }
 
-  // --- MODIFIED: showOnFocusMicIcon now calls the unified positioning function ---
   function showOnFocusMicIcon(targetElement) {
     if (!onFocusMicIcon) return;
     clearTimeout(focusOutTimeout);
 
-    // Use parentElement twice as a simple way to get the container.
-    // This may need adjustment for certain complex websites.
-    const parent = targetElement.parentElement?.parentElement;
+    const parent = targetElement.closest('.input-area') || targetElement.parentElement?.parentElement;
     if (!parent) return;
 
     currentIconParent = parent;
@@ -289,13 +278,14 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     }
     
     onFocusMicIcon.style.display = 'flex';
-    updateIconPositions(); // Position it immediately.
+    updateIconPositions();
 
     setTimeout(() => { 
       onFocusMicIcon.style.opacity = '1';
-      updateIconPositions(); // Re-position after render for maximum accuracy.
+      updateIconPositions();
     }, 10);
   }
+
 
   function hideOnFocusMicIcon(immediately = false) {
     if (!onFocusMicIcon) return;
@@ -384,24 +374,59 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     });
   }
 
+  // --- MODIFIED FUNCTION ---
   function processSelectedText(style = null) {
-    const activeElement = document.activeElement;
+    let activeElement = lastFocusedEditableElement;
+
+    if (!activeElement || !document.body.contains(activeElement)) {
+      if (currentIconParent) {
+        activeElement = currentIconParent.querySelector('rich-textarea, textarea, input:not([type="hidden"]), [contenteditable="true"]');
+        lastFocusedEditableElement = activeElement;
+      }
+      
+      if (!activeElement || !document.body.contains(activeElement)) {
+           activeElement = document.activeElement;
+      }
+    }
+    
     if (!activeElement) return;
+
     const selection = window.getSelection();
     let promptText = selection.toString().trim();
-    const isTextareaOrInput = activeElement.tagName === "TEXTAREA" || activeElement.tagName === "INPUT";
+    // Also check for the custom rich-textarea element
+    const isTextareaOrInput = activeElement.tagName === "TEXTAREA" || activeElement.tagName === "INPUT" || activeElement.tagName === "RICH-TEXTAREA";
     let processingMode;
+
     if (promptText) {
       processingMode = 'selection';
     } else if (isTextareaOrInput || activeElement.isContentEditable) {
       processingMode = 'full';
-      const text = isTextareaOrInput ? activeElement.value : activeElement.textContent;
+      // Use .value if it exists (for inputs/textareas), otherwise fall back to textContent
+      const text = (typeof activeElement.value !== 'undefined') ? activeElement.value : activeElement.textContent;
       if (!text.trim()) return;
-      activeElement.select();
+
+      // --- NEW: Safe, Universal Text Selection Logic ---
+      if (typeof activeElement.select === 'function') {
+        // This works for standard <input> and <textarea> elements
+        activeElement.select();
+      } else if (activeElement.isContentEditable) {
+        // This is the robust method for contenteditable elements
+        const range = document.createRange();
+        range.selectNodeContents(activeElement);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+      // --- END OF NEW LOGIC ---
+
       promptText = text;
-    } else { return; }
+    } else { 
+      return; 
+    }
+
     activeElement.style.opacity = '0.5';
     activeElement.style.cursor = 'wait';
+
     chrome.runtime.sendMessage({ prompt: promptText, style: style }, (response) => {
       activeElement.style.opacity = '1';
       activeElement.style.cursor = 'auto';
@@ -409,19 +434,21 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (response && response.error) return alert(`Error: ${response.error}`);
       if (response && response.generatedText) {
         if (processingMode === 'full') {
-          if (isTextareaOrInput) activeElement.value = response.generatedText;
-          else if (activeElement.isContentEditable) activeElement.textContent = response.generatedText;
+          if (isTextareaOrInput && typeof activeElement.value !== 'undefined') {
+            activeElement.value = response.generatedText;
+          } else if (activeElement.isContentEditable) {
+            activeElement.textContent = response.generatedText;
+          }
         } else {
           document.execCommand('insertText', false, response.generatedText);
         }
         activeElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
         
-        // Re-calculate positions after text has changed, as this can affect layout
         setTimeout(updateIconPositions, 200);
       }
     });
   }
-  
+
   function initializeSpeechRecognition() {
     if (recognition) return;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -509,7 +536,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
   function handleToggleDictation(request) {
     const activeElement = lastFocusedEditableElement;
-    if (!activeElement || !(activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'INPUT' || activeElement.isContentEditable)) {
+    if (!activeElement || !(activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'INPUT' || activeElement.isContentEditable || activeElement.tagName === 'RICH-TEXTAREA')) {
       hideListeningIndicator(); return;
     }
     if (request.start) {
@@ -557,7 +584,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         document.head.appendChild(style);
     }
     
-    // --- MODIFIED: The observer now calls the unified updateIconPositions function ---
     resizeObserver = new ResizeObserver(updateIconPositions);
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -614,7 +640,8 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       const tagName = target.tagName.toUpperCase();
       let isSuitable = false;
 
-      if (target.isContentEditable) {
+      // Also check for the custom rich-textarea element
+      if (target.isContentEditable || tagName === 'RICH-TEXTAREA') {
         isSuitable = true;
       }
       else if (tagName === 'TEXTAREA') {
