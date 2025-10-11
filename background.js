@@ -3,8 +3,7 @@
 import { GEMINI_MODEL } from './config.js';
 import { createPrompt } from './prompt.js';
 
-// --- CONTEXT MENU IMPLEMENTATION (MODIFIED FOR ROBUSTNESS) ---
-// This function creates the context menu, ensuring it removes any old versions first.
+// --- CONTEXT MENU ---
 const setupContextMenu = () => {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
@@ -15,123 +14,102 @@ const setupContextMenu = () => {
   });
 };
 
-// Set up the context menu when the extension is first installed or updated.
 chrome.runtime.onInstalled.addListener(setupContextMenu);
-
-// Also set it up when the browser starts, in case the menu was cleared.
 chrome.runtime.onStartup.addListener(setupContextMenu);
-
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "gemini-rewrite") {
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ["content.js"]
-    }).then(() => {
-      chrome.tabs.sendMessage(tab.id, { command: "process-text" });
-    }).catch(err => console.error(err));
+    chrome.tabs.sendMessage(tab.id, { command: "process-text" });
   }
 });
 
-// Listen for keyboard shortcut commands
-chrome.commands.onCommand.addListener((command) => {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const tab = tabs[0];
-    if (!tab || (tab.url && (tab.url.startsWith("chrome://") || tab.url.startsWith("https://chrome.google.com/")))) {
-      return;
-    }
-    // Note: We no longer need to inject the script here because manifest.json handles it.
-    // However, it's harmless to leave it for cases where it might be needed.
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ["content.js"]
-    }).then(() => {
-      if (command === "generate-text") {
-        chrome.tabs.sendMessage(tab.id, { command: "process-text" });
-      } else if (command === "dictate-and-process") {
-        // MODIFICATION: No longer manages state. Just sends a neutral toggle command.
-        chrome.tabs.sendMessage(tab.id, { command: "toggle-dictation" });
-      }
-    }).catch(err => console.error("Script injection or messaging failed:", err));
-  });
-});
-
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // MODIFICATION: The state update listener is no longer needed and has been removed.
+// --- KEYBOARD SHORTCUTS ---
+chrome.commands.onCommand.addListener((command, tab) => {
+  if (!tab || (tab.url && (tab.url.startsWith("chrome://") || tab.url.startsWith("https://chrome.google.com/")))) {
+    return; // Ignore invalid tabs
+  }
   
-  if (request.prompt) {
-    const storageKeys = [
-      'geminiApiKey', 'selectedLanguage', 'outputStyle', 
-      'outputLength', 'aiProcessingEnabled', 'customOutputStyle'
-    ];
-    
-    // MODIFICATION: Fetch all settings from storage.
-    chrome.storage.local.get(storageKeys, (result) => {
-      const { 
-        geminiApiKey: GEMINI_API_KEY, 
-        selectedLanguage, 
-        outputStyle, 
-        outputLength,
-        aiProcessingEnabled,
-        customOutputStyle
-      } = result;
-
-      if (!GEMINI_API_KEY) {
-        sendResponse({ error: "API key not set. Please set it in the extension's popup." });
-        return;
-      }
-
-      chrome.storage.local.set({ lastOriginalText: request.prompt });
-
-      // MODIFICATION: Transcription-only mode can now be triggered by a temporary
-      // flag from the content script OR the persistent setting.
-      if (request.bypassAi === true || aiProcessingEnabled === false) {
-        sendResponse({ generatedText: request.prompt });
-        return;
-      }
-      
-      const language = selectedLanguage || 'en-US';
-      const style = request.style || outputStyle || 'default'; // Use request style if available
-      const length = outputLength || 'default';
-      
-      const finalPrompt = createPrompt(request.prompt, language, style, length, customOutputStyle);
-
-      fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: finalPrompt }] }] })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.error) throw new Error(data.error.message);
-        if (!data.candidates || !data.candidates[0].content.parts[0].text) throw new Error("Invalid response from API.");
-        
-        updateApiCallCount(); 
-        const generatedText = data.candidates[0].content.parts[0].text;
-        sendResponse({ generatedText: generatedText });
-      })
-      .catch(error => {
-        console.error("Error with Gemini API:", error);
-        let friendlyError = error.message.includes('API key not valid') 
-          ? 'The saved API key is invalid. Please update it in the popup.'
-          : `Failed to generate text: ${error.message}`;
-        sendResponse({ error: friendlyError });
-      });
-    });
+  // Content script is already injected via manifest.json, so we just send the message.
+  if (command === "generate-text") {
+    chrome.tabs.sendMessage(tab.id, { command: "process-text" });
+  } else if (command === "dictate-and-process") {
+    chrome.tabs.sendMessage(tab.id, { command: "toggle-dictation" });
   }
-  return true; // Indicates asynchronous response
 });
 
-function updateApiCallCount() {
-  const today = new Date().toISOString().split('T')[0];
-  chrome.storage.local.get(['totalCount', 'dailyCount', 'lastCallDate'], (result) => {
-    let { totalCount = 0, dailyCount = 0, lastCallDate } = result;
-    totalCount++;
-    if (lastCallDate === today) {
-      dailyCount++;
-    } else {
-      dailyCount = 1;
+// --- MAIN API LOGIC ---
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.prompt) {
+    handlePromptRequest(request)
+      .then(sendResponse)
+      .catch(error => sendResponse({ error: error.message }));
+  }
+  return true; // Indicates an asynchronous response.
+});
+
+async function handlePromptRequest(request) {
+  const storageKeys = [
+    'geminiApiKey', 'selectedLanguage', 'outputStyle', 
+    'outputLength', 'aiProcessingEnabled', 'customOutputStyle'
+  ];
+  const settings = await chrome.storage.local.get(storageKeys);
+
+  if (!settings.geminiApiKey) {
+    throw new Error("API key not set. Please set it in the extension's popup.");
+  }
+
+  await chrome.storage.local.set({ lastOriginalText: request.prompt });
+
+  if (request.bypassAi === true || settings.aiProcessingEnabled === false) {
+    return { generatedText: request.prompt };
+  }
+  
+  const finalPrompt = createPrompt(
+    request.prompt,
+    settings.selectedLanguage || 'en-US',
+    request.style || settings.outputStyle || 'default',
+    settings.outputLength || 'default',
+    settings.customOutputStyle
+  );
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${settings.geminiApiKey}`;
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts: [{ text: finalPrompt }] }] })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || data.error) {
+        const errorMessage = data.error?.message || `HTTP error! status: ${response.status}`;
+        throw new Error(errorMessage);
     }
-    chrome.storage.local.set({ totalCount, dailyCount, lastCallDate: today });
-  });
+    
+    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!generatedText) throw new Error("Invalid response structure from API.");
+
+    await updateApiCallCount();
+    return { generatedText };
+
+  } catch (error) {
+    console.error("Error with Gemini API:", error);
+    if (error.message.includes('API key not valid')) {
+      throw new Error('The saved API key is invalid. Please update it in the popup.');
+    }
+    throw new Error(`Failed to generate text: ${error.message}`);
+  }
+}
+
+async function updateApiCallCount() {
+  const today = new Date().toISOString().split('T')[0];
+  const result = await chrome.storage.local.get(['totalCount', 'dailyCount', 'lastCallDate']);
+  
+  let { totalCount = 0, dailyCount = 0, lastCallDate } = result;
+  totalCount++;
+  dailyCount = (lastCallDate === today) ? dailyCount + 1 : 1;
+  
+  await chrome.storage.local.set({ totalCount, dailyCount, lastCallDate: today });
 }

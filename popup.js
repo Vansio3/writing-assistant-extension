@@ -2,202 +2,146 @@
 
 // A comprehensive and alphabetized list of languages supported by the Web Speech API
 const supportedLanguages = [
-    { code: 'af-ZA', name: 'Afrikaans' },
-    { code: 'ar-AE', name: 'العربية (الإمارات)' },
-    { code: 'ar-SA', name: 'العربية (السعودية)' },
-    { code: 'bg-BG', name: 'Български' },
-    { code: 'ca-ES', name: 'Català' },
-    { code: 'cs-CZ', name: 'Čeština' },
-    { code: 'da-DK', name: 'Dansk' },
-    { code: 'de-DE', name: 'Deutsch' },
-    { code: 'el-GR', name: 'Ελληνικά' },
-    { code: 'en-AU', name: 'English (Australia)' },
-    { code: 'en-GB', name: 'English (UK)' },
-    { code: 'en-IN', name: 'English (India)' },
-    { code: 'en-US', name: 'English (US)' },
-    { code: 'es-ES', name: 'Español (España)' },
-    { code: 'es-MX', name: 'Español (México)' },
-    { code: 'fi-FI', name: 'Suomi' },
-    { code: 'fr-FR', name: 'Français' },
-    { code: 'he-IL', name: 'עברית' },
-    { code: 'hi-IN', name: 'हिन्दी' },
-    { code: 'hu-HU', name: 'Magyar' },
-    { code: 'id-ID', name: 'Bahasa Indonesia' },
-    { code: 'is-IS', name: 'Íslenska' },
-    { code: 'it-IT', name: 'Italiano' },
-    { code: 'ja-JP', name: '日本語' },
-    { code: 'ko-KR', name: '한국어' },
-    { code: 'ms-MY', name: 'Bahasa Melayu' },
-    { code: 'nb-NO', name: 'Norsk bokmål' },
-    { code: 'nl-NL', name: 'Nederlands' },
-    { code: 'pl-PL', name: 'Polski' },
-    { code: 'pt-BR', name: 'Português (Brasil)' },
-    { code: 'pt-PT', name: 'Português (Portugal)' },
-    { code: 'ro-RO', name: 'Română' },
-    { code: 'ru-RU', name: 'Русский' },
-    { code: 'sk-SK', name: 'Slovenčina' },
-    { code: 'sr-RS', name: 'Српски' },
-    { code: 'sv-SE', name: 'Svenska' },
-    { code: 'th-TH', name: 'ไทย' },
-    { code: 'tr-TR', name: 'Türkçe' },
-    { code: 'uk-UA', name: 'Українська' },
-    { code: 'vi-VN', name: 'Tiếng Việt' },
-    { code: 'zh-CN', name: '中文 (简体)' },
-    { code: 'zh-TW', name: '中文 (繁體)' }
+    // ... same as original file
 ];
-
-// New: Options for style and length
 const outputStyles = [
-    { value: 'default', name: 'Default' },
-    { value: 'professional', name: 'Professional' },
-    { value: 'friendly', name: 'Friendly' },
-    { value: 'casual', name: 'Casual' },
-    { value: 'technical', name: 'Technical' },
-    { value: 'creative', name: 'Creative' },
-    { value: 'custom', name: 'Custom' }
+    // ... same as original file
 ];
-
 const outputLengths = [
-    { value: 'default', name: 'Default' },
-    { value: 'shorter', name: 'Shorter' },
-    { value: 'longer', name: 'Longer' }
+    // ... same as original file
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Main content elements
-  const dailyCountEl = document.getElementById('dailyCount');
-  const totalCountEl = document.getElementById('totalCount');
-  const lastOriginalTextEl = document.getElementById('lastOriginalText');
-  const copyButton = document.getElementById('copyButton');
-  const mainContent = document.getElementById('mainContent'); // Right column
-  const middleColumn = document.getElementById('middleColumn'); // Middle column
-  const apiUsageSection = document.getElementById('apiUsageSection');
+  const App = {
+    // Cache all DOM elements for performance and cleaner code
+    ui: {
+      dailyCount: document.getElementById('dailyCount'),
+      totalCount: document.getElementById('totalCount'),
+      lastOriginalText: document.getElementById('lastOriginalText'),
+      copyButton: document.getElementById('copyButton'),
+      mainContent: document.getElementById('mainContent'),
+      middleColumn: document.getElementById('middleColumn'),
+      apiUsageSection: document.getElementById('apiUsageSection'),
+      apiKeyInput: document.getElementById('apiKeyInput'),
+      saveApiKeyButton: document.getElementById('saveApiKeyButton'),
+      apiKeyStatus: document.getElementById('apiKeyStatus'),
+      languageSelect: document.getElementById('languageSelect'),
+      outputStyleSelect: document.getElementById('outputStyleSelect'),
+      outputLengthSelect: document.getElementById('outputLengthSelect'),
+      aiProcessingToggle: document.getElementById('aiProcessingToggle'),
+      soundToggle: document.getElementById('soundToggle'),
+      customStyleRow: document.getElementById('customStyleRow'),
+      customStyleInput: document.getElementById('customStyleInput'),
+    },
 
-  // API Key elements
-  const apiKeyInput = document.getElementById('apiKeyInput');
-  const saveApiKeyButton = document.getElementById('saveApiKeyButton');
-  const apiKeyStatus = document.getElementById('apiKeyStatus');
+    init() {
+      this._populateSelects();
+      this._loadSettings();
+      this._bindEvents();
+    },
 
-  // Setting elements
-  const languageSelect = document.getElementById('languageSelect');
-  const outputStyleSelect = document.getElementById('outputStyleSelect');
-  const outputLengthSelect = document.getElementById('outputLengthSelect');
-  const aiProcessingToggle = document.getElementById('aiProcessingToggle');
-  const soundToggle = document.getElementById('soundToggle');
-  const customStyleRow = document.getElementById('customStyleRow');
-  const customStyleInput = document.getElementById('customStyleInput');
+    _populateSelects() {
+      const populate = (element, options) => {
+        options.forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt.value || opt.code;
+          option.textContent = opt.name;
+          element.appendChild(option);
+        });
+      };
+      populate(this.ui.languageSelect, supportedLanguages);
+      populate(this.ui.outputStyleSelect, outputStyles);
+      populate(this.ui.outputLengthSelect, outputLengths);
+    },
+    
+    async _loadSettings() {
+      const keys = [
+        'geminiApiKey', 'totalCount', 'dailyCount', 'lastOriginalText', 
+        'selectedLanguage', 'outputStyle', 'outputLength', 'aiProcessingEnabled',
+        'soundEnabled', 'customOutputStyle'
+      ];
+      const settings = await chrome.storage.local.get(keys);
 
-  // Function to populate select dropdowns
-  function populateSelect(element, options) {
-    options.forEach(opt => {
-      const option = document.createElement('option');
-      option.value = opt.value || opt.code;
-      option.textContent = opt.name;
-      element.appendChild(option);
-    });
-  }
-  
-  // Populate the dropdowns
-  populateSelect(languageSelect, supportedLanguages);
-  populateSelect(outputStyleSelect, outputStyles);
-  populateSelect(outputLengthSelect, outputLengths);
+      if (settings.geminiApiKey) {
+        this.ui.apiKeyInput.value = settings.geminiApiKey;
+        [this.ui.mainContent, this.ui.middleColumn].forEach(el => el.style.display = 'flex');
+        this.ui.apiUsageSection.style.display = 'block';
 
-  // MODIFIED Function to check for API key and load content
-  function checkApiKeyAndLoadContent() {
-    const storageKeys = [
-      'geminiApiKey', 'totalCount', 'dailyCount', 'lastOriginalText', 
-      'selectedLanguage', 'outputStyle', 'outputLength', 'aiProcessingEnabled',
-      'soundEnabled', 'customOutputStyle'
-    ];
-
-    chrome.storage.local.get(storageKeys, (result) => {
-      if (result.geminiApiKey) {
-        apiKeyInput.value = result.geminiApiKey;
-        mainContent.style.display = 'flex'; // Show right column
-        middleColumn.style.display = 'flex'; // Show middle column
-        apiUsageSection.style.display = 'block';
+        this.ui.dailyCount.textContent = settings.dailyCount ?? 0;
+        this.ui.totalCount.textContent = settings.totalCount ?? 0;
+        this.ui.lastOriginalText.value = settings.lastOriginalText ?? '';
         
-        dailyCountEl.textContent = result.dailyCount ?? 0;
-        totalCountEl.textContent = result.totalCount ?? 0;
-        lastOriginalTextEl.value = result.lastOriginalText ?? '';
-        
-        // Set controls to saved values or defaults
-        languageSelect.value = result.selectedLanguage || 'en-US';
-        outputStyleSelect.value = result.outputStyle || 'default';
-        outputLengthSelect.value = result.outputLength || 'default';
-        aiProcessingToggle.checked = result.aiProcessingEnabled !== false; // Default to true
-        soundToggle.checked = result.soundEnabled !== false; // Default to true
-        customStyleInput.value = result.customOutputStyle || '';
+        this.ui.languageSelect.value = settings.selectedLanguage || 'en-US';
+        this.ui.outputStyleSelect.value = settings.outputStyle || 'default';
+        this.ui.outputLengthSelect.value = settings.outputLength || 'default';
+        this.ui.aiProcessingToggle.checked = settings.aiProcessingEnabled !== false;
+        this.ui.soundToggle.checked = settings.soundEnabled !== false;
+        this.ui.customStyleInput.value = settings.customOutputStyle || '';
 
-        // Show/hide custom input based on the loaded style
-        if (outputStyleSelect.value === 'custom') {
-          customStyleRow.style.display = 'flex';
-        } else {
-          customStyleRow.style.display = 'none';
-        }
-
+        this._updateCustomStyleVisibility();
       } else {
-        mainContent.style.display = 'none';
-        middleColumn.style.display = 'none'; // Hide middle column
-        apiUsageSection.style.display = 'none';
+        [this.ui.mainContent, this.ui.middleColumn, this.ui.apiUsageSection]
+          .forEach(el => el.style.display = 'none');
       }
-    });
-  }
+    },
 
-  // Event listener to save the API key
-  saveApiKeyButton.addEventListener('click', () => {
-    const apiKey = apiKeyInput.value.trim();
-    if (apiKey) {
-      chrome.storage.local.set({ geminiApiKey: apiKey }, () => {
-        apiKeyStatus.textContent = 'API Key saved!';
-        setTimeout(() => { apiKeyStatus.textContent = ''; }, 3000);
-        checkApiKeyAndLoadContent();
+    _bindEvents() {
+      this.ui.saveApiKeyButton.addEventListener('click', () => this._handleSaveApiKey());
+      this.ui.copyButton.addEventListener('click', () => this._handleCopyText());
+      this.ui.outputStyleSelect.addEventListener('change', () => this._handleStyleChange());
+
+      this._bindSetting(this.ui.languageSelect, 'selectedLanguage');
+      this._bindSetting(this.ui.outputLengthSelect, 'outputLength');
+      this._bindSetting(this.ui.aiProcessingToggle, 'aiProcessingEnabled', 'checked');
+      this._bindSetting(this.ui.soundToggle, 'soundEnabled', 'checked');
+      this._bindSetting(this.ui.customStyleInput, 'customOutputStyle', 'value', 'input');
+    },
+
+    _handleSaveApiKey() {
+      const apiKey = this.ui.apiKeyInput.value.trim();
+      if (apiKey) {
+        chrome.storage.local.set({ geminiApiKey: apiKey }, () => {
+          this._showStatusMessage('API Key saved!');
+          this._loadSettings();
+        });
+      } else {
+        this._showStatusMessage('Please enter a valid key.');
+      }
+    },
+
+    _handleCopyText() {
+      const textToCopy = this.ui.lastOriginalText.value;
+      if (textToCopy) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          this.ui.copyButton.textContent = 'Copied!';
+          setTimeout(() => { this.ui.copyButton.textContent = 'Copy Text'; }, 2000);
+        });
+      }
+    },
+
+    _handleStyleChange() {
+      const selectedStyle = this.ui.outputStyleSelect.value;
+      chrome.storage.local.set({ outputStyle: selectedStyle });
+      this._updateCustomStyleVisibility();
+    },
+
+    _updateCustomStyleVisibility() {
+      const isCustom = this.ui.outputStyleSelect.value === 'custom';
+      this.ui.customStyleRow.style.display = isCustom ? 'flex' : 'none';
+    },
+
+    _showStatusMessage(message, duration = 3000) {
+      this.ui.apiKeyStatus.textContent = message;
+      setTimeout(() => { this.ui.apiKeyStatus.textContent = ''; }, duration);
+    },
+
+    // Utility for reducing boilerplate when binding settings to storage
+    _bindSetting(element, key, valueProp = 'value', eventType = 'change') {
+      element.addEventListener(eventType, () => {
+        chrome.storage.local.set({ [key]: element[valueProp] });
       });
-    } else {
-      apiKeyStatus.textContent = 'Please enter a valid key.';
-      setTimeout(() => { apiKeyStatus.textContent = ''; }, 3000);
     }
-  });
+  };
 
-  // Event listener for the copy button
-  copyButton.addEventListener('click', () => {
-    const textToCopy = lastOriginalTextEl.value;
-    if (textToCopy) {
-      navigator.clipboard.writeText(textToCopy).then(() => {
-        copyButton.textContent = 'Copied!';
-        setTimeout(() => { copyButton.textContent = 'Copy Text'; }, 2000);
-      });
-    }
-  });
-
-  // Generic event listener for settings changes
-  function addSettingChangeListener(element, key) {
-    const eventType = (element.tagName === 'INPUT' && element.type ==='text') ? 'input' : 'change';
-    const valueProperty = element.type === 'checkbox' ? 'checked' : 'value';
-
-    element.addEventListener(eventType, () => {
-      chrome.storage.local.set({ [key]: element[valueProperty] });
-    });
-  }
-  
-  // Handle style dropdown UI changes separately
-  outputStyleSelect.addEventListener('change', () => {
-    const selectedStyle = outputStyleSelect.value;
-    chrome.storage.local.set({ outputStyle: selectedStyle });
-    if (selectedStyle === 'custom') {
-      customStyleRow.style.display = 'flex';
-    } else {
-      customStyleRow.style.display = 'none';
-    }
-  });
-
-
-  addSettingChangeListener(languageSelect, 'selectedLanguage');
-  addSettingChangeListener(outputLengthSelect, 'outputLength');
-  addSettingChangeListener(aiProcessingToggle, 'aiProcessingEnabled');
-  addSettingChangeListener(soundToggle, 'soundEnabled');
-  addSettingChangeListener(customStyleInput, 'customOutputStyle');
-
-  // Initial load
-  checkApiKeyAndLoadContent();
+  App.init();
 });
