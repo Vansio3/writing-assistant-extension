@@ -15,6 +15,10 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   let cancellationReason = null;
   let resizeObserver = null;
   
+  // --- NEW: Variables for parent-injection logic ---
+  let currentIconParent = null;
+  let originalParentPosition = '';
+  
   // --- NEW: Variables for click-and-hold feature ---
   let transcriptionOnlyButton = null; 
   let currentDictationBypassesAi = false;
@@ -166,12 +170,26 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     hideFabStyleMenu();
   }
 
+  // REPLACED: This function now vertically centers the icon within the parent element.
   const repositionIcon = () => {
-    if (onFocusMicIcon && lastFocusedEditableElement && onFocusMicIcon.style.display === 'flex') {
-      const rect = lastFocusedEditableElement.getBoundingClientRect();
-      const x = rect.right + window.scrollX - 34;
-      const y = rect.top + window.scrollY + (rect.height / 2) - 14;
-      onFocusMicIcon.style.transform = `translate(${x}px, ${y}px)`;
+    if (onFocusMicIcon && lastFocusedEditableElement && currentIconParent) {
+      // --- NEW VERTICAL CENTERING LOGIC ---
+
+      // 1. Get the height of the parent container.
+      const parentHeight = currentIconParent.offsetHeight;
+      
+      // 2. Get the height of the icon itself.
+      const iconHeight = onFocusMicIcon.offsetHeight;
+
+      // 3. Calculate the 'top' position to be exactly in the middle.
+      // The formula is: (Parent's Center) - (Half of the Icon's Height)
+      const top = (parentHeight / 2) - (iconHeight / 2);
+
+      // The horizontal 'left' position logic remains the same.
+      const left = lastFocusedEditableElement.offsetLeft + lastFocusedEditableElement.offsetWidth - 34;
+
+      onFocusMicIcon.style.top = `${top}px`;
+      onFocusMicIcon.style.left = `${left}px`;
     }
   };
   
@@ -201,6 +219,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     document.body.appendChild(transcriptionOnlyButton);
   }
 
+  // --- MODIFIED: The icon is created but not appended to the body. ---
   function createOnFocusMicIcon() {
     if (onFocusMicIcon) return;
     onFocusMicIcon = document.createElement('div');
@@ -211,7 +230,8 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         <path d="M12 19V23" stroke="#606367" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>`;
     Object.assign(onFocusMicIcon.style, {
-      position: 'absolute', top: '0', left: '0', width: '28px', height: '28px', borderRadius: '50%',
+      position: 'absolute', // Will be positioned relative to the new parent
+      top: '0', left: '0', width: '28px', height: '28px', borderRadius: '50%',
       backgroundColor: '#f0f0f0', display: 'none', alignItems: 'center',
       justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', cursor: 'pointer',
       zIndex: '2147483646', transition: 'opacity 0.2s ease-in-out, background-color 0.2s ease',
@@ -221,13 +241,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     onFocusMicIcon.addEventListener('mouseenter', () => { if(!isMouseDownOnMic) onFocusMicIcon.style.backgroundColor = '#e0e0e0'; });
     onFocusMicIcon.addEventListener('mouseleave', () => { if(!isMouseDownOnMic) onFocusMicIcon.style.backgroundColor = '#f0f0f0'; });
     
-    // --- MODIFICATION: Reworked mousedown to handle click-and-hold ---
     onFocusMicIcon.addEventListener('mousedown', (event) => {
       event.preventDefault();
       event.stopPropagation();
       isMouseDownOnMic = true;
 
-      // After a short delay, show the secondary button
       micHoldTimeout = setTimeout(() => {
         if (!isMouseDownOnMic || !transcriptionOnlyButton) return;
         const micRect = onFocusMicIcon.getBoundingClientRect();
@@ -235,41 +253,70 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         const y = micRect.top + window.scrollY - 34;
         transcriptionOnlyButton.style.transform = `translate(${x}px, ${y}px)`;
         transcriptionOnlyButton.style.display = 'flex';
-        // The visual transition is handled by the CSS transition on the transform property.
       }, 200);
     });
-
-    document.body.appendChild(onFocusMicIcon);
   }
 
+  // --- REPLACED: This function now injects the icon into the parent element. ---
   function showOnFocusMicIcon(targetElement) {
     if (!onFocusMicIcon) return;
     clearTimeout(focusOutTimeout);
-    
-    if (resizeObserver) {
-      resizeObserver.disconnect();
-      resizeObserver.observe(targetElement);
+
+    const parent = targetElement.parentElement.parentElement; // Inject into grandparent for better positioning
+    if (!parent) return;
+
+    // Set the new parent and store its original position style
+    currentIconParent = parent;
+    originalParentPosition = window.getComputedStyle(parent).position;
+
+    // The parent MUST have a non-static position for the icon's absolute positioning to work.
+    if (originalParentPosition === 'static') {
+      parent.style.position = 'relative';
     }
 
+    parent.appendChild(onFocusMicIcon);
+
+    // Disconnect old observer and observe the new parent for resizing
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+      resizeObserver.observe(parent);
+    }
+    
+    repositionIcon(); // Set the initial position
     onFocusMicIcon.style.display = 'flex';
-    onFocusMicIcon.style.opacity = '1';
-    repositionIcon();
+    setTimeout(() => { onFocusMicIcon.style.opacity = '1' }, 10); // Fade in
   }
 
+  // --- REPLACED: This function now removes the icon and restores parent styles. ---
   function hideOnFocusMicIcon(immediately = false) {
     if (!onFocusMicIcon) return;
     
-    const delay = immediately ? 0 : 200;
-    
-    focusOutTimeout = setTimeout(() => {
-      onFocusMicIcon.style.opacity = '0';
+    const hide = () => {
+      if (onFocusMicIcon && onFocusMicIcon.parentElement) {
+        onFocusMicIcon.style.opacity = '0';
+      }
       setTimeout(() => { 
-        if(onFocusMicIcon) onFocusMicIcon.style.display = 'none'; 
+        if (onFocusMicIcon && onFocusMicIcon.parentElement) {
+          onFocusMicIcon.remove();
+        }
+        // Restore the parent's original position style
+        if (currentIconParent) {
+          currentIconParent.style.position = originalParentPosition;
+          currentIconParent = null;
+          originalParentPosition = '';
+        }
         if (resizeObserver) {
           resizeObserver.disconnect();
         }
       }, 200);
-    }, delay);
+    };
+
+    clearTimeout(focusOutTimeout);
+    if (immediately) {
+      hide();
+    } else {
+      focusOutTimeout = setTimeout(hide, 200);
+    }
   }
 
   function showListeningIndicator(targetElement) {
@@ -561,6 +608,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       const target = event.target;
       if (!target || target.disabled || target.readOnly) {
         return;
+      }
+
+      // --- MODIFIED: Immediately hide any existing icon before processing the new focus target. ---
+      if (lastFocusedEditableElement && lastFocusedEditableElement !== target) {
+          hideOnFocusMicIcon(true); 
       }
 
       const tagName = target.tagName.toUpperCase();
