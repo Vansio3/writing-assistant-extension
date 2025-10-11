@@ -473,9 +473,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (finishedTargetElement) {
         finishedTargetElement.removeEventListener('blur', handleFocusLoss);
       }
-      try {
-        chrome.runtime.sendMessage({ command: "update-recording-state", isRecording: false });
-      } catch(e) { console.warn("Could not update background state. Context may be invalidated."); }
       
       if (dictationCancelled) {
         if (finishedTargetElement) {
@@ -547,9 +544,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         if (dictationTargetElement) {
           chrome.storage.local.get('selectedLanguage', (result) => {
             recognition.lang = result.selectedLanguage || 'en-US';
-            try {
-              chrome.runtime.sendMessage({ command: "update-recording-state", isRecording: true });
-            } catch(e) { console.warn("Could not update background state. Context may be invalidated."); }
             playSound('assets/audio/start.mp3');
             originalInputText = dictationTargetElement.value || dictationTargetElement.textContent;
             dictationTargetElement.addEventListener('blur', handleFocusLoss, { once: true });
@@ -590,7 +584,16 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (request.command === "process-text") {
         processSelectedText();
       } else if (request.command === "toggle-dictation") {
-        handleToggleDictation(request);
+        // MODIFICATION: Logic to determine whether to start or stop is now handled here.
+        // `dictationTargetElement` is non-null only during an active session.
+        const isCurrentlyRecording = !!dictationTargetElement;
+        
+        // If the shortcut is pressed, we want to stop. Otherwise, start.
+        // The request object from a shortcut press is { command: "toggle-dictation" }
+        // The request object from a button press is { command: "toggle-dictation", start: true/false }
+        const shouldStart = typeof request.start !== 'undefined' ? request.start : !isCurrentlyRecording;
+        
+        handleToggleDictation({ ...request, start: shouldStart });
       }
       sendResponse(true); return true;
     });

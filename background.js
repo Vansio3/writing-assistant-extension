@@ -33,8 +33,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   }
 });
 
-let isRecording = false;
-
 // Listen for keyboard shortcut commands
 chrome.commands.onCommand.addListener((command) => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -51,21 +49,15 @@ chrome.commands.onCommand.addListener((command) => {
       if (command === "generate-text") {
         chrome.tabs.sendMessage(tab.id, { command: "process-text" });
       } else if (command === "dictate-and-process") {
-        isRecording = !isRecording;
-        chrome.tabs.sendMessage(tab.id, { command: "toggle-dictation", start: isRecording });
+        // MODIFICATION: No longer manages state. Just sends a neutral toggle command.
+        chrome.tabs.sendMessage(tab.id, { command: "toggle-dictation" });
       }
     }).catch(err => console.error("Script injection or messaging failed:", err));
   });
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  // --- KEY CHANGE: Consolidated state management ---
-  // This single listener now handles all state updates from the content script.
-  if (request.command === "update-recording-state") {
-    isRecording = request.isRecording;
-    sendResponse({ success: true });
-    return;
-  }
+  // MODIFICATION: The state update listener is no longer needed and has been removed.
   
   if (request.prompt) {
     const storageKeys = [
