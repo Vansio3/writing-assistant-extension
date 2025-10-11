@@ -8,12 +8,12 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   let dictationTargetElement = null;
   let originalInputText = '';
   let dictationCancelled = false;
-  let listeningOverlay = null;
   let onFocusMicIcon = null;
   let focusOutTimeout = null;
   let lastFocusedEditableElement = null;
   let cancellationReason = null;
   let resizeObserver = null;
+  let stopDictationClickHandler = null; // --- NEW VARIABLE ---
   
   // --- NEW: Variables for parent-injection logic ---
   let currentIconParent = null;
@@ -228,9 +228,18 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       opacity: '0', pointerEvents: 'auto'
     });
     onFocusMicIcon.innerHTML = svg;
-    onFocusMicIcon.addEventListener('mouseenter', () => { if(!isMouseDownOnMic) onFocusMicIcon.style.backgroundColor = '#e0e0e0'; });
-    onFocusMicIcon.addEventListener('mouseleave', () => { if(!isMouseDownOnMic) onFocusMicIcon.style.backgroundColor = '#f0f0f0'; });
-    
+    onFocusMicIcon.addEventListener('mouseenter', () => { 
+      // Only apply hover effect if NOT in active listening mode
+      if(!isMouseDownOnMic && !stopDictationClickHandler) {
+        onFocusMicIcon.style.backgroundColor = '#e0e0e0'; 
+      }
+    });
+    onFocusMicIcon.addEventListener('mouseleave', () => { 
+      // Only apply hover effect if NOT in active listening mode
+      if(!isMouseDownOnMic && !stopDictationClickHandler) {
+        onFocusMicIcon.style.backgroundColor = '#f0f0f0'; 
+      }
+    });
     onFocusMicIcon.addEventListener('mousedown', (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -252,7 +261,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     if (!onFocusMicIcon) return;
     clearTimeout(focusOutTimeout);
 
-    // --- MODIFIED: Targeting the grandparent element ---
     const parent = targetElement.parentElement?.parentElement;
     if (!parent) return;
 
@@ -306,53 +314,37 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     }
   }
 
-  function showListeningIndicator(targetElement) {
-    hideOnFocusMicIcon(true);
-    if (listeningOverlay) listeningOverlay.remove();
-    listeningOverlay = document.createElement('div');
-    const rect = targetElement.getBoundingClientRect();
-    const microphoneIconSVG = `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M19 10V12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12V10" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M12 19V23" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>`;
-    const iconContainer = document.createElement('div');
-    Object.assign(iconContainer.style, {
-      position: 'absolute', top: '50%', right: '6px', transform: 'translateY(-50%)',
-      width: '30px', height: '30px', borderRadius: '50%', backgroundColor: '#E53E3E',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.2)', animation: 'gemini-icon-pulse 1.5s infinite ease-in-out',
-      cursor: 'pointer', pointerEvents: 'auto'
-    });
-    iconContainer.innerHTML = microphoneIconSVG;
-    iconContainer.addEventListener('mousedown', (event) => {
+  // --- REPLACED: This function now modifies the existing mic icon to show the listening state. ---
+  function showListeningIndicator() {
+    if (!onFocusMicIcon) return;
+
+    onFocusMicIcon.style.backgroundColor = '#E53E3E'; // Red background
+    onFocusMicIcon.classList.add('gemini-mic-pulsing');
+
+    const paths = onFocusMicIcon.querySelectorAll('svg path');
+    paths.forEach(p => p.setAttribute('stroke', '#FFFFFF'));
+
+    stopDictationClickHandler = (event) => {
       event.preventDefault();
+      event.stopPropagation();
       handleToggleDictation({ start: false });
-    });
-    Object.assign(listeningOverlay.style, {
-      position: 'absolute', top: `0px`, left: `0px`,
-      width: `${rect.width}px`, height: `${rect.height}px`, borderRadius: getComputedStyle(targetElement).borderRadius,
-      pointerEvents: 'none', zIndex: '2147483647', opacity: '0',
-      transform: `translate(${rect.left + window.scrollX}px, ${rect.top + window.scrollY}px)`
-    });
-    const styleId = 'gemini-listening-style';
-    if (!document.getElementById(styleId)) {
-        const style = document.createElement('style'); style.id = styleId;
-        style.innerHTML = `@keyframes gemini-icon-pulse {
-            0% { transform: scale(1) translateY(-50%); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); }
-            50% { transform: scale(1.05) translateY(-50%); box-shadow: 0 0 0 5px rgba(229, 62, 62, 0); }
-            100% { transform: scale(1) translateY(-50%); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); }}`;
-        document.head.appendChild(style);
-    }
-    listeningOverlay.appendChild(iconContainer); document.body.appendChild(listeningOverlay);
-    listeningOverlay.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out', fill: 'forwards' });
+    };
+    onFocusMicIcon.addEventListener('click', stopDictationClickHandler);
   }
 
+  // --- REPLACED: This function reverts the mic icon back to its inactive state. ---
   function hideListeningIndicator() {
-    if (listeningOverlay) {
-      const fadeOutAnimation = listeningOverlay.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, easing: 'ease-in' });
-      fadeOutAnimation.onfinish = () => { if (listeningOverlay) { listeningOverlay.remove(); listeningOverlay = null; } };
+    if (!onFocusMicIcon) return;
+
+    onFocusMicIcon.style.backgroundColor = '#f0f0f0'; // Default grey background
+    onFocusMicIcon.classList.remove('gemini-mic-pulsing');
+
+    const paths = onFocusMicIcon.querySelectorAll('svg path');
+    paths.forEach(p => p.setAttribute('stroke', '#606367'));
+
+    if (stopDictationClickHandler) {
+      onFocusMicIcon.removeEventListener('click', stopDictationClickHandler);
+      stopDictationClickHandler = null;
     }
   }
   
@@ -522,7 +514,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
             playSound('assets/audio/start.mp3');
             originalInputText = dictationTargetElement.value || dictationTargetElement.textContent;
             dictationTargetElement.addEventListener('blur', handleFocusLoss, { once: true });
-            showListeningIndicator(dictationTargetElement);
+            showListeningIndicator(); // --- CHANGED: No longer passes an argument ---
             recognition.start();
           });
         }
@@ -537,6 +529,23 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   }
 
   function initializeExtension() {
+    // --- NEW: Inject CSS for the pulsing animation class ---
+    const styleId = 'gemini-listening-style';
+    if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.innerHTML = `
+          .gemini-mic-pulsing {
+            animation: gemini-icon-pulse 1.5s infinite ease-in-out;
+          }
+          @keyframes gemini-icon-pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); }
+            50% { transform: scale(1.05); box-shadow: 0 0 0 5px rgba(229, 62, 62, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); }
+        }`;
+        document.head.appendChild(style);
+    }
+
     resizeObserver = new ResizeObserver(repositionIcon);
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -553,7 +562,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         const selection = window.getSelection();
         if (selection && selection.toString().trim().length > 0) {
           clearTimeout(typingTimer);
-          showFab(); // CHANGED
+          showFab();
         } else {
           hideFab();
         }
@@ -573,7 +582,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         if (text && text.trim().length > 0) {
           typingTimer = setTimeout(() => {
             if (document.activeElement === lastFocusedEditableElement && window.getSelection().toString().trim().length === 0) {
-              showFab(); // CHANGED
+              showFab();
             }
           }, TYPING_DELAY);
         }
@@ -677,7 +686,10 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         transcriptionOnlyButton.style.display = 'none';
         transcriptionOnlyButton.style.transform = `translateY(10px)`;
       } else {
-        handleToggleDictation({ start: true, bypassAi: false });
+        // Only trigger dictation if the temporary "stop" handler isn't active
+        if(!stopDictationClickHandler) {
+          handleToggleDictation({ start: true, bypassAi: false });
+        }
       }
 
       isOverSecondaryButton = false;
