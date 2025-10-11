@@ -43,12 +43,10 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       { value: 'creative', name: 'Creative' }
   ];
 
-  // --- NEW: Function to create the Floating Action Button ---
+  // --- MODIFIED: The FAB is no longer appended to the body on creation. ---
   function createFab() {
     if (fab) return;
     fab = document.createElement('div');
-    // --- MODIFICATION: The viewBox is now tightly cropped around the chevrons. ---
-    // This makes the icon itself larger without changing the SVG's element size.
     const svg = `
       <svg width="10" height="10" viewBox="8 7 8 11" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M15.25 10.75L12 7.5L8.75 10.75" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -58,8 +56,8 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       position: 'absolute', top: '0', left: '0', width: '24px', height: '24px', borderRadius: '50%',
       backgroundColor: '#007aff', display: 'none', alignItems: 'center',
       justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', cursor: 'pointer',
-      zIndex: '2147483647', transition: 'opacity 0.2s ease-in-out, transform 0.2s ease-out',
-      opacity: '0', transform: 'scale(0.8)', pointerEvents: 'auto'
+      zIndex: '2147483647', transition: 'opacity 0.2s ease-in-out',
+      opacity: '0', pointerEvents: 'auto'
     });
     fab.innerHTML = svg;
 
@@ -73,8 +71,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         }
       }, 200);
     });
-
-    document.body.appendChild(fab);
   }
 
   // --- NEW: Function to create and show the FAB style menu ---
@@ -115,20 +111,17 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       });
     }
 
-    // MODIFICATION: New positioning logic
-    // First, make the menu visible but off-screen to calculate its dimensions
     fabStyleMenu.style.visibility = 'hidden';
     fabStyleMenu.style.display = 'flex';
 
     const fabRect = fab.getBoundingClientRect();
-    const menuRect = fabStyleMenu.getBoundingClientRect(); // Get the new dimensions
+    const menuRect = fabStyleMenu.getBoundingClientRect();
 
-    // MODIFIED: Calculate position to be to the right of and vertically centered with the FAB
-    const x = fabRect.right + window.scrollX - 30; // 8px margin to the right
-    const y = fabRect.top + window.scrollY + (fabRect.height / 2) - (menuRect.height / 2) - 50; // Vertically centers the menu with the FAB
+    const x = fabRect.right + window.scrollX - 30;
+    const y = fabRect.top + window.scrollY + (fabRect.height / 2) - (menuRect.height / 2) - 50;
 
     fabStyleMenu.style.transform = `translate(${x}px, ${y}px)`;
-    fabStyleMenu.style.visibility = 'visible'; // Make it visible at the new position
+    fabStyleMenu.style.visibility = 'visible';
   }
 
   // --- NEW: Function to hide the FAB style menu ---
@@ -138,54 +131,58 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     }
   }
 
-  // --- NEW: Function to position and show the FAB ---
-  function showFab(targetElement) {
-    if (!fab) return;
-    const rect = targetElement.getBoundingClientRect();
-    const x = rect.left + window.scrollX - 30;
-    const y = rect.top + window.scrollY + (rect.height / 2) - 12;
-    fab.style.transform = `translate(${x}px, ${y}px) scale(1)`;
+  // --- REPLACED: This function now injects and positions the FAB relative to the parent. ---
+  function showFab() {
+    if (!fab || !currentIconParent || !lastFocusedEditableElement) return;
+
+    currentIconParent.appendChild(fab);
+
+    const parentHeight = currentIconParent.offsetHeight;
+    const fabHeight = fab.offsetHeight;
+    const top = (parentHeight / 2) - (fabHeight / 2);
+
+    const left = lastFocusedEditableElement.offsetLeft - 30;
+
+    fab.style.top = `${top}px`;
+    fab.style.left = `${left}px`;
     fab.style.display = 'flex';
     setTimeout(() => { 
         fab.style.opacity = '1';
     }, 10);
   }
 
-  // --- NEW: Function to hide the FAB ---
+  // --- MODIFIED: This function now removes the FAB from its parent element. ---
   function hideFab(immediately = false) {
-    if (!fab) return;
+    if (!fab || !fab.parentElement) return;
+
     clearTimeout(typingTimer);
-    if (immediately) {
-      fab.style.display = 'none';
+
+    const performHide = () => {
       fab.style.opacity = '0';
-    } else {
-      fab.style.opacity = '0';
-      fab.style.transform = `${fab.style.transform.split('scale')[0]} scale(0.8)`;
       setTimeout(() => {
-        if (fab.style.opacity === '0') { 
-          fab.style.display = 'none';
+        if (fab.parentElement) { 
+          fab.remove();
         }
-      }, 200); 
+      }, 200);
+    };
+
+    if (immediately) {
+      fab.style.transition = 'none';
+      performHide();
+      setTimeout(() => { fab.style.transition = 'opacity 0.2s ease-in-out'; }, 50);
+    } else {
+      performHide();
     }
+    
     hideFabStyleMenu();
   }
 
-  // REPLACED: This function now vertically centers the icon within the parent element.
+  // --- REPLACED: This function now vertically centers the icon within the parent element. ---
   const repositionIcon = () => {
     if (onFocusMicIcon && lastFocusedEditableElement && currentIconParent) {
-      // --- NEW VERTICAL CENTERING LOGIC ---
-
-      // 1. Get the height of the parent container.
       const parentHeight = currentIconParent.offsetHeight;
-      
-      // 2. Get the height of the icon itself.
       const iconHeight = onFocusMicIcon.offsetHeight;
-
-      // 3. Calculate the 'top' position to be exactly in the middle.
-      // The formula is: (Parent's Center) - (Half of the Icon's Height)
       const top = (parentHeight / 2) - (iconHeight / 2);
-
-      // The horizontal 'left' position logic remains the same.
       const left = lastFocusedEditableElement.offsetLeft + lastFocusedEditableElement.offsetWidth - 34;
 
       onFocusMicIcon.style.top = `${top}px`;
@@ -197,16 +194,10 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
   function createTranscriptionOnlyButton() {
     if (transcriptionOnlyButton) return;
     transcriptionOnlyButton = document.createElement('div');
-    // --- MODIFICATION: Replaced SVG with the user-provided "bot-off" icon ---
     const svg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#606367" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M13.67 8H18a2 2 0 0 1 2 2v4.33"/>
-        <path d="M2 14h2"/>
-        <path d="M20 14h2"/>
-        <path d="M22 22 2 2"/>
-        <path d="M8 8H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 1.414-.586"/>
-        <path d="M9 13v2"/>
-        <path d="M9.67 4H12v2.33"/>
+        <path d="M13.67 8H18a2 2 0 0 1 2 2v4.33"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M22 22 2 2"/>
+        <path d="M8 8H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 1.414-.586"/><path d="M9 13v2"/><path d="M9.67 4H12v2.33"/>
       </svg>`;
     Object.assign(transcriptionOnlyButton.style, {
       position: 'absolute', top: '0', left: '0', width: '28px', height: '28px', borderRadius: '50%',
@@ -230,8 +221,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         <path d="M12 19V23" stroke="#606367" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>`;
     Object.assign(onFocusMicIcon.style, {
-      position: 'absolute', // Will be positioned relative to the new parent
-      top: '0', left: '0', width: '28px', height: '28px', borderRadius: '50%',
+      position: 'absolute', top: '0', left: '0', width: '28px', height: '28px', borderRadius: '50%',
       backgroundColor: '#f0f0f0', display: 'none', alignItems: 'center',
       justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', cursor: 'pointer',
       zIndex: '2147483646', transition: 'opacity 0.2s ease-in-out, background-color 0.2s ease',
@@ -262,29 +252,27 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     if (!onFocusMicIcon) return;
     clearTimeout(focusOutTimeout);
 
-    const parent = targetElement.parentElement.parentElement; // Inject into grandparent for better positioning
+    // --- MODIFIED: Targeting the grandparent element ---
+    const parent = targetElement.parentElement?.parentElement;
     if (!parent) return;
 
-    // Set the new parent and store its original position style
     currentIconParent = parent;
     originalParentPosition = window.getComputedStyle(parent).position;
 
-    // The parent MUST have a non-static position for the icon's absolute positioning to work.
     if (originalParentPosition === 'static') {
       parent.style.position = 'relative';
     }
 
     parent.appendChild(onFocusMicIcon);
 
-    // Disconnect old observer and observe the new parent for resizing
     if (resizeObserver) {
       resizeObserver.disconnect();
       resizeObserver.observe(parent);
     }
     
-    repositionIcon(); // Set the initial position
+    repositionIcon();
     onFocusMicIcon.style.display = 'flex';
-    setTimeout(() => { onFocusMicIcon.style.opacity = '1' }, 10); // Fade in
+    setTimeout(() => { onFocusMicIcon.style.opacity = '1' }, 10);
   }
 
   // --- REPLACED: This function now removes the icon and restores parent styles. ---
@@ -299,7 +287,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         if (onFocusMicIcon && onFocusMicIcon.parentElement) {
           onFocusMicIcon.remove();
         }
-        // Restore the parent's original position style
         if (currentIconParent) {
           currentIconParent.style.position = originalParentPosition;
           currentIconParent = null;
@@ -478,7 +465,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         finishedTargetElement.style.opacity = '0.5';
         finishedTargetElement.style.cursor = 'wait';
         
-        // --- MODIFICATION: Send the bypassAi flag with the prompt ---
         chrome.runtime.sendMessage({ 
           prompt: finalTranscript.trim(),
           bypassAi: currentDictationBypassesAi 
@@ -525,7 +511,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     if (request.start) {
       if (recognition) {
         dictationTargetElement = activeElement;
-        // --- MODIFICATION: Store the bypass choice for this session ---
         currentDictationBypassesAi = request.bypassAi || false;
 
         if (dictationTargetElement) {
@@ -558,46 +543,37 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (request.command === "process-text") {
         processSelectedText();
       } else if (request.command === "toggle-dictation") {
-        // This path is used by the keyboard shortcut
         handleToggleDictation(request);
       }
       sendResponse(true); return true;
     });
 
-    // --- MODIFICATION: Show FAB on text selection ---
     document.addEventListener('selectionchange', () => {
-      // Only act if an editable element is focused.
       if (lastFocusedEditableElement && document.activeElement === lastFocusedEditableElement) {
         const selection = window.getSelection();
-        // If there's a meaningful selection, show the FAB.
         if (selection && selection.toString().trim().length > 0) {
-          clearTimeout(typingTimer); // Stop any "typing finished" timer.
-          showFab(lastFocusedEditableElement);
+          clearTimeout(typingTimer);
+          showFab(); // CHANGED
         } else {
-          // If the selection is cleared, hide the FAB. The keyup listener will take over.
           hideFab();
         }
       }
     });
 
-    // --- MODIFICATION: Show FAB after a typing pause, but only if no text is selected ---
     document.addEventListener('keyup', (event) => {
       if (lastFocusedEditableElement) {
         const selection = window.getSelection();
-        // If a selection exists, the 'selectionchange' listener is in control. Don't do anything here.
         if (selection && selection.toString().trim().length > 0) {
           return;
         }
 
-        // Standard logic: if the user stops typing, show the FAB for full-field processing.
         clearTimeout(typingTimer);
-        hideFab(); // Hide initially, the timer will show it again.
+        hideFab();
         const text = lastFocusedEditableElement.value || lastFocusedEditableElement.textContent;
         if (text && text.trim().length > 0) {
           typingTimer = setTimeout(() => {
-            // Final check: only show if the element is still active and no selection has been made in the interim.
             if (document.activeElement === lastFocusedEditableElement && window.getSelection().toString().trim().length === 0) {
-              showFab(lastFocusedEditableElement);
+              showFab(); // CHANGED
             }
           }, TYPING_DELAY);
         }
@@ -609,8 +585,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (!target || target.disabled || target.readOnly) {
         return;
       }
-
-      // --- MODIFIED: Immediately hide any existing icon before processing the new focus target. ---
+      
       if (lastFocusedEditableElement && lastFocusedEditableElement !== target) {
           hideOnFocusMicIcon(true); 
       }
@@ -659,7 +634,6 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       }
     });
     
-    // --- NEW: Global mouse listeners for the click-and-hold feature ---
     document.addEventListener('mousemove', (event) => {
       if (!isMouseDownOnMic || !transcriptionOnlyButton || transcriptionOnlyButton.style.display !== 'flex') return;
       const { clientX, clientY } = event;
@@ -668,10 +642,10 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       if (clientX >= secondaryRect.left && clientX <= secondaryRect.right &&
           clientY >= secondaryRect.top && clientY <= secondaryRect.bottom) {
         isOverSecondaryButton = true;
-        transcriptionOnlyButton.style.backgroundColor = '#d0d0d0'; // Highlight
+        transcriptionOnlyButton.style.backgroundColor = '#d0d0d0';
       } else {
         isOverSecondaryButton = false;
-        transcriptionOnlyButton.style.backgroundColor = '#f0f0f0'; // Default
+        transcriptionOnlyButton.style.backgroundColor = '#f0f0f0';
       }
     });
     
@@ -694,19 +668,15 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       clearTimeout(micHoldTimeout);
       isMouseDownOnMic = false;
 
-      // If the secondary button was visible when mouse was released
       if (transcriptionOnlyButton && transcriptionOnlyButton.style.display === 'flex') {
         if (isOverSecondaryButton) {
           handleToggleDictation({ start: true, bypassAi: true });
         } else {
-          // If mouse wasn't over the secondary button, treat as regular click
           handleToggleDictation({ start: true, bypassAi: false });
         }
-        // Hide the secondary button
         transcriptionOnlyButton.style.display = 'none';
         transcriptionOnlyButton.style.transform = `translateY(10px)`;
       } else {
-        // If it was just a quick click (secondary button never appeared)
         handleToggleDictation({ start: true, bypassAi: false });
       }
 
@@ -715,7 +685,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     });
 
     createOnFocusMicIcon();
-    createTranscriptionOnlyButton(); // NEW
+    createTranscriptionOnlyButton();
     initializeSpeechRecognition();
     createFab();
   }
