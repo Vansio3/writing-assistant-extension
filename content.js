@@ -351,9 +351,16 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
           chrome.runtime.sendMessage({ prompt: this.finalTranscript.trim(), bypassAi: this.currentDictationBypassesAi }, response => {
               finishedTarget.style.opacity = '1';
               finishedTarget.style.cursor = 'auto';
-              if (response && response.generatedText) {
-                  this._insertTextAtCursor(finishedTarget, response.generatedText);
-                  finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+
+              if (chrome.runtime.lastError || !response) {
+                return; 
+              }
+              if (response.error) {
+                this._insertTextAtCursor(finishedTarget, this.finalTranscript.trim() + ' ');
+                alert(`Error: ${response.error}`);
+              } else if (response.generatedText) {
+                this._insertTextAtCursor(finishedTarget, response.generatedText);
+                finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
               }
               if (document.activeElement === finishedTarget) this._showOnFocusMicIcon(finishedTarget);
           });

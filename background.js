@@ -67,7 +67,7 @@ async function handlePromptRequest(request) {
   await chrome.storage.local.set({ lastOriginalText: request.prompt });
 
   if (request.bypassAi === true || settings.aiProcessingEnabled === false) {
-    return { generatedText: request.prompt };
+    return { generatedText: request.prompt.trim() + ' ' };
   }
   
   const finalPrompt = createPrompt(
