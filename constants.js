@@ -8,8 +8,8 @@ const Z_INDEX = {
 };
 
 const COLORS = {
-  MIC_DEFAULT_BG: '#2c2c2c',
-  MIC_HOVER_BG: '#474747',
+  MIC_DEFAULT_BG: '#242424',
+  MIC_HOVER_BG: '#3f3f3f',
   MIC_ACTIVE_BG: '#E53E3E',
   MIC_ICON_DEFAULT: '#afafaf',
   MIC_ICON_ACTIVE: '#FFFFFF',
