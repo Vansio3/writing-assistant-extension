@@ -12,13 +12,17 @@
       <h3>Gemini Writing Assistant</h3>
       <p>Use <strong>Alt+R</strong> to process text or <strong>Alt+L</strong> for dictation.</p>
     </div>
-    <div class="header-buttons">
-      <button id="toggleDomainButton" class="button-secondary">Disable for this site</button>
-      <button id="scrollToPlaygroundButton" class="button-secondary">Playground</button>
+    <div class="header-right-controls">
+      <div class="header-buttons">
+        <button id="toggleDomainButton" class="button-secondary">Disable for this site</button>
+        <button id="scrollToPlaygroundButton" class="button-secondary">Playground</button>
+      </div>
+      <p id="domainStatus" class="status-message header-status"></p>
     </div>
   </header>
 
   <main class="layout-container">
+    <!-- (Rest of the HTML is unchanged) -->
     <!-- Left Column -->
     <section class="column-left">
       <!-- API Key Configuration Section -->

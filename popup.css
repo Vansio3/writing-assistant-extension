@@ -43,6 +43,13 @@ body {
   animation: fadeIn 0.4s ease-out;
 }
 
+.header-right-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
 .header-buttons {
   display: flex;
   gap: 8px;
@@ -274,6 +281,12 @@ input:checked + .slider:before {
   min-height: 15px;
   text-align: center;
   transition: color 0.3s ease;
+}
+
+.header-status {
+  text-align: right;
+  min-height: 18px; /* Give it space so it doesn't cause layout shift */
+  color: var(--text-secondary);
 }
 
 /* JS can add these classes for dynamic feedback */

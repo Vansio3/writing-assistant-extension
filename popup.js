@@ -1,6 +1,5 @@
 // popup.js
 
-// A comprehensive and alphabetized list of languages supported by the Web Speech API
 const supportedLanguages = [
     { code: 'af-ZA', name: 'Afrikaans' },
     { code: 'ar-AE', name: 'العربية (الإمارات)' },
@@ -46,7 +45,6 @@ const supportedLanguages = [
     { code: 'zh-TW', name: '中文 (繁體)' }
 ];
 
-// New: Options for style and length
 const outputStyles = [
     { value: 'default', name: 'Default' },
     { value: 'professional', name: 'Professional' },
@@ -62,6 +60,7 @@ const outputLengths = [
     { value: 'shorter', name: 'Shorter' },
     { value: 'longer', name: 'Longer' }
 ];
+
 
 document.addEventListener('DOMContentLoaded', () => {
   const App = {
@@ -89,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
       playgroundContainer: document.querySelector('.playground-container'),
       scrollToPlaygroundButton: document.getElementById('scrollToPlaygroundButton'),
       toggleDomainButton: document.getElementById('toggleDomainButton'),
+      domainStatus: document.getElementById('domainStatus'), 
     },
 
     currentDomain: null,
@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (url.protocol.startsWith('http')) {
             this.currentDomain = url.hostname;
             const isEnabled = !this.disabledDomains.includes(this.currentDomain);
-            this.ui.toggleDomainButton.textContent = isEnabled ? `Disable for ${this.currentDomain}` : `Enable for ${this.currentDomain}`;
+            this.ui.toggleDomainButton.textContent = isEnabled ? `Disable for this site` : `Enable for this site`;
             this.ui.toggleDomainButton.dataset.enabled = isEnabled;
             this.ui.toggleDomainButton.style.display = 'block';
           } else {
@@ -189,16 +189,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const isCurrentlyEnabled = this.ui.toggleDomainButton.dataset.enabled === 'true';
 
         if (isCurrentlyEnabled) {
+            // Logic for disabling the domain
             this.disabledDomains.push(this.currentDomain);
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tab && tab.id) {
+                chrome.tabs.sendMessage(tab.id, { command: "teardown-content-script" });
+            }
         } else {
+            // Logic for enabling the domain
             this.disabledDomains = this.disabledDomains.filter(d => d !== this.currentDomain);
         }
         
+        // Update storage and the button's appearance
         this.disabledDomains = [...new Set(this.disabledDomains)];
         await chrome.storage.local.set({ disabledDomains: this.disabledDomains });
         await this._updateDomainButtonState();
         
-        this._showStatusMessage('Please reload the page for changes to take effect.', 4000, this.ui.playgroundStatus);
+        // Always show the status message
+        this._showStatusMessage('Please reload the page for changes to take effect.', 4000, this.ui.domainStatus);
     },
 
     _handleSaveApiKey() {
