@@ -58,37 +58,69 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     }
     
     _createUIElements() {
-      // On-Focus Microphone Icon
-      const micSvg = `
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M19 10V12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12V10" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M12 19V23" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>`;
+      // --- On-Focus Microphone Icon ---
+      const micSvg = this._createSvgElement('svg', {
+        width: '16', height: '16', viewBox: '0 0 24 24', fill: 'none'
+      });
+      const micPath1 = this._createSvgElement('path', {
+        d: 'M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z',
+        stroke: COLORS.MIC_ICON_DEFAULT, 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+      });
+      const micPath2 = this._createSvgElement('path', {
+        d: 'M19 10V12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12V10',
+        stroke: COLORS.MIC_ICON_DEFAULT, 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+      });
+      const micPath3 = this._createSvgElement('path', {
+        d: 'M12 19V23',
+        stroke: COLORS.MIC_ICON_DEFAULT, 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+      });
+      micSvg.appendChild(micPath1);
+      micSvg.appendChild(micPath2);
+      micSvg.appendChild(micPath3);
+
       this.onFocusMicIcon = this._createElement('div');
       Object.assign(this.onFocusMicIcon.style, STYLES.MIC_ICON);
-      this.onFocusMicIcon.innerHTML = micSvg;
+      this.onFocusMicIcon.appendChild(micSvg); // Securely append the SVG DOM element
 
-      // Transcription-Only Button (secondary mic button)
-      const transcriptionSvg = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M13.67 8H18a2 2 0 0 1 2 2v4.33"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M22 22 2 2"/>
-          <path d="M8 8H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 1.414-.586"/><path d="M9 13v2"/><path d="M9.67 4H12v2.33"/>
-        </svg>`;
+
+      // --- Transcription-Only Button ---
+      const transcriptionSvg = this._createSvgElement('svg', {
+        width: '16', height: '16', viewBox: '0 0 24 24', fill: 'none',
+        stroke: COLORS.MIC_ICON_DEFAULT, 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+      });
+      const transPath1 = this._createSvgElement('path', { d: 'M13.67 8H18a2 2 0 0 1 2 2v4.33' });
+      const transPath2 = this._createSvgElement('path', { d: 'M2 14h2' });
+      const transPath3 = this._createSvgElement('path', { d: 'M20 14h2' });
+      const transPath4 = this._createSvgElement('path', { d: 'M22 22 2 2' });
+      const transPath5 = this._createSvgElement('path', { d: 'M8 8H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 1.414-.586' });
+      const transPath6 = this._createSvgElement('path', { d: 'M9 13v2' });
+      const transPath7 = this._createSvgElement('path', { d: 'M9.67 4H12v2.33' });
+      transcriptionSvg.append(transPath1, transPath2, transPath3, transPath4, transPath5, transPath6, transPath7);
+      
       this.transcriptionOnlyButton = this._createElement('div');
       Object.assign(this.transcriptionOnlyButton.style, STYLES.TRANSCRIPTION_BUTTON);
-      this.transcriptionOnlyButton.innerHTML = transcriptionSvg;
+      this.transcriptionOnlyButton.appendChild(transcriptionSvg); // Securely append
       document.body.appendChild(this.transcriptionOnlyButton);
 
-      // Floating Action Button (FAB) for text processing
-      const fabSvg = `
-        <svg width="10" height="10" viewBox="8 7 8 11" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M15.25 10.75L12 7.5L8.75 10.75" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M15.25 16.75L12 13.5L8.75 16.75" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>`;
+
+      // --- Floating Action Button (FAB) ---
+      const fabSvg = this._createSvgElement('svg', {
+        width: '10', height: '10', viewBox: '8 7 8 11', fill: 'none'
+      });
+      const fabPath1 = this._createSvgElement('path', {
+        d: 'M15.25 10.75L12 7.5L8.75 10.75',
+        stroke: 'white', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+      });
+      const fabPath2 = this._createSvgElement('path', {
+        d: 'M15.25 16.75L12 13.5L8.75 16.75',
+        stroke: 'white', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+      });
+      fabSvg.appendChild(fabPath1);
+      fabSvg.appendChild(fabPath2);
+
       this.fab = this._createElement('div');
       Object.assign(this.fab.style, STYLES.FAB);
-      this.fab.innerHTML = fabSvg;
+      this.fab.appendChild(fabSvg); // Securely append
     }
 
     _initializeSpeechRecognition() {
@@ -600,6 +632,14 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     }
 
     // --- 6. UTILITY METHODS ---
+
+    _createSvgElement(tag, attributes) {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      for (const key in attributes) {
+        el.setAttribute(key, attributes[key]);
+      }
+      return el;
+    }
 
     _createElement(tag, properties = {}) {
       const el = document.createElement(tag);
