@@ -43,6 +43,11 @@ body {
   animation: fadeIn 0.4s ease-out;
 }
 
+.header-buttons {
+  display: flex;
+  gap: 8px;
+}
+
 h3 {
   margin: 0 0 4px 0;
   font-size: 20px;
@@ -188,7 +193,7 @@ textarea#lastOriginalText[readonly] {
   transform: scale(0.97);
 }
 
-#scrollToPlaygroundButton {
+#scrollToPlaygroundButton, #toggleDomainButton {
     width: auto;
     padding: 8px 16px;
     font-size: 13px;

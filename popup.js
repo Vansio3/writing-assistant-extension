@@ -88,7 +88,11 @@ document.addEventListener('DOMContentLoaded', () => {
       playgroundStatus: document.getElementById('playgroundStatus'),
       playgroundContainer: document.querySelector('.playground-container'),
       scrollToPlaygroundButton: document.getElementById('scrollToPlaygroundButton'),
+      toggleDomainButton: document.getElementById('toggleDomainButton'),
     },
+
+    currentDomain: null,
+    disabledDomains: [],
 
     init() {
       this._populateSelects();
@@ -114,9 +118,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const keys = [
         'geminiApiKey', 'totalCount', 'dailyCount', 'lastOriginalText', 
         'selectedLanguage', 'outputStyle', 'outputLength', 'aiProcessingEnabled',
-        'soundEnabled', 'customOutputStyle'
+        'soundEnabled', 'customOutputStyle', 'disabledDomains'
       ];
       const settings = await chrome.storage.local.get(keys);
+
+      this.disabledDomains = settings.disabledDomains || [];
+      await this._updateDomainButtonState();
 
       if (settings.geminiApiKey) {
         this.ui.apiKeyInput.value = settings.geminiApiKey;
@@ -148,12 +155,50 @@ document.addEventListener('DOMContentLoaded', () => {
       this.ui.outputStyleSelect.addEventListener('change', () => this._handleStyleChange());
       this.ui.playgroundProcessButton.addEventListener('click', () => this._handlePlaygroundProcess());
       this.ui.scrollToPlaygroundButton.addEventListener('click', () => this._handleScrollToPlayground());
+      this.ui.toggleDomainButton.addEventListener('click', () => this._handleToggleDomain());
 
       this._bindSetting(this.ui.languageSelect, 'selectedLanguage');
       this._bindSetting(this.ui.outputLengthSelect, 'outputLength');
       this._bindSetting(this.ui.aiProcessingToggle, 'aiProcessingEnabled', 'checked');
       this._bindSetting(this.ui.soundToggle, 'soundEnabled', 'checked');
       this._bindSetting(this.ui.customStyleInput, 'customOutputStyle', 'value', 'input');
+    },
+
+    async _updateDomainButtonState() {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.url) {
+        try {
+          const url = new URL(tab.url);
+          if (url.protocol.startsWith('http')) {
+            this.currentDomain = url.hostname;
+            const isEnabled = !this.disabledDomains.includes(this.currentDomain);
+            this.ui.toggleDomainButton.textContent = isEnabled ? `Disable for ${this.currentDomain}` : `Enable for ${this.currentDomain}`;
+            this.ui.toggleDomainButton.dataset.enabled = isEnabled;
+            this.ui.toggleDomainButton.style.display = 'block';
+          } else {
+            this.ui.toggleDomainButton.style.display = 'none';
+          }
+        } catch (e) {
+          this.ui.toggleDomainButton.style.display = 'none';
+        }
+      }
+    },
+
+    async _handleToggleDomain() {
+        if (!this.currentDomain) return;
+        const isCurrentlyEnabled = this.ui.toggleDomainButton.dataset.enabled === 'true';
+
+        if (isCurrentlyEnabled) {
+            this.disabledDomains.push(this.currentDomain);
+        } else {
+            this.disabledDomains = this.disabledDomains.filter(d => d !== this.currentDomain);
+        }
+        
+        this.disabledDomains = [...new Set(this.disabledDomains)];
+        await chrome.storage.local.set({ disabledDomains: this.disabledDomains });
+        await this._updateDomainButtonState();
+        
+        this._showStatusMessage('Please reload the page for changes to take effect.', 4000, this.ui.playgroundStatus);
     },
 
     _handleSaveApiKey() {
