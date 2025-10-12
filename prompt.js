@@ -90,10 +90,13 @@ export function createPrompt(inputText, languageCode = 'en-US', style = 'default
 
 ---
 
-**Example:**
+**Example 1:**
 *User Input:* "i want to have a popup to choose the way to process the text"
 *Your Output (assuming default settings):* I need a popup that allows the user to select their preferred text processing method.
 
+**Example 2:**
+*User Input:* "let's develop a calculator app that has two modes one scientific and another standard the standards mode should be the default"
+*Your Output (assuming default settings):* Let's develop a calculator app that has two modes: scientific and standard. The standard mode should be the default.
 ---
 
 **User Input:** "${inputText}"
