@@ -61,6 +61,7 @@ strong {
 .layout-container {
   display: flex;
   gap: 16px;
+  margin-bottom: 16px; /* Added for spacing */
 }
 
 .column-left, .column-middle, .column-right {
@@ -136,12 +137,17 @@ textarea {
   transform: scale(0.98);
 }
 
+.button-primary:disabled {
+  background-color: var(--accent-secondary);
+  cursor: not-allowed;
+}
+
 .button-primary {
   background-color: var(--accent-primary);
   color: white;
 }
 
-.button-primary:hover {
+.button-primary:hover:not(:disabled) {
   background-color: var(--accent-primary-hover);
 }
 
@@ -249,6 +255,17 @@ input:checked + .slider:before {
   font-size: 20px;
   color: var(--text-primary);
 }
+
+/* --- Playground Styles --- */
+.playground-container .card-body {
+  gap: 16px;
+}
+
+#playgroundInput {
+  resize: vertical;
+  min-height: 100px;
+}
+
 
 /* --- Custom Scrollbar Styles --- */
 ::-webkit-scrollbar {

@@ -84,6 +84,9 @@ document.addEventListener('DOMContentLoaded', () => {
       soundToggle: document.getElementById('soundToggle'),
       customStyleRow: document.getElementById('customStyleRow'),
       customStyleInput: document.getElementById('customStyleInput'),
+      playgroundInput: document.getElementById('playgroundInput'),
+      playgroundProcessButton: document.getElementById('playgroundProcessButton'),
+      playgroundStatus: document.getElementById('playgroundStatus'),
     },
 
     init() {
@@ -141,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
       this.ui.saveApiKeyButton.addEventListener('click', () => this._handleSaveApiKey());
       this.ui.copyButton.addEventListener('click', () => this._handleCopyText());
       this.ui.outputStyleSelect.addEventListener('change', () => this._handleStyleChange());
+      this.ui.playgroundProcessButton.addEventListener('click', () => this._handlePlaygroundProcess());
 
       this._bindSetting(this.ui.languageSelect, 'selectedLanguage');
       this._bindSetting(this.ui.outputLengthSelect, 'outputLength');
@@ -153,11 +157,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const apiKey = this.ui.apiKeyInput.value.trim();
       if (apiKey) {
         chrome.storage.local.set({ geminiApiKey: apiKey }, () => {
-          this._showStatusMessage('API Key saved!');
+          this._showStatusMessage('API Key saved!', 3000, this.ui.apiKeyStatus);
           this._loadSettings();
         });
       } else {
-        this._showStatusMessage('Please enter a valid key.');
+        this._showStatusMessage('Please enter a valid key.', 3000, this.ui.apiKeyStatus);
       }
     },
 
@@ -176,15 +180,50 @@ document.addEventListener('DOMContentLoaded', () => {
       chrome.storage.local.set({ outputStyle: selectedStyle });
       this._updateCustomStyleVisibility();
     },
+    
+    _handlePlaygroundProcess() {
+        const inputText = this.ui.playgroundInput.value.trim();
+        if (!inputText) {
+            this._showStatusMessage('Please enter text to process.', 3000, this.ui.playgroundStatus);
+            return;
+        }
+
+        this.ui.playgroundProcessButton.disabled = true;
+        this.ui.playgroundProcessButton.textContent = 'Processing...';
+        this._showStatusMessage('', 0, this.ui.playgroundStatus);
+
+        const selectedStyle = this.ui.outputStyleSelect.value;
+        
+        chrome.runtime.sendMessage({ prompt: inputText, style: selectedStyle }, (response) => {
+            this.ui.playgroundProcessButton.disabled = false;
+            this.ui.playgroundProcessButton.textContent = 'Process';
+
+            if (chrome.runtime.lastError || !response) {
+                const errorMsg = chrome.runtime.lastError ? chrome.runtime.lastError.message : 'No response from the extension.';
+                this._showStatusMessage(`Error: ${errorMsg}`, 5000, this.ui.playgroundStatus);
+                return;
+            }
+
+            if (response.error) {
+                this._showStatusMessage(`Error: ${response.error}`, 5000, this.ui.playgroundStatus);
+            } else if (response.generatedText) {
+                this.ui.playgroundInput.value = response.generatedText;
+                chrome.storage.local.set({ lastOriginalText: inputText });
+                this.ui.lastOriginalText.value = inputText;
+            }
+        });
+    },
 
     _updateCustomStyleVisibility() {
       const isCustom = this.ui.outputStyleSelect.value === 'custom';
       this.ui.customStyleRow.style.display = isCustom ? 'flex' : 'none';
     },
 
-    _showStatusMessage(message, duration = 3000) {
-      this.ui.apiKeyStatus.textContent = message;
-      setTimeout(() => { this.ui.apiKeyStatus.textContent = ''; }, duration);
+    _showStatusMessage(message, duration = 3000, element = this.ui.apiKeyStatus) {
+        element.textContent = message;
+        if (duration > 0) {
+            setTimeout(() => { element.textContent = ''; }, duration);
+        }
     },
 
     // Utility for reducing boilerplate when binding settings to storage
