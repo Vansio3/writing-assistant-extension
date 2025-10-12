@@ -72,7 +72,7 @@ strong {
   margin-bottom: 16px;
 }
 
-.column-left, .column-middle, .column-right {
+.column-left, .column-right {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -80,9 +80,8 @@ strong {
   animation: fadeIn 0.5s ease-out backwards;
 }
 
-.column-middle { animation-delay: 0.1s; }
-.column-right { animation-delay: 0.2s; }
-.playground-container { animation: fadeIn 0.5s ease-out 0.3s backwards; }
+.column-right { animation-delay: 0.1s; }
+.playground-container { animation: fadeIn 0.5s ease-out 0.2s backwards; }
 
 /* --- Card Redesign --- */
 .card {
@@ -108,7 +107,7 @@ strong {
   gap: 14px;
 }
 
-.column-middle .card, .column-middle .card-body {
+#last-input-card, #last-input-card .card-body {
   flex-grow: 1;
 }
 

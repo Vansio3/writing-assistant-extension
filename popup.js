@@ -72,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
       lastOriginalText: document.getElementById('lastOriginalText'),
       copyButton: document.getElementById('copyButton'),
       mainContent: document.getElementById('mainContent'),
-      middleColumn: document.getElementById('middleColumn'),
       apiUsageSection: document.getElementById('apiUsageSection'),
       apiKeyInput: document.getElementById('apiKeyInput'),
       saveApiKeyButton: document.getElementById('saveApiKeyButton'),
@@ -120,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (settings.geminiApiKey) {
         this.ui.apiKeyInput.value = settings.geminiApiKey;
-        [this.ui.mainContent, this.ui.middleColumn].forEach(el => el.style.display = 'flex');
+        this.ui.mainContent.style.display = 'flex';
         this.ui.apiUsageSection.style.display = 'block';
         this.ui.playgroundContainer.style.display = 'block';
 
@@ -137,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         this._updateCustomStyleVisibility();
       } else {
-        [this.ui.mainContent, this.ui.middleColumn, this.ui.apiUsageSection, this.ui.playgroundContainer]
+        [this.ui.mainContent, this.ui.apiUsageSection, this.ui.playgroundContainer]
           .forEach(el => el.style.display = 'none');
       }
     },
