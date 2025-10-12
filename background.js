@@ -76,12 +76,16 @@ async function handlePromptRequest(request) {
     settings.customOutputStyle
   );
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${settings.geminiApiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
   try {
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        // ADD the API key as a header
+        "x-goog-api-key": settings.geminiApiKey 
+      },
       body: JSON.stringify({ contents: [{ parts: [{ text: finalPrompt }] }] })
     });
 
