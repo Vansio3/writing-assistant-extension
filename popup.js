@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
       playgroundProcessButton: document.getElementById('playgroundProcessButton'),
       playgroundStatus: document.getElementById('playgroundStatus'),
       playgroundContainer: document.querySelector('.playground-container'),
+      scrollToPlaygroundButton: document.getElementById('scrollToPlaygroundButton'),
     },
 
     init() {
@@ -146,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
       this.ui.copyButton.addEventListener('click', () => this._handleCopyText());
       this.ui.outputStyleSelect.addEventListener('change', () => this._handleStyleChange());
       this.ui.playgroundProcessButton.addEventListener('click', () => this._handlePlaygroundProcess());
+      this.ui.scrollToPlaygroundButton.addEventListener('click', () => this._handleScrollToPlayground());
 
       this._bindSetting(this.ui.languageSelect, 'selectedLanguage');
       this._bindSetting(this.ui.outputLengthSelect, 'outputLength');
@@ -214,6 +216,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.ui.lastOriginalText.value = inputText;
             }
         });
+    },
+
+    _handleScrollToPlayground() {
+      this.ui.playgroundContainer.scrollIntoView({ behavior: 'smooth' });
     },
 
     _updateCustomStyleVisibility() {

@@ -8,8 +8,11 @@
 <body>
 
   <header class="header">
-    <h3>Gemini Writing Assistant</h3>
-    <p>Use <strong>Alt+R</strong> to process text or <strong>Alt+L</strong> for dictation.</p>
+    <div>
+      <h3>Gemini Writing Assistant</h3>
+      <p>Use <strong>Alt+R</strong> to process text or <strong>Alt+L</strong> for dictation.</p>
+    </div>
+    <button id="scrollToPlaygroundButton" class="button-secondary">Playground</button>
   </header>
 
   <main class="layout-container">
@@ -24,7 +27,7 @@
           <div class="card-body">
             <p class="api-key-label">Enter your Gemini API Key:</p>
             <input type="password" id="apiKeyInput" placeholder="Paste your API key here">
-            <button id="saveApiKeyButton" class="button-primary">Save Key</button>
+            <button id="saveApiKeyButton" class="button-primary amber-button">Save Key</button>
             <p id="apiKeyStatus" class="status-message"></p>
             <div class="api-key-warning">
             <p>
@@ -119,7 +122,7 @@
       </div>
       <div class="card-body">
         <textarea id="playgroundInput" placeholder="Enter text to process, select options above, and click 'Process'." rows="6"></textarea>
-        <button id="playgroundProcessButton" class="button-primary">Process</button>
+        <button id="playgroundProcessButton" class="button-primary amber-button">Process</button>
         <p id="playgroundStatus" class="status-message"></p>
       </div>
     </div>
