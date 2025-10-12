@@ -169,53 +169,60 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     // --- 3. CORE LOGIC & EVENT HANDLERS ---
 
     processSelectedText(style = null) {
-      let activeElement = this.lastFocusedEditableElement;
-      if (!activeElement || !document.body.contains(activeElement)) {
-          activeElement = document.activeElement;
-      }
-      if (!this._isElementSuitable(activeElement)) return;
-
-      const selection = window.getSelection();
-      let promptText = selection.toString().trim();
-      let processingMode = 'selection';
-
-      if (!promptText) {
-          processingMode = 'full';
-          promptText = this._getElementText(activeElement);
-          if (!promptText.trim()) return;
-
-          if (typeof activeElement.select === 'function') {
-              activeElement.select();
-          } else if (activeElement.isContentEditable) {
-              const range = document.createRange();
-              range.selectNodeContents(activeElement);
-              selection.removeAllRanges();
-              selection.addRange(range);
-          }
-      }
-
-      activeElement.style.opacity = '0.5';
-      activeElement.style.cursor = 'wait';
-
-      chrome.runtime.sendMessage({ prompt: promptText, style: style }, (response) => {
-        activeElement.style.opacity = '1';
-        activeElement.style.cursor = 'auto';
-        if (chrome.runtime.lastError || !response) return;
-        if (response.error) return alert(`Error: ${response.error}`);
-
-        if (response.generatedText) {
-          if (processingMode === 'full') {
-            if (typeof activeElement.value !== 'undefined') {
-              activeElement.value = response.generatedText;
-            } else {
-              activeElement.textContent = response.generatedText;
-            }
-          } else {
-            document.execCommand('insertText', false, response.generatedText);
-          }
-          activeElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-          setTimeout(() => this._updateIconPositions(), 200);
+      chrome.runtime.sendMessage({ command: 'check-api-key' }, (response) => {
+        if (!response.apiKeyExists) {
+          alert("Please set your Gemini API key in the extension's popup first.");
+          return;
         }
+
+        let activeElement = this.lastFocusedEditableElement;
+        if (!activeElement || !document.body.contains(activeElement)) {
+            activeElement = document.activeElement;
+        }
+        if (!this._isElementSuitable(activeElement)) return;
+
+        const selection = window.getSelection();
+        let promptText = selection.toString().trim();
+        let processingMode = 'selection';
+
+        if (!promptText) {
+            processingMode = 'full';
+            promptText = this._getElementText(activeElement);
+            if (!promptText.trim()) return;
+
+            if (typeof activeElement.select === 'function') {
+                activeElement.select();
+            } else if (activeElement.isContentEditable) {
+                const range = document.createRange();
+                range.selectNodeContents(activeElement);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        }
+
+        activeElement.style.opacity = '0.5';
+        activeElement.style.cursor = 'wait';
+
+        chrome.runtime.sendMessage({ prompt: promptText, style: style }, (response) => {
+          activeElement.style.opacity = '1';
+          activeElement.style.cursor = 'auto';
+          if (chrome.runtime.lastError || !response) return;
+          if (response.error) return alert(`Error: ${response.error}`);
+
+          if (response.generatedText) {
+            if (processingMode === 'full') {
+              if (typeof activeElement.value !== 'undefined') {
+                activeElement.value = response.generatedText;
+              } else {
+                activeElement.textContent = response.generatedText;
+              }
+            } else {
+              document.execCommand('insertText', false, response.generatedText);
+            }
+            activeElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+            setTimeout(() => this._updateIconPositions(), 200);
+          }
+        });
       });
     }
 
@@ -227,15 +234,24 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       }
 
       if (start && this.recognition) {
-        this.dictationTargetElement = activeElement;
-        this.currentDictationBypassesAi = bypassAi;
-        chrome.storage.local.get('selectedLanguage', ({ selectedLanguage }) => {
-          this.recognition.lang = selectedLanguage || 'en-US';
-          this._playSound('assets/audio/start.mp3');
-          this.originalInputText = this._getElementText(this.dictationTargetElement);
-          this.dictationTargetElement.addEventListener('blur', () => this._handleFocusLoss(), { once: true });
-          this._showListeningIndicator();
-          this.recognition.start();
+        // --- ADDED CHECK ---
+        chrome.runtime.sendMessage({ command: 'check-api-key' }, (response) => {
+          if (!response.apiKeyExists) {
+            alert("Please set your Gemini API key in the extension's popup first.");
+            return;
+          }
+
+          // --- Existing Logic ---
+          this.dictationTargetElement = activeElement;
+          this.currentDictationBypassesAi = bypassAi;
+          chrome.storage.local.get('selectedLanguage', ({ selectedLanguage }) => {
+            this.recognition.lang = selectedLanguage || 'en-US';
+            this._playSound('assets/audio/start.mp3');
+            this.originalInputText = this._getElementText(this.dictationTargetElement);
+            this.dictationTargetElement.addEventListener('blur', () => this._handleFocusLoss(), { once: true });
+            this._showListeningIndicator();
+            this.recognition.start();
+          });
         });
       } else if (!start && this.recognition) {
         this.recognition.stop();

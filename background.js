@@ -43,6 +43,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     handlePromptRequest(request)
       .then(sendResponse)
       .catch(error => sendResponse({ error: error.message }));
+  } else if (request.command === 'check-api-key') {
+    chrome.storage.local.get('geminiApiKey', (result) => {
+      sendResponse({ apiKeyExists: !!result.geminiApiKey });
+    });
   }
   return true; // Indicates an asynchronous response.
 });
