@@ -295,14 +295,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
       }
 
       if (start && this.recognition) {
-        // --- ADDED CHECK ---
         chrome.runtime.sendMessage({ command: 'check-api-key' }, (response) => {
           if (!response.apiKeyExists) {
             alert("Please set your Gemini API key in the extension's popup first.");
             return;
           }
-
-          // --- Existing Logic ---
           this.dictationTargetElement = activeElement;
           this.currentDictationBypassesAi = bypassAi;
           chrome.storage.local.get('selectedLanguage', ({ selectedLanguage }) => {
@@ -315,6 +312,8 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
           });
         });
       } else if (!start && this.recognition) {
+        this.dictationCancelled = true;
+        this.cancellationReason = 'user_action';
         this.recognition.stop();
       } else if (!this.recognition) {
         alert("Speech recognition is not available in this browser.");
@@ -322,36 +321,44 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
     }
 
     _onRecognitionEnd() {
+      if (this.dictationTargetElement && !this.dictationCancelled) {
+          this.recognition.start();
+          return;
+      }
       this._playSound('assets/audio/end.mp3');
       this._hideListeningIndicator();
       const finishedTarget = this.dictationTargetElement;
       if (finishedTarget) {
-        finishedTarget.removeEventListener('blur', () => this._handleFocusLoss());
+          finishedTarget.removeEventListener('blur', () => this._handleFocusLoss());
       }
 
-      if (this.dictationCancelled) {
-        if (finishedTarget) {
-          if (typeof finishedTarget.value !== 'undefined') {
-            finishedTarget.value = this.originalInputText;
-          } else {
-            finishedTarget.textContent = this.originalInputText;
+      const shouldRevertText = this.dictationCancelled && (this.cancellationReason === 'escape' || this.cancellationReason === 'blur');
+
+      if (shouldRevertText) {
+          if (finishedTarget) {
+              if (typeof finishedTarget.value !== 'undefined') {
+                  finishedTarget.value = this.originalInputText;
+              } else {
+                  finishedTarget.textContent = this.originalInputText;
+              }
+              if (this.cancellationReason === 'escape') {
+                  this._showOnFocusMicIcon(finishedTarget);
+              }
           }
-          if (this.cancellationReason === 'escape') this._showOnFocusMicIcon(finishedTarget);
-        }
       } else if (finishedTarget && this.finalTranscript.trim()) {
-        finishedTarget.style.opacity = '0.5';
-        finishedTarget.style.cursor = 'wait';
-        chrome.runtime.sendMessage({ prompt: this.finalTranscript.trim(), bypassAi: this.currentDictationBypassesAi }, response => {
-          finishedTarget.style.opacity = '1';
-          finishedTarget.style.cursor = 'auto';
-          if (response && response.generatedText) {
-            this._insertTextAtCursor(finishedTarget, response.generatedText);            
-            finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-          }
-          if (document.activeElement === finishedTarget) this._showOnFocusMicIcon(finishedTarget);
-        });
+          finishedTarget.style.opacity = '0.5';
+          finishedTarget.style.cursor = 'wait';
+          chrome.runtime.sendMessage({ prompt: this.finalTranscript.trim(), bypassAi: this.currentDictationBypassesAi }, response => {
+              finishedTarget.style.opacity = '1';
+              finishedTarget.style.cursor = 'auto';
+              if (response && response.generatedText) {
+                  this._insertTextAtCursor(finishedTarget, response.generatedText);
+                  finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+              }
+              if (document.activeElement === finishedTarget) this._showOnFocusMicIcon(finishedTarget);
+          });
       } else if (finishedTarget && document.activeElement === finishedTarget) {
-        this._showOnFocusMicIcon(finishedTarget);
+          this._showOnFocusMicIcon(finishedTarget);
       }
 
       this.dictationTargetElement = null;
