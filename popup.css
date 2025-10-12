@@ -1,46 +1,54 @@
-/* popup.css - Professional UI Redesign (Three-Column) */
+/* popup.css - Enhanced Professional UI */
 
 :root {
-  --background-primary: #1a1b1e;
-  --background-secondary: #2c2d30;
-  --text-primary: #e1e1e6;
-  --text-secondary: #a8a8b3;
-  --border-color: #3a3b3f;
-  --accent-primary: #007aff;
-  --accent-primary-hover: #0056b3;
-  --accent-secondary: #3c3d41;
-  --accent-secondary-hover: #4a4b50;
-  --shadow-color: rgba(0, 0, 0, 0.2);
-  --scrollbar-track-color: #2c2d30;
-  --scrollbar-thumb-color: #555;
-  --scrollbar-thumb-hover-color: #777;
+  --background-primary: #1e1f22;
+  --background-secondary: #2b2d31;
+  --background-tertiary: #383a40;
+  --text-primary: #f2f3f5;
+  --text-secondary: #949ba4;
+  --border-color: #35363b;
+  --accent-primary: #5865f2;
+  --accent-primary-hover: #4e5ae6;
+  --accent-success: #2dc771;
+  --accent-error: #f23f43;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
 body {
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--background-primary);
+  font-family: var(--font-family);
+  background: var(--background-primary);
   color: var(--text-primary);
-  width: 720px; /* Increased width for three columns */
+  width: 720px;
   padding: 16px;
   margin: 0;
   box-sizing: border-box;
 }
 
+/* --- Animations --- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- General Layout & Header --- */
 .header {
   text-align: center;
   margin-bottom: 24px;
+  animation: fadeIn 0.4s ease-out;
 }
 
 h3 {
   margin: 0 0 4px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 20px;
+  font-weight: 700;
 }
 
 h4 {
   margin: 0;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
@@ -61,21 +69,22 @@ strong {
 .layout-container {
   display: flex;
   gap: 16px;
-  margin-bottom: 16px; /* Added for spacing */
+  margin-bottom: 16px;
 }
 
 .column-left, .column-middle, .column-right {
-  flex: 1; /* All columns share space equally */
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  animation: fadeIn 0.5s ease-out backwards;
 }
 
-/* Ensure the middle column's card fills the available height */
-.column-middle .card, .column-middle .card-body {
-  flex-grow: 1;
-}
+.column-middle { animation-delay: 0.1s; }
+.column-right { animation-delay: 0.2s; }
+.playground-container { animation: fadeIn 0.5s ease-out 0.3s backwards; }
 
+/* --- Card Redesign --- */
 .card {
   background-color: var(--background-secondary);
   border-radius: 8px;
@@ -83,10 +92,12 @@ strong {
   box-shadow: 0 4px 12px var(--shadow-color);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .card-header {
   padding: 12px 16px;
+  background-color: var(--background-tertiary);
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -94,9 +105,14 @@ strong {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
+.column-middle .card, .column-middle .card-body {
+  flex-grow: 1;
+}
+
+/* --- Form Elements & Inputs --- */
 input[type="password"], input[type="text"], textarea, .select-css {
   width: 100%;
   box-sizing: border-box;
@@ -113,14 +129,20 @@ input[type="password"], input[type="text"], textarea, .select-css {
 input[type="password"]:focus, input[type="text"]:focus, textarea:focus, .select-css:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3);
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.3);
 }
 
 textarea {
-  flex-grow: 1; /* Allow textarea to fill space */
+  flex-grow: 1;
   resize: none;
 }
 
+textarea#lastOriginalText[readonly] {
+  background-color: var(--background-secondary);
+  cursor: default;
+}
+
+/* --- Buttons --- */
 .button-primary, .button-secondary {
   width: 100%;
   padding: 10px 12px;
@@ -129,46 +151,41 @@ textarea {
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
+  transition: all 0.2s ease;
   text-align: center;
 }
 
-.button-primary:active, .button-secondary:active {
-  transform: scale(0.98);
-}
-
-.button-primary:disabled {
-  background-color: var(--accent-secondary);
-  cursor: not-allowed;
-}
-
 .button-primary {
-  background-color: var(--accent-primary);
+  background: var(--accent-primary);
   color: white;
 }
 
 .button-primary:hover:not(:disabled) {
-  background-color: var(--accent-primary-hover);
+  background: var(--accent-primary-hover);
+  box-shadow: 0 2px 8px rgba(88, 101, 242, 0.3);
+}
+
+.button-primary:disabled {
+  background-color: var(--background-tertiary);
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .button-secondary {
-  background-color: var(--accent-secondary);
+  background-color: var(--background-tertiary);
   color: var(--text-primary);
-  border: 1px solid var(--border-color);
 }
 
 .button-secondary:hover {
-  background-color: var(--accent-secondary-hover);
+  background-color: #44474e;
 }
 
-.status-message {
-  font-size: 12px;
-  color: var(--accent-primary);
-  min-height: 15px;
-  text-align: center;
-  margin-top: -4px;
+:is(.button-primary, .button-secondary):active {
+  transform: scale(0.97);
 }
 
+
+/* --- Settings & Toggles --- */
 .setting-row {
   display: flex;
   justify-content: space-between;
@@ -178,16 +195,12 @@ textarea {
 .setting-row label {
   color: var(--text-secondary);
   font-size: 14px;
-  margin-right: 8px; /* Added margin for spacing */
-}
-
-#customStyleInput {
-  max-width: 65%;
+  margin-right: 8px;
 }
 
 .select-css {
-  max-width: 65%;
-  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5H7z%22%20fill%3D%22%23a8a8b3%22%2F%3E%3C%2Fsvg%3E');
+  max-width: 60%;
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M7%2010l5%205%205-5H7z%22%20fill%3D%22%23949ba4%22%2F%3E%3C%2Fsvg%3E');
   background-repeat: no-repeat;
   background-position: right 8px center;
   -webkit-appearance: none;
@@ -195,50 +208,56 @@ textarea {
   appearance: none;
 }
 
-/* Toggle Switch Styles */
-.toggle-row {
-  padding-top: 4px;
-}
-
 .switch {
   position: relative;
   display: inline-block;
-  width: 38px;
-  height: 22px;
+  width: 40px; height: 24px;
 }
-
 .switch input { display: none; }
 
 .slider {
   position: absolute;
   cursor: pointer;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-color: var(--accent-secondary);
+  background-color: var(--background-primary);
+  border: 1px solid var(--border-color);
   transition: .4s;
-  border-radius: 22px;
+  border-radius: 24px;
 }
 
 .slider:before {
   position: absolute;
   content: "";
-  height: 16px;
-  width: 16px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
+  height: 16px; width: 16px;
+  left: 3px; bottom: 3px;
+  background-color: #e0e0e0;
   transition: .4s;
   border-radius: 50%;
 }
 
 input:checked + .slider {
-  background-color: var(--accent-primary);
+  background-color: var(--accent-success);
+  border-color: var(--accent-success);
 }
-
 input:checked + .slider:before {
+  background-color: white;
   transform: translateX(16px);
 }
 
-/* Usage Stats */
+/* --- Status & Usage --- */
+.status-message {
+  font-size: 12px;
+  font-weight: 600;
+  min-height: 15px;
+  text-align: center;
+  transition: color 0.3s ease;
+}
+
+/* JS can add these classes for dynamic feedback */
+.status-message.success { color: var(--accent-success); }
+.status-message.error { color: var(--accent-error); }
+.status-message.info { color: var(--accent-primary); }
+
 .usage-stats {
   flex-direction: row;
   justify-content: space-around;
@@ -252,37 +271,16 @@ input:checked + .slider:before {
 
 .usage-item strong {
   display: block;
-  font-size: 20px;
+  font-size: 24px;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
-/* --- Playground Styles --- */
-.playground-container .card-body {
-  gap: 16px;
-}
-
-#playgroundInput {
-  resize: vertical;
-  min-height: 100px;
-}
-
-
-/* --- Custom Scrollbar Styles --- */
-::-webkit-scrollbar {
-  width: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--scrollbar-track-color);
-  border-radius: 8px;
-}
-
+/* --- Custom Scrollbar --- */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: var(--background-secondary); }
 ::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb-color);
+  background: var(--background-tertiary);
   border-radius: 8px;
-  border: 2px solid var(--scrollbar-track-color);
 }
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover-color);
-}
+::-webkit-scrollbar-thumb:hover { background: #4e5058; }

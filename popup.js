@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
       playgroundInput: document.getElementById('playgroundInput'),
       playgroundProcessButton: document.getElementById('playgroundProcessButton'),
       playgroundStatus: document.getElementById('playgroundStatus'),
+      playgroundContainer: document.querySelector('.playground-container'),
     },
 
     init() {
@@ -121,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
         this.ui.apiKeyInput.value = settings.geminiApiKey;
         [this.ui.mainContent, this.ui.middleColumn].forEach(el => el.style.display = 'flex');
         this.ui.apiUsageSection.style.display = 'block';
+        this.ui.playgroundContainer.style.display = 'block';
 
         this.ui.dailyCount.textContent = settings.dailyCount ?? 0;
         this.ui.totalCount.textContent = settings.totalCount ?? 0;
@@ -135,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         this._updateCustomStyleVisibility();
       } else {
-        [this.ui.mainContent, this.ui.middleColumn, this.ui.apiUsageSection]
+        [this.ui.mainContent, this.ui.middleColumn, this.ui.apiUsageSection, this.ui.playgroundContainer]
           .forEach(el => el.style.display = 'none');
       }
     },
