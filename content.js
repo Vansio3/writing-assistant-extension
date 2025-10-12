@@ -249,14 +249,36 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
                 activeElement.textContent = response.generatedText;
               }
             } else {
-              const selection = window.getSelection();
-              if (selection && selection.rangeCount > 0) {
-                const range = selection.getRangeAt(0);
-                range.deleteContents();
-                const textNode = document.createTextNode(response.generatedText);
-                range.insertNode(textNode);
-                selection.collapseToEnd();
+              // --- START: MODIFIED CODE BLOCK ---
+
+              // Check if the element is an input/textarea by looking for selectionStart property
+              if (typeof activeElement.selectionStart === 'number') {
+                const start = activeElement.selectionStart;
+                const end = activeElement.selectionEnd;
+                const originalValue = activeElement.value;
+                const newValue = originalValue.slice(0, start) + response.generatedText + originalValue.slice(end);
+                
+                activeElement.value = newValue;
+
+                // Move the cursor to the end of the newly inserted text
+                const newCursorPos = start + response.generatedText.length;
+                activeElement.selectionStart = newCursorPos;
+                activeElement.selectionEnd = newCursorPos;
+              
+              } else {
+                // Fallback for contentEditable elements (the original logic)
+                const selection = window.getSelection();
+                if (selection && selection.rangeCount > 0) {
+                  const range = selection.getRangeAt(0);
+                  range.deleteContents();
+                  const textNode = document.createTextNode(response.generatedText);
+                  range.insertNode(textNode);
+                  
+                  // Move cursor to the end of the inserted node
+                  selection.collapseToEnd();
+                }
               }
+              // --- END: MODIFIED CODE BLOCK ---
             }
             activeElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
             setTimeout(() => this._updateIconPositions(), 200);
