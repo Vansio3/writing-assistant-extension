@@ -50,6 +50,7 @@ const TIMING = {
 };
 
 const FAB_OUTPUT_STYLES = [
+    { value: 'default', name: 'Clear' },
     { value: 'professional', name: 'Professional' },
     { value: 'friendly', name: 'Friendly' },
     { value: 'casual', name: 'Casual' },
