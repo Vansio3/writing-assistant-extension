@@ -102,8 +102,11 @@ async function handlePromptRequest(request) {
     // Basic sanitization
     const sanitizedText = generatedText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+    // Trim any potential whitespace from the API and append a single space for better UX
+    const finalText = sanitizedText.trim() + ' ';
+
     await updateApiCallCount();
-    return { generatedText: sanitizedText };
+    return { generatedText: finalText };
 
   } catch (error) {
     console.error("Error with Gemini API:", error);
