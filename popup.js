@@ -158,7 +158,8 @@ document.addEventListener('DOMContentLoaded', () => {
     _handleSaveApiKey() {
       const apiKey = this.ui.apiKeyInput.value.trim();
       if (apiKey) {
-        chrome.storage.local.set({ geminiApiKey: apiKey }, () => {
+        const obfuscatedKey = btoa(apiKey);
+        chrome.storage.local.set({ geminiApiKey: obfuscatedKey }, () => {
           this._showStatusMessage('API Key saved!', 3000, this.ui.apiKeyStatus);
           this._loadSettings();
         });

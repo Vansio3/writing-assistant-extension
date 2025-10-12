@@ -61,6 +61,8 @@ async function handlePromptRequest(request) {
   if (!settings.geminiApiKey) {
     throw new Error("API key not set. Please set it in the extension's popup.");
   }
+  
+  const apiKey = atob(settings.geminiApiKey);
 
   await chrome.storage.local.set({ lastOriginalText: request.prompt });
 
@@ -84,7 +86,7 @@ async function handlePromptRequest(request) {
       headers: { 
         "Content-Type": "application/json",
         // ADD the API key as a header
-        "x-goog-api-key": settings.geminiApiKey 
+        "x-goog-api-key": apiKey 
       },
       body: JSON.stringify({ contents: [{ parts: [{ text: finalPrompt }] }] })
     });
