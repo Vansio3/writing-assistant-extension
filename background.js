@@ -95,8 +95,11 @@ async function handlePromptRequest(request) {
     const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!generatedText) throw new Error("Invalid response structure from API.");
 
+    // Basic sanitization
+    const sanitizedText = generatedText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
     await updateApiCallCount();
-    return { generatedText };
+    return { generatedText: sanitizedText };
 
   } catch (error) {
     console.error("Error with Gemini API:", error);

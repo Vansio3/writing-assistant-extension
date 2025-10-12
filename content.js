@@ -217,7 +217,14 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
                 activeElement.textContent = response.generatedText;
               }
             } else {
-              document.execCommand('insertText', false, response.generatedText);
+              const selection = window.getSelection();
+              if (selection && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                range.deleteContents();
+                const textNode = document.createTextNode(response.generatedText);
+                range.insertNode(textNode);
+                selection.collapseToEnd();
+              }
             }
             activeElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
             setTimeout(() => this._updateIconPositions(), 200);

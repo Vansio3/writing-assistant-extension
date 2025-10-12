@@ -97,7 +97,7 @@ export function createPrompt(inputText, languageCode = 'en-US', style = 'default
 ---
 
 **User Input:** "${inputText}"
-**Your Output:**`;
+**Your Output (must be plain text only):**`;
 
   return promptTemplate;
 }
