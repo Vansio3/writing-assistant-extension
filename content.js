@@ -331,7 +331,11 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
 
       if (this.dictationCancelled) {
         if (finishedTarget) {
-          finishedTarget.value = this.originalInputText;
+          if (typeof finishedTarget.value !== 'undefined') {
+            finishedTarget.value = this.originalInputText;
+          } else {
+            finishedTarget.textContent = this.originalInputText;
+          }
           if (this.cancellationReason === 'escape') this._showOnFocusMicIcon(finishedTarget);
         }
       } else if (finishedTarget && this.finalTranscript.trim()) {
@@ -341,7 +345,7 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
           finishedTarget.style.opacity = '1';
           finishedTarget.style.cursor = 'auto';
           if (response && response.generatedText) {
-            document.execCommand('insertText', false, response.generatedText);
+            this._insertTextAtCursor(finishedTarget, response.generatedText);            
             finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
           }
           if (document.activeElement === finishedTarget) this._showOnFocusMicIcon(finishedTarget);
@@ -671,6 +675,40 @@ if (typeof window.geminiAssistantInitialized === 'undefined') {
         else el[key] = value;
       });
       return el;
+    }
+
+    _insertTextAtCursor(element, text) {
+      // Ensure the element is focused to handle the cursor/selection correctly
+      element.focus();
+
+      // Case 1: Handle standard <input> and <textarea> elements
+      if (typeof element.selectionStart === 'number' && typeof element.selectionEnd === 'number') {
+        const start = element.selectionStart;
+        const end = element.selectionEnd;
+        const value = element.value;
+
+        // Insert the text at the cursor position
+        element.value = value.slice(0, start) + text + value.slice(end);
+
+        // Move the cursor to the end of the inserted text
+        element.selectionStart = element.selectionEnd = start + text.length;
+      
+      // Case 2: Handle contenteditable elements (e.g., rich text editors)
+      } else if (element.isContentEditable) {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          range.deleteContents(); // Deletes selected text if any
+          const textNode = document.createTextNode(text);
+          range.insertNode(textNode);
+          
+          // Move the cursor to the end of the inserted text
+          range.setStartAfter(textNode);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      }
     }
     
     _getElementText(element) {
