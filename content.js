@@ -45,7 +45,7 @@
         this.dragHandle = null;
         this.isDragging = false;
         this.snapState = 'none';
-        this.snapThreshold = 50;
+        this.snapThreshold = 30;
         this.isSelectionMode = false;
         this.mappedTargetElement = null;
         this.selectorIcon = null;
@@ -162,27 +162,29 @@
       _initializeDetachedMode() {
         Object.assign(this.detachedContainer.style, {
             position: 'fixed', bottom: '200px', right: '20px', zIndex: Z_INDEX.FAB, display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center', backgroundColor: 'rgba(43, 45, 49, 0.85)', borderRadius: '25px',
-            padding: '10px 5px 10px 10px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            padding: '7px 7px 7px 7px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             backdropFilter: 'blur(5px)'
         });
 
         const buttonColumn = this._createElement('div', { style: { position: 'relative', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' } });
 
-        const largerButtonStyle = { position: 'relative', top: 'auto', left: 'auto', width: '40px', height: '40px', opacity: '1', display: 'flex', transition: 'transform 0.1s ease', boxShadow: 'none' };
+        const largerButtonStyle = { position: 'relative', top: 'auto', left: 'auto', width: '36px', height: '36px', opacity: '1', display: 'flex', transition: 'transform 0.1s ease', boxShadow: 'none' };
         
         Object.assign(this.onFocusMicIcon.style, largerButtonStyle);
-        this.onFocusMicIcon.querySelector('svg').setAttribute('width', '22');
-        this.onFocusMicIcon.querySelector('svg').setAttribute('height', '22');
+        this.onFocusMicIcon.querySelector('svg').setAttribute('width', '16');
+        this.onFocusMicIcon.querySelector('svg').setAttribute('height', '16');
         
         Object.assign(this.fab.style, largerButtonStyle);
-        this.fab.querySelector('svg').setAttribute('width', '16');
-        this.fab.querySelector('svg').setAttribute('height', '16');
+        this.fab.querySelector('svg').setAttribute('width', '10');
+        this.fab.querySelector('svg').setAttribute('height', '10');
 
-        const detachedMicWidth = 40;
-        const newTranscriptionButtonSize = 34; // Increased from 28px
-        const newTranscriptionIconSize = 18;  // Increased from 16px
-        const gapAboveMic = 10; // The space between the mic and the transcription button
+        const detachedMicWidth = 34;
+        const newTranscriptionButtonSize = 28;
+        const newTranscriptionIconSize = 14;
+        const gapAboveMic = 10; 
 
         Object.assign(this.transcriptionOnlyButton.style, {
             position: 'absolute',
@@ -198,7 +200,7 @@
         transcriptionSvg.setAttribute('width', newTranscriptionIconSize);
         transcriptionSvg.setAttribute('height', newTranscriptionIconSize);
         
-        Object.assign(this.dragHandle.style, { width: '5px', alignSelf: 'stretch', marginLeft: '8px', borderRadius: '10px', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '4px' });
+        Object.assign(this.dragHandle.style, { height: '5px', alignSelf: 'stretch', marginTop: '8px', borderRadius: '10px', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: '4px' });
         for (let i = 0; i < 3; i++) {
             this.dragHandle.appendChild(this._createElement('div', { style: { width: '3px', height: '3px', borderRadius: '50%', backgroundColor: COLORS.DETACHED_DRAG_HANDLE_DOT } }));
         }
