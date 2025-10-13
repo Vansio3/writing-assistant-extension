@@ -166,10 +166,11 @@
             alignItems: 'center', backgroundColor: 'rgba(43, 45, 49, 0.85)', borderRadius: '25px',
             padding: '7px 7px 7px 7px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            backdropFilter: 'blur(5px)'
+            backdropFilter: 'blur(5px)',
+            minHeight: '109px' // Prevent vertical crushing
         });
 
-        const buttonColumn = this._createElement('div', { style: { position: 'relative', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' } });
+        const buttonColumn = this._createElement('div', { style: { position: 'relative', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', flexShrink: '0' } });
 
         const largerButtonStyle = { position: 'relative', top: 'auto', left: 'auto', width: '36px', height: '36px', opacity: '1', display: 'flex', transition: 'transform 0.1s ease', boxShadow: 'none' };
         
@@ -200,7 +201,7 @@
         transcriptionSvg.setAttribute('width', newTranscriptionIconSize);
         transcriptionSvg.setAttribute('height', newTranscriptionIconSize);
         
-        Object.assign(this.dragHandle.style, { height: '5px', alignSelf: 'stretch', marginTop: '8px', borderRadius: '10px', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: '4px' });
+        Object.assign(this.dragHandle.style, { height: '5px', alignSelf: 'stretch', marginTop: '8px', borderRadius: '10px', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: '4px', flexShrink: '0' });
         for (let i = 0; i < 3; i++) {
             this.dragHandle.appendChild(this._createElement('div', { style: { width: '3px', height: '3px', borderRadius: '50%', backgroundColor: COLORS.DETACHED_DRAG_HANDLE_DOT } }));
         }
@@ -214,9 +215,26 @@
         this.detachedContainer.appendChild(buttonColumn);
         this.detachedContainer.appendChild(this.dragHandle);
         document.body.appendChild(this.detachedContainer);
-        this.dragHandle.addEventListener('mousedown', e => this._onDragStart(e));
+        this.dragHandle.addEventListener('mousedown', e => this._onDragStart(e));     
+        window.addEventListener('resize', this._keepDetachedUiInViewport.bind(this));
       }
-      
+      _keepDetachedUiInViewport() {
+        if (!this.detachedContainer || !document.body.contains(this.detachedContainer) || this.isDragging) return;
+
+        const rect = this.detachedContainer.getBoundingClientRect();
+        const buffer = 5; 
+
+        this.detachedContainer.style.bottom = 'auto';
+
+        const newLeft = Math.max(buffer, Math.min(rect.left, window.innerWidth - rect.width - buffer));
+        const newTop = Math.max(buffer, Math.min(rect.top, window.innerHeight - rect.height - buffer));
+        
+        if (Math.abs(rect.left - newLeft) > 1 || Math.abs(rect.top - newTop) > 1) {
+            this.detachedContainer.style.left = `${newLeft}px`;
+            this.detachedContainer.style.top = `${newTop}px`;
+        }
+      }
+                  
       _createSelectorIcon() {
         const selectorSvg = this._createSvgElement('svg', STYLES.SELECTOR_SVG);
         selectorSvg.innerHTML = '<path d="M12 2L12 5"/><path d="M12 19L12 22"/><path d="M22 12L19 12"/><path d="M5 12L2 12"/><circle cx="12" cy="12" r="7"/>';
