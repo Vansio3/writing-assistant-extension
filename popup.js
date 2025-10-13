@@ -88,16 +88,12 @@ document.addEventListener('DOMContentLoaded', () => {
       scrollToPlaygroundButton: document.getElementById('scrollToPlaygroundButton'),
       toggleDomainButton: document.getElementById('toggleDomainButton'),
       domainStatus: document.getElementById('domainStatus'),
-      // START: MODIFIED CODE BLOCK
       detachButtonsToggle: document.getElementById('detachButtonsToggle'),
-      // END: MODIFIED CODE BLOCK
+      detachButtonsStatus: document.getElementById('detachButtonsStatus'),
     },
 
     currentDomain: null,
-    // --- START: MODIFIED CODE BLOCK ---
-    // Renamed 'disabledDomains' to 'enabledDomains' for clarity with the new logic.
     enabledDomains: [],
-    // --- END: MODIFIED CODE BLOCK ---
 
     init() {
       this._populateSelects();
@@ -120,20 +116,14 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     
     async _loadSettings() {
-      // --- START: MODIFIED CODE BLOCK ---
-      // Replaced 'disabledDomains' with 'enabledDomains' in the keys to fetch from storage.
       const keys = [
         'geminiApiKey', 'totalCount', 'dailyCount', 'originalInputsHistory',
         'selectedLanguage', 'outputStyle', 'outputLength', 'aiProcessingEnabled',
         'soundEnabled', 'customOutputStyle', 'enabledDomains', 'detachButtons'
       ];
-      // --- END: MODIFIED CODE BLOCK ---
       const settings = await chrome.storage.local.get(keys);
 
-      // --- START: MODIFIED CODE BLOCK ---
-      // The logic now works with an 'enabledDomains' list.
       this.enabledDomains = settings.enabledDomains || [];
-      // --- END: MODIFIED CODE BLOCK ---
       await this._updateDomainButtonState();
 
       if (settings.geminiApiKey) {
@@ -155,9 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
         this.ui.soundToggle.checked = settings.soundEnabled !== false;
         this.ui.customStyleInput.value = settings.customOutputStyle || '';
         
-        // START: MODIFIED CODE BLOCK
-        this.ui.detachButtonsToggle.checked = settings.detachButtons === true;
-        // END: MODIFIED CODE BLOCK
+        // If 'detachButtons' is not explicitly set to false, it defaults to true.
+        this.ui.detachButtonsToggle.checked = settings.detachButtons !== false;
 
         this._updateCustomStyleVisibility();
       } else {
@@ -219,8 +208,17 @@ document.addEventListener('DOMContentLoaded', () => {
       this._bindSetting(this.ui.aiProcessingToggle, 'aiProcessingEnabled', 'checked');
       this._bindSetting(this.ui.soundToggle, 'soundEnabled', 'checked');
       this._bindSetting(this.ui.customStyleInput, 'customOutputStyle', 'value', 'input');
-      // START: MODIFIED CODE BLOCK
       this._bindSetting(this.ui.detachButtonsToggle, 'detachButtons', 'checked');
+
+      // START: MODIFIED CODE BLOCK
+      // Add a separate listener to show the status message for the detach toggle.
+      // This listener now ONLY handles making the existing message visible.
+      this.ui.detachButtonsToggle.addEventListener('change', () => {
+        this.ui.detachButtonsStatus.style.display = 'block';
+        setTimeout(() => {
+          this.ui.detachButtonsStatus.style.display = 'none';
+        }, 4000);
+      });
       // END: MODIFIED CODE BLOCK
     },
 
@@ -231,10 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const url = new URL(tab.url);
           if (url.protocol.startsWith('http')) {
             this.currentDomain = url.hostname;
-            // --- START: MODIFIED CODE BLOCK ---
-            // The definition of 'isEnabled' is now a direct check of the enabledDomains list.
             const isEnabled = this.enabledDomains.includes(this.currentDomain);
-            // --- END: MODIFIED CODE BLOCK ---
             this.ui.toggleDomainButton.textContent = isEnabled ? `Disable for this site` : `Enable for this site`;
             this.ui.toggleDomainButton.dataset.enabled = isEnabled;
             this.ui.toggleDomainButton.style.display = 'block';
@@ -251,14 +246,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!this.currentDomain) return;
         const isCurrentlyEnabled = this.ui.toggleDomainButton.dataset.enabled === 'true';
 
-        // --- START: MODIFIED CODE BLOCK ---
-        // The logic is inverted. If the site is enabled, disable it by removing it from the list.
-        // If it's disabled, enable it by adding it to the list.
         if (isCurrentlyEnabled) {
             this.enabledDomains = this.enabledDomains.filter(d => d !== this.currentDomain);
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
             if (tab && tab.id) {
-                // This message can be used to tear down the content script's UI if it's already running.
                 chrome.tabs.sendMessage(tab.id, { command: "teardown-content-script" });
             }
         } else {
@@ -267,7 +258,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         this.enabledDomains = [...new Set(this.enabledDomains)];
         await chrome.storage.local.set({ enabledDomains: this.enabledDomains });
-        // --- END: MODIFIED CODE BLOCK ---
         await this._updateDomainButtonState();
         
         this._showStatusMessage('Please reload the page for changes to take effect.', 4000, this.ui.domainStatus);

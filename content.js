@@ -71,7 +71,7 @@
 
       async initialize() {
         const settings = await chrome.storage.local.get('detachButtons');
-        this.isDetachedMode = settings.detachButtons || false;
+        this.isDetachedMode = settings.detachButtons !== false;
 
         this._createUIElements();
         this._initializeSpeechRecognition();
