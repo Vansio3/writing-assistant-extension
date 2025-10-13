@@ -3,8 +3,11 @@
 const Z_INDEX = {
   FAB: '2147483647',
   FAB_MENU: '2147483648',
-  MIC_ICON: '2147483646',
-  TRANSCRIPTION_BUTTON: '2147483648'
+  MIC_ICON: '2147443646', // Lowered to be under FAB in detached mode
+  TRANSCRIPTION_BUTTON: '2247483648',
+  // START: MODIFIED CODE BLOCK
+  SELECTOR_ICON: '2147483649' 
+  // END: MODIFIED CODE BLOCK
 };
 
 const COLORS = {
@@ -13,9 +16,18 @@ const COLORS = {
   MIC_ACTIVE_BG: '#E53E3E',
   MIC_ICON_DEFAULT: '#afafaf',
   MIC_ICON_ACTIVE: '#FFFFFF',
-  FAB_BG: '#FFBF00',
+  FAB_BG: '#242424',
   TRANSCRIPTION_BG: '#242424',
-  TRANSCRIPTION_HOVER_BG: '#3f3f3f'
+  TRANSCRIPTION_HOVER_BG: '#3f3f3f',
+  // START: MODIFIED CODE BLOCK
+  SELECTOR_DEFAULT_BG: '#242424',
+  SELECTOR_HOVER_BG: '#3f3f3f',
+  SELECTOR_ACTIVE_BG: '#E53E3E',
+  SELECTOR_ICON_DEFAULT: '#afafaf',
+  SELECTOR_ICON_ACTIVE: '#FFFFFF',
+  DETACHED_DRAG_HANDLE: 'rgba(0,0,0,0.2)',
+  DETACHED_DRAG_HANDLE_DOT: 'rgba(255,255,255,0.4)'
+  // END: MODIFIED CODE BLOCK
 };
 
 const STYLES = {
@@ -39,7 +51,16 @@ const STYLES = {
     justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', cursor: 'pointer',
     zIndex: Z_INDEX.TRANSCRIPTION_BUTTON, transition: 'transform 0.2s ease-out, background-color 0.2s ease',
     transform: 'translateY(10px)'
+  },
+  // START: MODIFIED CODE BLOCK
+  SELECTOR_ICON: {
+    position: 'relative', top: 'auto', right: 'auto', width: '32px', height: '32px',
+    borderRadius: '50%', backgroundColor: COLORS.SELECTOR_DEFAULT_BG,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+    zIndex: Z_INDEX.SELECTOR_ICON, transition: 'background-color 0.2s ease',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
   }
+  // END: MODIFIED CODE BLOCK
 };
 
 const TIMING = {

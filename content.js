@@ -37,7 +37,7 @@
         // --- NEW STATE FOR DETACHED/SELECTOR MODE ---
         this.isDetachedMode = false;
         this.detachedContainer = null;
-        this.dragHandle = null; // <-- NEW
+        this.dragHandle = null;
         this.isDragging = false;
         this.isSelectionMode = false;
         this.mappedTargetElement = null;
@@ -138,58 +138,52 @@
             backdropFilter: 'blur(5px)'
         });
 
-        const buttonColumn = this._createElement('div');
-        Object.assign(buttonColumn.style, {
-            display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center'
-        });
-
+        const buttonColumn = this._createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' } });
         const largerButtonStyle = { position: 'relative', top: 'auto', left: 'auto', width: '40px', height: '40px', opacity: '1', display: 'flex', transition: 'transform 0.1s ease', boxShadow: 'none' };
-        Object.assign(this.onFocusMicIcon.style, largerButtonStyle);
-        Object.assign(this.fab.style, largerButtonStyle);
         
+        Object.assign(this.onFocusMicIcon.style, largerButtonStyle);
         this.onFocusMicIcon.querySelector('svg').setAttribute('width', '22');
         this.onFocusMicIcon.querySelector('svg').setAttribute('height', '22');
+        
+        Object.assign(this.fab.style, largerButtonStyle);
         this.fab.querySelector('svg').setAttribute('width', '16');
         this.fab.querySelector('svg').setAttribute('height', '16');
-
-        Object.assign(this.selectorIcon.style, { position: 'relative', top: 'auto', right: 'auto', width: '32px', height: '32px', border: '1px solid rgba(255,255,255,0.3)' });
         
+        Object.assign(this.dragHandle.style, { width: '15px', alignSelf: 'stretch', marginLeft: '8px', borderRadius: '10px', backgroundColor: COLORS.DETACHED_DRAG_HANDLE, cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '4px' });
+        for (let i = 0; i < 3; i++) {
+            this.dragHandle.appendChild(this._createElement('div', { style: { width: '3px', height: '3px', borderRadius: '50%', backgroundColor: COLORS.DETACHED_DRAG_HANDLE_DOT } }));
+        }
+
         const addPressEffect = (el) => { el.addEventListener('mousedown', () => el.style.transform = 'scale(0.9)'); el.addEventListener('mouseup', () => el.style.transform = 'scale(1)'); el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)'); };
-        addPressEffect(this.onFocusMicIcon);
-        addPressEffect(this.fab);
-        addPressEffect(this.selectorIcon);
+        [this.onFocusMicIcon, this.fab, this.selectorIcon].forEach(addPressEffect);
 
         buttonColumn.appendChild(this.onFocusMicIcon);
         buttonColumn.appendChild(this.fab);
         buttonColumn.appendChild(this.selectorIcon);
-
-        Object.assign(this.dragHandle.style, { width: '15px', alignSelf: 'stretch', marginLeft: '8px', borderRadius: '10px', backgroundColor: 'rgba(0,0,0,0.2)', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '4px' });
-        for (let i = 0; i < 3; i++) {
-            const dot = this._createElement('div', { style: { width: '3px', height: '3px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.4)' } });
-            this.dragHandle.appendChild(dot);
-        }
-
         this.detachedContainer.appendChild(buttonColumn);
         this.detachedContainer.appendChild(this.dragHandle);
         document.body.appendChild(this.detachedContainer);
-
         this.dragHandle.addEventListener('mousedown', e => this._onDragStart(e));
       }
       
       _createSelectorIcon() {
-        const selectorSvg = this._createSvgElement('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: '#FFFFFF', 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+        // START: MODIFIED CODE BLOCK
+        const selectorSvg = this._createSvgElement('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: COLORS.SELECTOR_ICON_DEFAULT, 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
         selectorSvg.innerHTML = '<path d="M12 2L12 5"/><path d="M12 19L12 22"/><path d="M22 12L19 12"/><path d="M5 12L2 12"/><circle cx="12" cy="12" r="7"/>';
+        
         const selectorIconContainer = this._createElement('div');
-        Object.assign(selectorIconContainer.style, {
-            width: '22px', height: '22px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.7)', 
-            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', 
-            zIndex: '2147483648', transition: 'background-color 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
-        });
+        Object.assign(selectorIconContainer.style, STYLES.SELECTOR_ICON);
+        
         selectorIconContainer.appendChild(selectorSvg);
-        selectorIconContainer.addEventListener('mouseenter', () => selectorIconContainer.style.backgroundColor = 'rgba(88, 101, 242, 1)');
-        selectorIconContainer.addEventListener('mouseleave', () => selectorIconContainer.style.backgroundColor = 'rgba(0,0,0,0.7)');
+        selectorIconContainer.addEventListener('mouseenter', () => selectorIconContainer.style.backgroundColor = COLORS.SELECTOR_HOVER_BG);
+        selectorIconContainer.addEventListener('mouseleave', () => {
+            if (this.selectorIcon.style.backgroundColor !== COLORS.SELECTOR_ACTIVE_BG) {
+                selectorIconContainer.style.backgroundColor = COLORS.SELECTOR_DEFAULT_BG;
+            }
+        });
         selectorIconContainer.addEventListener('click', (e) => { e.stopPropagation(); this._toggleSelectionMode(); });
         this.selectorIcon = selectorIconContainer;
+        // END: MODIFIED CODE BLOCK
       }
 
       _toggleSelectionMode() {
@@ -211,12 +205,16 @@
         e.preventDefault(); e.stopPropagation();
         if (this._isElementSuitable(e.target)) {
             this.mappedTargetElement = e.target;
-            this.selectorIcon.style.backgroundColor = '#FFBF00';
-            this.selectorIcon.querySelector('svg').setAttribute('stroke', '#000000');
+            // START: MODIFIED CODE BLOCK
+            this.selectorIcon.style.backgroundColor = COLORS.SELECTOR_ACTIVE_BG;
+            this.selectorIcon.querySelector('svg').setAttribute('stroke', COLORS.SELECTOR_ICON_ACTIVE);
+            // END: MODIFIED CODE BLOCK
         } else {
             this.mappedTargetElement = null;
-            this.selectorIcon.style.backgroundColor = 'rgba(0,0,0,0.7)';
-            this.selectorIcon.querySelector('svg').setAttribute('stroke', '#FFFFFF');
+            // START: MODIFIED CODE BLOCK
+            this.selectorIcon.style.backgroundColor = COLORS.SELECTOR_DEFAULT_BG;
+            this.selectorIcon.querySelector('svg').setAttribute('stroke', COLORS.SELECTOR_ICON_DEFAULT);
+            // END: MODIFIED CODE BLOCK
         }
         this._toggleSelectionMode();
       }
