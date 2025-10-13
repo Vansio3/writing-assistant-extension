@@ -166,8 +166,7 @@
             alignItems: 'center', backgroundColor: 'rgba(43, 45, 49, 0.85)', borderRadius: '25px',
             padding: '7px 7px 7px 7px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            backdropFilter: 'blur(5px)',
-            minHeight: '109px' // Prevent vertical crushing
+            backdropFilter: 'blur(5px)'
         });
 
         const buttonColumn = this._createElement('div', { style: { position: 'relative', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', flexShrink: '0' } });
