@@ -44,6 +44,8 @@
         this.detachedContainer = null;
         this.dragHandle = null;
         this.isDragging = false;
+        this.snapState = 'none';
+        this.snapThreshold = 50;
         this.isSelectionMode = false;
         this.mappedTargetElement = null;
         this.selectorIcon = null;
@@ -414,6 +416,8 @@
         document.body.style.cursor = 'grabbing';
         document.body.style.userSelect = 'none';
 
+        this.detachedContainer.style.borderRadius = '25px';
+
         const rect = this.detachedContainer.getBoundingClientRect();
 
         this.detachedContainer.style.right = 'auto';
@@ -429,8 +433,19 @@
         if (!this.isDragging) return;
         e.preventDefault();
         const el = this.detachedContainer;
-        el.style.left = `${Math.max(0, Math.min(e.clientX - this.dragOffsetX, window.innerWidth - el.offsetWidth))}px`;
-        el.style.top = `${Math.max(0, Math.min(e.clientY - this.dragOffsetY, window.innerHeight - el.offsetHeight))}px`;
+        const newLeft = Math.max(0, Math.min(e.clientX - this.dragOffsetX, window.innerWidth - el.offsetWidth));
+        const newTop = Math.max(0, Math.min(e.clientY - this.dragOffsetY, window.innerHeight - el.offsetHeight));
+        
+        el.style.left = `${newLeft}px`;
+        el.style.top = `${newTop}px`;
+
+        if (newLeft < this.snapThreshold) {
+            this.snapState = 'left';
+        } else if (newLeft + el.offsetWidth > window.innerWidth - this.snapThreshold) {
+            this.snapState = 'right';
+        } else {
+            this.snapState = 'none';
+        }
       }
 
       _onMicMouseDown(e) { e.preventDefault(); e.stopPropagation(); this.isMouseDownOnMic = true; this.micHoldTimeout = setTimeout(() => { if (!this.isMouseDownOnMic || this.isDragging) return; if (this.isDetachedMode) { this.transcriptionOnlyButton.style.display = 'flex'; } else { const micRect = this.onFocusMicIcon.getBoundingClientRect(); this.transcriptionOnlyButton.style.transform = `translate(${micRect.left + window.scrollX}px, ${micRect.top + window.scrollY - 34}px)`; this.transcriptionOnlyButton.style.display = 'flex'; }}, TIMING.HOLD_DURATION);}
@@ -443,6 +458,20 @@
             this.dragHandle.style.cursor = 'grab';
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
+            const el = this.detachedContainer;
+            switch (this.snapState) {
+                case 'left':
+                    el.style.left = '0px';
+                    el.style.borderTopLeftRadius = '0px';
+                    el.style.borderBottomLeftRadius = '0px';
+                    break;
+                case 'right':
+                    el.style.left = `${window.innerWidth - el.offsetWidth}px`;
+                    el.style.borderTopRightRadius = '0px';
+                    el.style.borderBottomRightRadius = '0px';
+                    break;
+            }
+            this.snapState = 'none';
             this.isDragging = false;
         }
         if (this.isMouseDownOnFab) {
@@ -497,23 +526,31 @@
         }
         this.fabStyleMenu.style.visibility = 'hidden';
         this.fabStyleMenu.style.display = 'flex';
-        const fabRect = this.fab.getBoundingClientRect();
         if (this.isDetachedMode) {
           this.fabStyleMenu.style.flexDirection = 'column';
           this.fabStyleMenu.style.width = '140px'; 
-          const menuRect = this.fabStyleMenu.getBoundingClientRect();
-          const left = fabRect.left + window.scrollX + (fabRect.width / 2) - (menuRect.width / 2);
-          const top = fabRect.top + window.scrollY - menuRect.height - 10;
-          this.fabStyleMenu.style.transform = `translate(${left}px, ${top}px)`;
         } else {
           this.fabStyleMenu.style.flexDirection = 'row';
           this.fabStyleMenu.style.width = 'auto'; 
-          const menuRect = this.fabStyleMenu.getBoundingClientRect();
-          const left = fabRect.left + window.scrollX - menuRect.width - 10;
-          const top = fabRect.top + window.scrollY + (fabRect.height / 2) - (menuRect.height / 2);
-          this.fabStyleMenu.style.transform = `translate(${left}px, ${top}px)`;
         }
-
+        const fabRect = this.fab.getBoundingClientRect();
+        const menuRect = this.fabStyleMenu.getBoundingClientRect();
+        let left, top;
+        if (this.isDetachedMode) {
+          left = fabRect.left + window.scrollX + (fabRect.width / 2) - (menuRect.width / 2);
+          top = fabRect.top + window.scrollY - menuRect.height - 10;
+        } else {
+          left = fabRect.left + window.scrollX - menuRect.width - 10;
+          top = fabRect.top + window.scrollY + (fabRect.height / 2) - (menuRect.height / 2);
+        }
+        const viewportMargin = 10; 
+        if (left < viewportMargin) {
+            left = viewportMargin;
+        }
+        if (left + menuRect.width > window.innerWidth - viewportMargin) {
+            left = window.innerWidth - menuRect.width - viewportMargin;
+        }
+        this.fabStyleMenu.style.transform = `translate(${left}px, ${top}px)`;
         this.fabStyleMenu.style.visibility = 'visible';
       }
 
@@ -526,7 +563,6 @@
       
       // --- 6. UTILITY METHODS ---
 
-      // --- START: MODIFIED CODE BLOCK ---
       _showNotification(message, duration = 4000) {
         const notification = this._createElement('div', { 
             className: 'gemini-assistant-notification',
@@ -534,13 +570,11 @@
         });
         document.body.appendChild(notification);
         
-        // Fade in
         setTimeout(() => {
             notification.style.opacity = '1';
             notification.style.top = '30px';
         }, 100);
 
-        // Fade out and remove
         setTimeout(() => {
             notification.style.opacity = '0';
             notification.style.top = '20px';
@@ -549,7 +583,6 @@
             }, 300);
         }, duration);
       }
-      // --- END: MODIFIED CODE BLOCK ---
 
       _createSvgElement(tag, attr) { const el = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const key in attr) el.setAttribute(key, attr[key]); return el; }
       _createElement(tag, prop = {}) { const el = document.createElement(tag); Object.entries(prop).forEach(([key, val]) => { if (key === 'style') Object.assign(el.style, val); else if (key === 'dataset') Object.assign(el.dataset, val); else el[key] = val; }); return el; }
