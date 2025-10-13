@@ -125,7 +125,6 @@ strong {
   gap: 14px;
 }
 
-/* --- START: MODIFIED CODE BLOCK --- */
 #history-card {
   height: 380px; /* Fixed height for the history card */
   flex-grow: 1;
@@ -170,7 +169,6 @@ strong {
   color: var(--text-dark);
   border-color: var(--accent-primary-hover);
 }
-/* --- END: MODIFIED CODE BLOCK --- */
 
 
 /* --- Form Elements & Inputs --- */
@@ -240,11 +238,13 @@ textarea {
   transform: scale(0.97);
 }
 
-#scrollToPlaygroundButton, #toggleDomainButton {
+/* --- START: MODIFIED CODE BLOCK --- */
+#selectTargetButton, #scrollToPlaygroundButton, #toggleDomainButton {
     width: auto;
     padding: 8px 16px;
     font-size: 13px;
 }
+/* --- END: MODIFIED CODE BLOCK --- */
 
 .amber-button {
   color: var(--text-dark);
