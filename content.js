@@ -93,8 +93,8 @@
         this.transcriptionOnlyButton.appendChild(transcriptionSvg);
         document.body.appendChild(this.transcriptionOnlyButton);
 
-        const fabSvg = this._createSvgElement('svg', { width: '10', height: '10', viewBox: '8 7 8 11', fill: 'none' });
-        fabSvg.innerHTML = `<path d="M15.25 10.75L12 7.5L8.75 10.75" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.25 16.75L12 13.5L8.75 16.75" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+        const fabSvg = this._createSvgElement('svg', STYLES.FAB_SVG);
+        fabSvg.innerHTML = STYLES.FAB_SVG_PATH;
         this.fab = this._createElement('div');
         Object.assign(this.fab.style, STYLES.FAB);
         this.fab.appendChild(fabSvg);
@@ -168,7 +168,7 @@
       
       _createSelectorIcon() {
         // START: MODIFIED CODE BLOCK
-        const selectorSvg = this._createSvgElement('svg', { width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none', stroke: COLORS.SELECTOR_ICON_DEFAULT, 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+        const selectorSvg = this._createSvgElement('svg', STYLES.SELECTOR_SVG);
         selectorSvg.innerHTML = '<path d="M12 2L12 5"/><path d="M12 19L12 22"/><path d="M22 12L19 12"/><path d="M5 12L2 12"/><circle cx="12" cy="12" r="7"/>';
         
         const selectorIconContainer = this._createElement('div');
@@ -243,6 +243,8 @@
         this.onFocusMicIcon.addEventListener('mouseleave', () => this._setMicHover(false));
         this.onFocusMicIcon.addEventListener('mousedown', e => this._onMicMouseDown(e));
         this.fab.addEventListener('mousedown', e => this._onFabMouseDown(e));
+        this.fab.addEventListener('mouseenter', () => this._setFabHover(true));
+        this.fab.addEventListener('mouseleave', () => this._setFabHover(false));
       }
       
       _setupMessageListener() {
@@ -390,7 +392,8 @@
               if (styleButton) this.processSelectedText(styleButton.dataset.style);
               this._hideFabStyleMenu();
             } else this.processSelectedText();
-          } else this._hideFabStyleMenu();
+          }
+          this._setFabHover(false); 
         }
         if (this.isMouseDownOnMic) {
           this.isMouseDownOnMic = false; clearTimeout(this.micHoldTimeout);
@@ -416,12 +419,14 @@
       _showFabStyleMenu() {
         if (!this.fabStyleMenu) {
           this.fabStyleMenu = this._createElement('div');
-          Object.assign(this.fabStyleMenu.style, { position: 'absolute', zIndex: Z_INDEX.FAB_MENU, display: 'flex', flexDirection: 'row', gap: '6px', padding: '6px', backgroundColor: 'rgba(44, 45, 48, 0.9)', borderRadius: '20px', backdropFilter: 'blur(5px)', boxShadow: '0 4px 12px rgba(0,0,0,0.25)' });
+          // START: MODIFIED CODE BLOCK
+          Object.assign(this.fabStyleMenu.style, STYLES.FAB_MENU);
           FAB_OUTPUT_STYLES.forEach(style => {
             const button = this._createElement('button', { textContent: style.name, dataset: { style: style.value }});
-            Object.assign(button.style, { backgroundColor: '#3c3d41', color: '#e1e1e6', border: 'none', borderRadius: '14px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px', transition: 'background-color 0.2s ease', });
-            button.addEventListener('mouseenter', () => button.style.backgroundColor = '#4a4b50');
-            button.addEventListener('mouseleave', () => button.style.backgroundColor = '#3c3d41');
+            Object.assign(button.style, STYLES.FAB_MENU_BUTTON);
+            button.addEventListener('mouseenter', () => button.style.backgroundColor = COLORS.FAB_MENU_BUTTON_HOVER_BG);
+            button.addEventListener('mouseleave', () => button.style.backgroundColor = COLORS.FAB_MENU_BUTTON_BG);
+            // END: MODIFIED CODE BLOCK
             this.fabStyleMenu.appendChild(button);
           });
           document.body.appendChild(this.fabStyleMenu);
@@ -437,7 +442,8 @@
       _showListeningIndicator() { if (!this.onFocusMicIcon) return; this.onFocusMicIcon.style.backgroundColor = COLORS.MIC_ACTIVE_BG; this.onFocusMicIcon.classList.add('gemini-mic-pulsing'); this.onFocusMicIcon.querySelectorAll('svg path').forEach(p => p.setAttribute('stroke', COLORS.MIC_ICON_ACTIVE)); this.stopDictationClickHandler = e => { e.preventDefault(); e.stopPropagation(); this._handleToggleDictation({ start: false }); }; this.onFocusMicIcon.addEventListener('click', this.stopDictationClickHandler); }
       _hideListeningIndicator() { if (!this.onFocusMicIcon) return; this.onFocusMicIcon.style.backgroundColor = COLORS.MIC_DEFAULT_BG; this.onFocusMicIcon.classList.remove('gemini-mic-pulsing'); this.onFocusMicIcon.querySelectorAll('svg path').forEach(p => p.setAttribute('stroke', COLORS.MIC_ICON_DEFAULT)); if (this.stopDictationClickHandler) { this.onFocusMicIcon.removeEventListener('click', this.stopDictationClickHandler); this.stopDictationClickHandler = null; } }
       _setMicHover(isHovering) { if (!this.isMouseDownOnMic && !this.stopDictationClickHandler) this.onFocusMicIcon.style.backgroundColor = isHovering ? COLORS.MIC_HOVER_BG : COLORS.MIC_DEFAULT_BG; }
-
+      _setFabHover(isHovering) { if (!this.isMouseDownOnFab) this.fab.style.backgroundColor = isHovering ? COLORS.FAB_HOVER_BG : COLORS.FAB_BG; }
+      
       // --- 6. UTILITY METHODS ---
 
       _createSvgElement(tag, attr) { const el = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const key in attr) el.setAttribute(key, attr[key]); return el; }
