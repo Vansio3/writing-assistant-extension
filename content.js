@@ -132,7 +132,7 @@
       
       _initializeDetachedMode() {
         Object.assign(this.detachedContainer.style, {
-            position: 'fixed', top: '20px', left: '20px', zIndex: Z_INDEX.FAB, display: 'flex',
+            position: 'fixed', bottom: '200px', right: '20px', zIndex: Z_INDEX.FAB, display: 'flex',
             alignItems: 'center', backgroundColor: 'rgba(43, 45, 49, 0.85)', borderRadius: '25px',
             padding: '10px 5px 10px 10px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             backdropFilter: 'blur(5px)'
@@ -400,13 +400,29 @@
       _onSelectionChange() { if (!this.isDetachedMode && this.lastFocusedEditableElement && document.activeElement === this.lastFocusedEditableElement) { if (window.getSelection().toString().trim().length > 0) { clearTimeout(this.typingTimer); this._showFab(); } else this._hideFab(); } }
       
       _onDragStart(e) {
-        e.preventDefault(); e.stopPropagation();
+        e.preventDefault();
+        e.stopPropagation();
         this.isDragging = true;
         this.dragHandle.style.cursor = 'grabbing';
-        this.dragOffsetX = e.clientX - this.detachedContainer.getBoundingClientRect().left;
-        this.dragOffsetY = e.clientY - this.detachedContainer.getBoundingClientRect().top;
+
+        const rect = this.detachedContainer.getBoundingClientRect();
+
+        this.detachedContainer.style.right = 'auto';
+        this.detachedContainer.style.bottom = 'auto';
+        this.detachedContainer.style.top = `${rect.top}px`;
+        this.detachedContainer.style.left = `${rect.left}px`;
+
+        this.dragOffsetX = e.clientX - rect.left;
+        this.dragOffsetY = e.clientY - rect.top;
       }
-      _onDrag(e) { if (!this.isDragging) return; e.preventDefault(); const el = this.detachedContainer; el.style.left = `${Math.max(0, Math.min(e.clientX - this.dragOffsetX, window.innerWidth - el.offsetWidth))}px`; el.style.top = `${Math.max(0, Math.min(e.clientY - this.dragOffsetY, window.innerHeight - el.offsetHeight))}px`; }
+      
+      _onDrag(e) {
+        if (!this.isDragging) return;
+        e.preventDefault();
+        const el = this.detachedContainer;
+        el.style.left = `${Math.max(0, Math.min(e.clientX - this.dragOffsetX, window.innerWidth - el.offsetWidth))}px`;
+        el.style.top = `${Math.max(0, Math.min(e.clientY - this.dragOffsetY, window.innerHeight - el.offsetHeight))}px`;
+      }
 
       _onMicMouseDown(e) { e.preventDefault(); e.stopPropagation(); this.isMouseDownOnMic = true; this.micHoldTimeout = setTimeout(() => { if (!this.isMouseDownOnMic || this.isDragging) return; if (this.isDetachedMode) { this.transcriptionOnlyButton.style.display = 'flex'; } else { const micRect = this.onFocusMicIcon.getBoundingClientRect(); this.transcriptionOnlyButton.style.transform = `translate(${micRect.left + window.scrollX}px, ${micRect.top + window.scrollY - 34}px)`; this.transcriptionOnlyButton.style.display = 'flex'; }}, TIMING.HOLD_DURATION);}
       _onFabMouseDown(e) { e.preventDefault(); e.stopPropagation(); this.isMouseDownOnFab = true; this.fabHoldTimeout = setTimeout(() => { if (this.isMouseDownOnFab && !this.isDragging) this._showFabStyleMenu(); }, TIMING.HOLD_DURATION); }
