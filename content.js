@@ -428,7 +428,8 @@
               this._hideFabStyleMenu();
             } else this.processSelectedText();
           } else this._hideFabStyleMenu();
-          this._setFabHover(false);
+          const isMouseStillOverFab = this.fab.contains(e.target);
+          this._setFabHover(isMouseStillOverFab);
         }
         if (this.isMouseDownOnMic) {
           this.isMouseDownOnMic = false; clearTimeout(this.micHoldTimeout);
