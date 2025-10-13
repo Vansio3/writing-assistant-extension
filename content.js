@@ -138,7 +138,7 @@
             backdropFilter: 'blur(5px)'
         });
 
-        const buttonColumn = this._createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' } });
+        const buttonColumn = this._createElement('div', { style: { position: 'relative', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' } });
         const largerButtonStyle = { position: 'relative', top: 'auto', left: 'auto', width: '40px', height: '40px', opacity: '1', display: 'flex', transition: 'transform 0.1s ease', boxShadow: 'none' };
         
         Object.assign(this.onFocusMicIcon.style, largerButtonStyle);
@@ -148,6 +148,16 @@
         Object.assign(this.fab.style, largerButtonStyle);
         this.fab.querySelector('svg').setAttribute('width', '16');
         this.fab.querySelector('svg').setAttribute('height', '16');
+
+        const detachedMicWidth = 40;
+        const transcriptionButtonWidth = 28;
+        Object.assign(this.transcriptionOnlyButton.style, {
+            position: 'absolute',
+            top: '-38px', // Position above the mic icon
+            left: `${(detachedMicWidth - transcriptionButtonWidth) / 2}px`, // Center it horizontally
+            transform: 'none', // Remove any transform from attached mode
+            display: 'none' // Initially hidden
+        });
         
         Object.assign(this.dragHandle.style, { width: '15px', alignSelf: 'stretch', marginLeft: '8px', borderRadius: '10px', backgroundColor: COLORS.DETACHED_DRAG_HANDLE, cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '4px' });
         for (let i = 0; i < 3; i++) {
@@ -156,7 +166,7 @@
 
         const addPressEffect = (el) => { el.addEventListener('mousedown', () => el.style.transform = 'scale(0.9)'); el.addEventListener('mouseup', () => el.style.transform = 'scale(1)'); el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)'); };
         [this.onFocusMicIcon, this.fab, this.selectorIcon].forEach(addPressEffect);
-
+        buttonColumn.appendChild(this.transcriptionOnlyButton);
         buttonColumn.appendChild(this.onFocusMicIcon);
         buttonColumn.appendChild(this.fab);
         buttonColumn.appendChild(this.selectorIcon);
@@ -167,7 +177,6 @@
       }
       
       _createSelectorIcon() {
-        // START: MODIFIED CODE BLOCK
         const selectorSvg = this._createSvgElement('svg', STYLES.SELECTOR_SVG);
         selectorSvg.innerHTML = '<path d="M12 2L12 5"/><path d="M12 19L12 22"/><path d="M22 12L19 12"/><path d="M5 12L2 12"/><circle cx="12" cy="12" r="7"/>';
         
@@ -176,23 +185,32 @@
         
         selectorIconContainer.appendChild(selectorSvg);
         selectorIconContainer.addEventListener('mouseenter', () => selectorIconContainer.style.backgroundColor = COLORS.SELECTOR_HOVER_BG);
+        
         selectorIconContainer.addEventListener('mouseleave', () => {
-            if (this.selectorIcon.style.backgroundColor !== COLORS.SELECTOR_ACTIVE_BG) {
+            if (!this.isSelectionMode) {
                 selectorIconContainer.style.backgroundColor = COLORS.SELECTOR_DEFAULT_BG;
             }
         });
         selectorIconContainer.addEventListener('click', (e) => { e.stopPropagation(); this._toggleSelectionMode(); });
         this.selectorIcon = selectorIconContainer;
-        // END: MODIFIED CODE BLOCK
       }
 
       _toggleSelectionMode() {
         this.isSelectionMode = !this.isSelectionMode;
         document.body.style.cursor = this.isSelectionMode ? 'crosshair' : 'default';
         this._highlightSelectableFields(this.isSelectionMode);
-        const action = this.isSelectionMode ? 'addEventListener' : 'removeEventListener';
-        document[action]('click', this._handleSelectionClick, true);
-        document[action]('keydown', this._handleSelectionKeydown, true);
+
+        if (this.isSelectionMode) {
+          this.selectorIcon.style.backgroundColor = COLORS.SELECTOR_ACTIVE_BG;
+          this.selectorIcon.querySelector('svg').setAttribute('stroke', COLORS.SELECTOR_ICON_ACTIVE);
+          document.addEventListener('click', this._handleSelectionClick, true);
+          document.addEventListener('keydown', this._handleSelectionKeydown, true);
+        } else {
+          this.selectorIcon.style.backgroundColor = COLORS.SELECTOR_DEFAULT_BG;
+          this.selectorIcon.querySelector('svg').setAttribute('stroke', COLORS.SELECTOR_ICON_DEFAULT);
+          document.removeEventListener('click', this._handleSelectionClick, true);
+          document.removeEventListener('keydown', this._handleSelectionKeydown, true);
+        }
       }
 
       _highlightSelectableFields(enable) {
@@ -202,24 +220,29 @@
       }
 
       _handleSelectionClick = (e) => {
-        e.preventDefault(); e.stopPropagation();
+        // Prevent the click from having any other effect on the page
+        e.preventDefault(); 
+        e.stopPropagation();
+
+        // START: MODIFIED CODE BLOCK
+        // Check if the clicked element is a valid input field
         if (this._isElementSuitable(e.target)) {
+            // If it is, set it as the target
             this.mappedTargetElement = e.target;
-            // START: MODIFIED CODE BLOCK
-            this.selectorIcon.style.backgroundColor = COLORS.SELECTOR_ACTIVE_BG;
-            this.selectorIcon.querySelector('svg').setAttribute('stroke', COLORS.SELECTOR_ICON_ACTIVE);
-            // END: MODIFIED CODE BLOCK
-        } else {
-            this.mappedTargetElement = null;
-            // START: MODIFIED CODE BLOCK
-            this.selectorIcon.style.backgroundColor = COLORS.SELECTOR_DEFAULT_BG;
-            this.selectorIcon.querySelector('svg').setAttribute('stroke', COLORS.SELECTOR_ICON_DEFAULT);
-            // END: MODIFIED CODE BLOCK
+            // Now, exit selection mode (which also reverts the button style)
+            this._toggleSelectionMode();
         }
-        this._toggleSelectionMode();
+        // If a non-suitable element is clicked, do nothing.
+        // The selection mode remains active, and the button stays highlighted.
+        // END: MODIFIED CODE BLOCK
       }
 
-      _handleSelectionKeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); this._toggleSelectionMode(); } }
+      _handleSelectionKeydown = (e) => { 
+        if (e.key === 'Escape') { 
+          e.preventDefault(); 
+          this._toggleSelectionMode(); 
+        } 
+      }
       
       _getTargetElement() {
         if (this.mappedTargetElement && document.body.contains(this.mappedTargetElement)) return this.mappedTargetElement;
@@ -374,7 +397,7 @@
       }
       _onDrag(e) { if (!this.isDragging) return; e.preventDefault(); const el = this.detachedContainer; el.style.left = `${Math.max(0, Math.min(e.clientX - this.dragOffsetX, window.innerWidth - el.offsetWidth))}px`; el.style.top = `${Math.max(0, Math.min(e.clientY - this.dragOffsetY, window.innerHeight - el.offsetHeight))}px`; }
 
-      _onMicMouseDown(e) { e.preventDefault(); e.stopPropagation(); this.isMouseDownOnMic = true; this.micHoldTimeout = setTimeout(() => { if (!this.isMouseDownOnMic || this.isDragging) return; const micRect = this.onFocusMicIcon.getBoundingClientRect(); this.transcriptionOnlyButton.style.transform = `translate(${micRect.left + window.scrollX}px, ${micRect.top + window.scrollY - 34}px)`; this.transcriptionOnlyButton.style.display = 'flex'; }, TIMING.HOLD_DURATION); }
+      _onMicMouseDown(e) { e.preventDefault(); e.stopPropagation(); this.isMouseDownOnMic = true; this.micHoldTimeout = setTimeout(() => { if (!this.isMouseDownOnMic || this.isDragging) return; if (this.isDetachedMode) { this.transcriptionOnlyButton.style.display = 'flex'; } else { const micRect = this.onFocusMicIcon.getBoundingClientRect(); this.transcriptionOnlyButton.style.transform = `translate(${micRect.left + window.scrollX}px, ${micRect.top + window.scrollY - 34}px)`; this.transcriptionOnlyButton.style.display = 'flex'; }}, TIMING.HOLD_DURATION);}
       _onFabMouseDown(e) { e.preventDefault(); e.stopPropagation(); this.isMouseDownOnFab = true; this.fabHoldTimeout = setTimeout(() => { if (this.isMouseDownOnFab && !this.isDragging) this._showFabStyleMenu(); }, TIMING.HOLD_DURATION); }
       _onMouseMove(e) { if (!this.isMouseDownOnMic || this.transcriptionOnlyButton.style.display !== 'flex') return; const sR = this.transcriptionOnlyButton.getBoundingClientRect(); this.isOverSecondaryButton = (e.clientX >= sR.left && e.clientX <= sR.right && e.clientY >= sR.top && e.clientY <= sR.bottom); this.transcriptionOnlyButton.style.backgroundColor = this.isOverSecondaryButton ? COLORS.TRANSCRIPTION_HOVER_BG : COLORS.TRANSCRIPTION_BG; }
 
@@ -392,8 +415,8 @@
               if (styleButton) this.processSelectedText(styleButton.dataset.style);
               this._hideFabStyleMenu();
             } else this.processSelectedText();
-          }
-          this._setFabHover(false); 
+          } else this._hideFabStyleMenu();
+          this._setFabHover(false);
         }
         if (this.isMouseDownOnMic) {
           this.isMouseDownOnMic = false; clearTimeout(this.micHoldTimeout);
@@ -401,9 +424,16 @@
               if (this.transcriptionOnlyButton.style.display === 'flex') {
                 this._handleToggleDictation({ start: true, bypassAi: this.isOverSecondaryButton });
                 this.transcriptionOnlyButton.style.display = 'none';
-                this.transcriptionOnlyButton.style.transform = `translateY(10px)`;
+                // START: MODIFIED CODE BLOCK
+                // Only reset the transform property if not in detached mode.
+                if (!this.isDetachedMode) {
+                    this.transcriptionOnlyButton.style.transform = `translateY(10px)`;
+                }
+                // END: MODIFIED CODE BLOCK
               } else if (!this.stopDictationClickHandler) this._handleToggleDictation({ start: true, bypassAi: false });
-          } else if(this.transcriptionOnlyButton.style.display === 'flex') this.transcriptionOnlyButton.style.display = 'none';
+          } else if(this.transcriptionOnlyButton.style.display === 'flex') {
+              this.transcriptionOnlyButton.style.display = 'none';
+          }
           this.isOverSecondaryButton = false; this._setMicHover(false);
         }
       }
