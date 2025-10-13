@@ -64,13 +64,12 @@ const outputLengths = [
 
 document.addEventListener('DOMContentLoaded', () => {
   const App = {
-    // Cache all DOM elements for performance and cleaner code
     ui: {
       dailyCount: document.getElementById('dailyCount'),
       totalCount: document.getElementById('totalCount'),
-      lastOriginalText: document.getElementById('lastOriginalText'),
-      copyButton: document.getElementById('copyButton'),
       mainContent: document.getElementById('mainContent'),
+      historyContent: document.getElementById('historyContent'),
+      inputHistoryContainer: document.getElementById('inputHistoryContainer'),
       apiUsageSection: document.getElementById('apiUsageSection'),
       apiKeyInput: document.getElementById('apiKeyInput'),
       saveApiKeyButton: document.getElementById('saveApiKeyButton'),
@@ -116,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async _loadSettings() {
       const keys = [
-        'geminiApiKey', 'totalCount', 'dailyCount', 'lastOriginalText', 
+        'geminiApiKey', 'totalCount', 'dailyCount', 'originalInputsHistory',
         'selectedLanguage', 'outputStyle', 'outputLength', 'aiProcessingEnabled',
         'soundEnabled', 'customOutputStyle', 'disabledDomains'
       ];
@@ -126,14 +125,16 @@ document.addEventListener('DOMContentLoaded', () => {
       await this._updateDomainButtonState();
 
       if (settings.geminiApiKey) {
-        this.ui.apiKeyInput.value = settings.geminiApiKey;
+        this.ui.apiKeyInput.value = atob(settings.geminiApiKey); // Decode for display
         this.ui.mainContent.style.display = 'flex';
+        this.ui.historyContent.style.display = 'flex';
         this.ui.apiUsageSection.style.display = 'block';
         this.ui.playgroundContainer.style.display = 'block';
 
         this.ui.dailyCount.textContent = settings.dailyCount ?? 0;
         this.ui.totalCount.textContent = settings.totalCount ?? 0;
-        this.ui.lastOriginalText.value = settings.lastOriginalText ?? '';
+        
+        this._populateInputHistory(settings.originalInputsHistory || []);
         
         this.ui.languageSelect.value = settings.selectedLanguage || 'en-US';
         this.ui.outputStyleSelect.value = settings.outputStyle || 'default';
@@ -144,14 +145,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
         this._updateCustomStyleVisibility();
       } else {
-        [this.ui.mainContent, this.ui.apiUsageSection, this.ui.playgroundContainer]
+        [this.ui.mainContent, this.ui.historyContent, this.ui.apiUsageSection, this.ui.playgroundContainer]
           .forEach(el => el.style.display = 'none');
       }
     },
 
+    _populateInputHistory(history = []) {
+        this.ui.inputHistoryContainer.innerHTML = ''; // Clear existing items
+        if (history.length === 0) {
+            const placeholder = document.createElement('p');
+            placeholder.textContent = 'Your processed inputs will appear here.';
+            placeholder.style.textAlign = 'center';
+            placeholder.style.color = 'var(--text-secondary)';
+            this.ui.inputHistoryContainer.appendChild(placeholder);
+            return;
+        }
+
+        history.forEach(text => {
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.textContent = text;
+            item.title = 'Click to copy text';
+
+            // --- START: MODIFIED CODE BLOCK ---
+            item.addEventListener('click', () => {
+                navigator.clipboard.writeText(text).then(() => {
+                    const originalText = item.textContent;
+                    item.textContent = 'Copied!';
+                    item.classList.add('copied');
+                    
+                    setTimeout(() => {
+                        item.textContent = originalText;
+                        item.classList.remove('copied');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy text: ', err);
+                    const originalText = item.textContent;
+                    item.textContent = 'Copy failed!';
+                    setTimeout(() => {
+                        item.textContent = originalText;
+                    }, 2000);
+                });
+            });
+            // --- END: MODIFIED CODE BLOCK ---
+            
+            this.ui.inputHistoryContainer.appendChild(item);
+        });
+    },
+
     _bindEvents() {
       this.ui.saveApiKeyButton.addEventListener('click', () => this._handleSaveApiKey());
-      this.ui.copyButton.addEventListener('click', () => this._handleCopyText());
       this.ui.outputStyleSelect.addEventListener('change', () => this._handleStyleChange());
       this.ui.playgroundProcessButton.addEventListener('click', () => this._handlePlaygroundProcess());
       this.ui.scrollToPlaygroundButton.addEventListener('click', () => this._handleScrollToPlayground());
@@ -189,23 +232,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const isCurrentlyEnabled = this.ui.toggleDomainButton.dataset.enabled === 'true';
 
         if (isCurrentlyEnabled) {
-            // Logic for disabling the domain
             this.disabledDomains.push(this.currentDomain);
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
             if (tab && tab.id) {
                 chrome.tabs.sendMessage(tab.id, { command: "teardown-content-script" });
             }
         } else {
-            // Logic for enabling the domain
             this.disabledDomains = this.disabledDomains.filter(d => d !== this.currentDomain);
         }
         
-        // Update storage and the button's appearance
         this.disabledDomains = [...new Set(this.disabledDomains)];
         await chrome.storage.local.set({ disabledDomains: this.disabledDomains });
         await this._updateDomainButtonState();
         
-        // Always show the status message
         this._showStatusMessage('Please reload the page for changes to take effect.', 4000, this.ui.domainStatus);
     },
 
@@ -219,16 +258,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       } else {
         this._showStatusMessage('Please enter a valid key.', 3000, this.ui.apiKeyStatus);
-      }
-    },
-
-    _handleCopyText() {
-      const textToCopy = this.ui.lastOriginalText.value;
-      if (textToCopy) {
-        navigator.clipboard.writeText(textToCopy).then(() => {
-          this.ui.copyButton.textContent = 'Copied!';
-          setTimeout(() => { this.ui.copyButton.textContent = 'Copy Text'; }, 2000);
-        });
       }
     },
 
@@ -265,8 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this._showStatusMessage(`Error: ${response.error}`, 5000, this.ui.playgroundStatus);
             } else if (response.generatedText) {
                 this.ui.playgroundInput.value = response.generatedText;
-                chrome.storage.local.set({ lastOriginalText: inputText });
-                this.ui.lastOriginalText.value = inputText;
+                this._loadSettings();
             }
         });
     },
@@ -287,7 +315,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     },
 
-    // Utility for reducing boilerplate when binding settings to storage
     _bindSetting(element, key, valueProp = 'value', eventType = 'change') {
       element.addEventListener(eventType, () => {
         chrome.storage.local.set({ [key]: element[valueProp] });

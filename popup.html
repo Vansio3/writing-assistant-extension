@@ -22,54 +22,8 @@
   </header>
 
   <main class="layout-container">
-    <!-- (Rest of the HTML is unchanged) -->
-    <!-- Left Column -->
-    <section class="column-left">
-      <!-- API Key Configuration Section -->
-      <div id="apiKeySection">
-        <div class="card">
-          <div class="card-header">
-            <h4>API Key</h4>
-          </div>
-          <div class="card-body">
-            <p class="api-key-label">Enter your Gemini API Key:</p>
-            <input type="password" id="apiKeyInput" placeholder="Paste your API key here">
-            <button id="saveApiKeyButton" class="button-primary amber-button">Save Key</button>
-            <p id="apiKeyStatus" class="status-message"></p>
-            <div class="api-key-warning">
-            <p>
-              <strong>Security Warning:</strong> Your API key is stored locally on your device.
-              For best security, please:
-              <br>1. <strong>Create a new API key</strong> specifically for this extension.
-              <br>2. <strong>Set a spending limit</strong> on the key in your Google Cloud console.
-            </p>
-          </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- API Usage Section -->
-      <div id="apiUsageSection" style="display: none;">
-        <div class="card">
-          <div class="card-header">
-            <h4>API Usage</h4>
-          </div>
-          <div class="card-body usage-stats">
-            <div class="usage-item">
-              <span>Today</span>
-              <strong id="dailyCount">0</strong>
-            </div>
-            <div class="usage-item">
-              <span>Total</span>
-              <strong id="totalCount">0</strong>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Right Column -->
-    <section class="column-right" id="mainContent" style="display: none;">
+    <!-- Column 1: Settings -->
+    <section class="column column-left" id="mainContent" style="display: none;">
       <div class="card">
         <div class="card-header">
           <h4>Settings</h4>
@@ -107,17 +61,62 @@
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- Last Original Input Card -->
-      <div class="card" id="last-input-card">
-        <div class="card-header">
-          <h4>Last Original Input</h4>
-        </div>
-        <div class="card-body">
-          <textarea id="lastOriginalText" readonly placeholder="No text processed yet."></textarea>
-          <button id="copyButton" class="button-secondary">Copy Text</button>
+    <!-- Column 2: API & General -->
+    <section class="column column-center">
+      <!-- API Key Configuration Section -->
+      <div id="apiKeySection">
+        <div class="card">
+          <div class="card-header">
+            <h4>API Key</h4>
+          </div>
+          <div class="card-body">
+            <p class="api-key-label">Enter your Gemini API Key:</p>
+            <input type="password" id="apiKeyInput" placeholder="Paste your API key here">
+            <button id="saveApiKeyButton" class="button-primary amber-button">Save Key</button>
+            <p id="apiKeyStatus" class="status-message"></p>
+            <div class="api-key-warning">
+              <p>
+                <strong>Security Warning:</strong> Your API key is stored locally on your device. For best security, please create a new, restricted API key for this extension.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
+
+      <!-- API Usage Section -->
+      <div id="apiUsageSection" style="display: none;">
+        <div class="card">
+          <div class="card-header">
+            <h4>API Usage</h4>
+          </div>
+          <div class="card-body usage-stats">
+            <div class="usage-item">
+              <span>Today</span>
+              <strong id="dailyCount">0</strong>
+            </div>
+            <div class="usage-item">
+              <span>Total</span>
+              <strong id="totalCount">0</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Column 3: Original Inputs History -->
+    <section class="column column-right" id="historyContent" style="display: none;">
+        <div class="card" id="history-card">
+            <div class="card-header">
+                <h4>Original Inputs History</h4>
+            </div>
+            <div class="card-body">
+                <div id="inputHistoryContainer">
+                    <!-- History items will be injected here by popup.js -->
+                </div>
+            </div>
+        </div>
     </section>
   </main>
 

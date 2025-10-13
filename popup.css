@@ -81,13 +81,15 @@ strong {
   color: var(--accent-primary);
 }
 
+/* --- MODIFIED LAYOUT --- */
 .layout-container {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
   margin-bottom: 16px;
 }
 
-.column-left, .column-right {
+.column {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -95,8 +97,9 @@ strong {
   animation: fadeIn 0.5s ease-out backwards;
 }
 
-.column-right { animation-delay: 0.1s; }
-.playground-container { animation: fadeIn 0.5s ease-out 0.2s backwards; }
+.column-center { animation-delay: 0.1s; }
+.column-right { animation-delay: 0.2s; }
+.playground-container { animation: fadeIn 0.5s ease-out 0.3s backwards; }
 
 /* --- Card Redesign --- */
 .card {
@@ -122,9 +125,53 @@ strong {
   gap: 14px;
 }
 
-#last-input-card, #last-input-card .card-body {
+/* --- START: MODIFIED CODE BLOCK --- */
+#history-card {
+  height: 380px; /* Fixed height for the history card */
   flex-grow: 1;
 }
+
+#history-card .card-body {
+  overflow: hidden; /* Prevent body from overflowing card */
+  flex-grow: 1;
+}
+
+#inputHistoryContainer {
+  height: 100%;
+  overflow-y: auto; /* Enable vertical scrolling */
+  padding-right: 8px;
+  margin-right: -8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.history-item {
+  background-color: var(--background-tertiary);
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.history-item:hover {
+  background-color: #44474e;
+  border-color: #555;
+}
+
+/* Style for providing feedback on copy */
+.history-item.copied {
+  background-color: var(--accent-success);
+  color: var(--text-dark);
+  border-color: var(--accent-primary-hover);
+}
+/* --- END: MODIFIED CODE BLOCK --- */
+
 
 /* --- Form Elements & Inputs --- */
 input[type="password"], input[type="text"], textarea, .select-css {
@@ -151,11 +198,6 @@ textarea {
   resize: none;
 }
 
-textarea#lastOriginalText[readonly] {
-  background-color: var(--background-secondary);
-  cursor: default;
-}
-
 /* --- Buttons --- */
 .button-primary, .button-secondary {
   width: 100%;
@@ -168,8 +210,6 @@ textarea#lastOriginalText[readonly] {
   transition: all 0.2s ease;
   text-align: center;
 }
-
-
 
 .button-primary {
   background: var(--accent-primary);
@@ -204,11 +244,6 @@ textarea#lastOriginalText[readonly] {
     width: auto;
     padding: 8px 16px;
     font-size: 13px;
-}
-
-#copyButton {
-  padding: 3px 12px;
-  font-size: 12px;
 }
 
 .amber-button {

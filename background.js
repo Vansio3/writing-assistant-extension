@@ -54,7 +54,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function handlePromptRequest(request) {
   const storageKeys = [
     'geminiApiKey', 'selectedLanguage', 'outputStyle', 
-    'outputLength', 'aiProcessingEnabled', 'customOutputStyle'
+    'outputLength', 'aiProcessingEnabled', 'customOutputStyle',
+    'originalInputsHistory'
   ];
   const settings = await chrome.storage.local.get(storageKeys);
 
@@ -64,7 +65,14 @@ async function handlePromptRequest(request) {
   
   const apiKey = atob(settings.geminiApiKey);
 
-  await chrome.storage.local.set({ lastOriginalText: request.prompt });
+  // --- MODIFIED CODE BLOCK ---
+  // Save the new prompt to the beginning of the history array
+  const history = settings.originalInputsHistory || [];
+  history.unshift(request.prompt);
+  // Keep the last 20 inputs
+  const updatedHistory = history.slice(0, 20); 
+  await chrome.storage.local.set({ originalInputsHistory: updatedHistory });
+  // --- END MODIFIED CODE BLOCK ---
 
   if (request.bypassAi === true || settings.aiProcessingEnabled === false) {
     return { generatedText: request.prompt.trim() + ' ' };
@@ -85,7 +93,6 @@ async function handlePromptRequest(request) {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
-        // ADD the API key as a header
         "x-goog-api-key": apiKey 
       },
       body: JSON.stringify({ contents: [{ parts: [{ text: finalPrompt }] }] })
@@ -101,10 +108,7 @@ async function handlePromptRequest(request) {
     const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!generatedText) throw new Error("Invalid response structure from API.");
 
-    // Basic sanitization
     const sanitizedText = generatedText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-    // Trim any potential whitespace from the API and append a single space for better UX
     const finalText = sanitizedText.trim() + ' ';
 
     await updateApiCallCount();
