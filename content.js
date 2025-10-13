@@ -139,6 +139,7 @@
         });
 
         const buttonColumn = this._createElement('div', { style: { position: 'relative', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' } });
+
         const largerButtonStyle = { position: 'relative', top: 'auto', left: 'auto', width: '40px', height: '40px', opacity: '1', display: 'flex', transition: 'transform 0.1s ease', boxShadow: 'none' };
         
         Object.assign(this.onFocusMicIcon.style, largerButtonStyle);
@@ -150,14 +151,23 @@
         this.fab.querySelector('svg').setAttribute('height', '16');
 
         const detachedMicWidth = 40;
-        const transcriptionButtonWidth = 28;
+        const newTranscriptionButtonSize = 34; // Increased from 28px
+        const newTranscriptionIconSize = 18;  // Increased from 16px
+        const gapAboveMic = 10; // The space between the mic and the transcription button
+
         Object.assign(this.transcriptionOnlyButton.style, {
             position: 'absolute',
-            top: '-38px', // Position above the mic icon
-            left: `${(detachedMicWidth - transcriptionButtonWidth) / 2}px`, // Center it horizontally
-            transform: 'none', // Remove any transform from attached mode
-            display: 'none' // Initially hidden
+            width: `${newTranscriptionButtonSize}px`, // Apply new width
+            height: `${newTranscriptionButtonSize}px`,// Apply new height
+            top: `-${newTranscriptionButtonSize + gapAboveMic}px`, // Recalculate top position
+            left: `${(detachedMicWidth - newTranscriptionButtonSize) / 2}px`, // Recalculate left to re-center
+            transform: 'none',
+            display: 'none'
         });
+
+        const transcriptionSvg = this.transcriptionOnlyButton.querySelector('svg');
+        transcriptionSvg.setAttribute('width', newTranscriptionIconSize);
+        transcriptionSvg.setAttribute('height', newTranscriptionIconSize);
         
         Object.assign(this.dragHandle.style, { width: '15px', alignSelf: 'stretch', marginLeft: '8px', borderRadius: '10px', backgroundColor: COLORS.DETACHED_DRAG_HANDLE, cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '4px' });
         for (let i = 0; i < 3; i++) {
@@ -166,6 +176,7 @@
 
         const addPressEffect = (el) => { el.addEventListener('mousedown', () => el.style.transform = 'scale(0.9)'); el.addEventListener('mouseup', () => el.style.transform = 'scale(1)'); el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)'); };
         [this.onFocusMicIcon, this.fab, this.selectorIcon].forEach(addPressEffect);
+        
         buttonColumn.appendChild(this.transcriptionOnlyButton);
         buttonColumn.appendChild(this.onFocusMicIcon);
         buttonColumn.appendChild(this.fab);
@@ -449,21 +460,35 @@
       _showFabStyleMenu() {
         if (!this.fabStyleMenu) {
           this.fabStyleMenu = this._createElement('div');
-          // START: MODIFIED CODE BLOCK
           Object.assign(this.fabStyleMenu.style, STYLES.FAB_MENU);
           FAB_OUTPUT_STYLES.forEach(style => {
             const button = this._createElement('button', { textContent: style.name, dataset: { style: style.value }});
             Object.assign(button.style, STYLES.FAB_MENU_BUTTON);
             button.addEventListener('mouseenter', () => button.style.backgroundColor = COLORS.FAB_MENU_BUTTON_HOVER_BG);
             button.addEventListener('mouseleave', () => button.style.backgroundColor = COLORS.FAB_MENU_BUTTON_BG);
-            // END: MODIFIED CODE BLOCK
             this.fabStyleMenu.appendChild(button);
           });
           document.body.appendChild(this.fabStyleMenu);
         }
-        this.fabStyleMenu.style.visibility = 'hidden'; this.fabStyleMenu.style.display = 'flex';
-        const fabRect = this.fab.getBoundingClientRect(); const menuRect = this.fabStyleMenu.getBoundingClientRect();
-        this.fabStyleMenu.style.transform = `translate(${fabRect.left + window.scrollX - menuRect.width}px, ${fabRect.top + window.scrollY + (fabRect.height / 2) - (menuRect.height / 2)}px)`;
+        this.fabStyleMenu.style.visibility = 'hidden';
+        this.fabStyleMenu.style.display = 'flex';
+        const fabRect = this.fab.getBoundingClientRect();
+        if (this.isDetachedMode) {
+          this.fabStyleMenu.style.flexDirection = 'column';
+          this.fabStyleMenu.style.width = '140px'; 
+          const menuRect = this.fabStyleMenu.getBoundingClientRect();
+          const left = fabRect.left + window.scrollX + (fabRect.width / 2) - (menuRect.width / 2);
+          const top = fabRect.top + window.scrollY - menuRect.height - 10;
+          this.fabStyleMenu.style.transform = `translate(${left}px, ${top}px)`;
+        } else {
+          this.fabStyleMenu.style.flexDirection = 'row';
+          this.fabStyleMenu.style.width = 'auto'; 
+          const menuRect = this.fabStyleMenu.getBoundingClientRect();
+          const left = fabRect.left + window.scrollX - menuRect.width - 10;
+          const top = fabRect.top + window.scrollY + (fabRect.height / 2) - (menuRect.height / 2);
+          this.fabStyleMenu.style.transform = `translate(${left}px, ${top}px)`;
+        }
+
         this.fabStyleMenu.style.visibility = 'visible';
       }
 
