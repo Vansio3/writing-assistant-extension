@@ -215,11 +215,12 @@
         this.detachedContainer.appendChild(buttonColumn);
         this.detachedContainer.appendChild(this.dragHandle);
         document.body.appendChild(this.detachedContainer);
-        this.dragHandle.addEventListener('mousedown', e => this._onDragStart(e));     
+        this.dragHandle.addEventListener('mousedown', e => this._onDragStart(e));
         window.addEventListener('resize', this._keepDetachedUiInViewport.bind(this));
       }
       _keepDetachedUiInViewport() {
         if (!this.detachedContainer || !document.body.contains(this.detachedContainer) || this.isDragging) return;
+        this.detachedContainer.style.borderRadius = '25px';
 
         const rect = this.detachedContainer.getBoundingClientRect();
         const buffer = 5; 
@@ -234,7 +235,7 @@
             this.detachedContainer.style.top = `${newTop}px`;
         }
       }
-                  
+
       _createSelectorIcon() {
         const selectorSvg = this._createSvgElement('svg', STYLES.SELECTOR_SVG);
         selectorSvg.innerHTML = '<path d="M12 2L12 5"/><path d="M12 19L12 22"/><path d="M22 12L19 12"/><path d="M5 12L2 12"/><circle cx="12" cy="12" r="7"/>';
