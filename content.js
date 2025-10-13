@@ -174,7 +174,7 @@
         transcriptionSvg.setAttribute('width', newTranscriptionIconSize);
         transcriptionSvg.setAttribute('height', newTranscriptionIconSize);
         
-        Object.assign(this.dragHandle.style, { width: '15px', alignSelf: 'stretch', marginLeft: '8px', borderRadius: '10px', backgroundColor: COLORS.DETACHED_DRAG_HANDLE, cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '4px' });
+        Object.assign(this.dragHandle.style, { width: '5px', alignSelf: 'stretch', marginLeft: '8px', borderRadius: '10px', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '4px' });
         for (let i = 0; i < 3; i++) {
             this.dragHandle.appendChild(this._createElement('div', { style: { width: '3px', height: '3px', borderRadius: '50%', backgroundColor: COLORS.DETACHED_DRAG_HANDLE_DOT } }));
         }
@@ -389,6 +389,8 @@
         e.stopPropagation();
         this.isDragging = true;
         this.dragHandle.style.cursor = 'grabbing';
+        document.body.style.cursor = 'grabbing';
+        document.body.style.userSelect = 'none';
 
         const rect = this.detachedContainer.getBoundingClientRect();
 
@@ -417,6 +419,8 @@
         const wasDrag = this.isDragging;
         if (this.isDragging) {
             this.dragHandle.style.cursor = 'grab';
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
             this.isDragging = false;
         }
         if (this.isMouseDownOnFab) {
