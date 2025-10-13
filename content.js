@@ -128,7 +128,29 @@
           .gemini-mic-pulsing { animation: gemini-icon-pulse 1.5s infinite ease-in-out; }
           @keyframes gemini-icon-pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); } 50% { transform: scale(1.05); box-shadow: 0 0 0 5px rgba(229, 62, 62, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); } }
           .gemini-assistant-selectable-target { outline: 2px dashed #FFBF00 !important; outline-offset: 2px; box-shadow: 0 0 15px rgba(255, 191, 0, 0.7) !important; transition: outline 0.2s ease, box-shadow 0.2s ease; }
-          .gemini-assistant-selectable-target:hover { outline: 2px solid #E53E3E !important; box-shadow: 0 0 15px rgba(229, 62, 62, 1) !important; }`;
+          .gemini-assistant-selectable-target:hover { outline: 2px solid #E53E3E !important; box-shadow: 0 0 15px rgba(229, 62, 62, 1) !important; }
+          /* --- START: MODIFIED CODE BLOCK --- */
+          .gemini-assistant-notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(44, 45, 48, 0.9);
+            color: #f2f3f5;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid #35363b;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
+            z-index: 2147483647;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out, top 0.3s ease-in-out;
+            pointer-events: none;
+          }
+          /* --- END: MODIFIED CODE BLOCK --- */
+        `;
         document.head.appendChild(style);
         this.resizeObserver = new ResizeObserver(() => this._updateIconPositions());
       }
@@ -278,10 +300,10 @@
 
       processSelectedText(style = null) {
         const activeElement = this._getTargetElement();
-        if (!activeElement) { alert("Please select an editable text field, or use the target icon to map the buttons to a field."); return; }
+        if (!activeElement) { this._showNotification("Please select an editable text field, or use the target icon to map the buttons to a field."); return; }
         activeElement.focus();
         chrome.runtime.sendMessage({ command: 'check-api-key' }, (response) => {
-          if (!response.apiKeyExists) { alert("Please set your Gemini API key in the extension's popup first."); return; }
+          if (!response.apiKeyExists) { this._showNotification("Please set your Gemini API key in the extension's popup first."); return; }
           const selection = window.getSelection();
           let promptText = selection.toString().trim();
           let processingMode = 'selection';
@@ -295,7 +317,7 @@
           activeElement.style.opacity = '0.5'; activeElement.style.cursor = 'wait';
           chrome.runtime.sendMessage({ prompt: promptText, style: style }, (response) => {
             activeElement.style.opacity = '1'; activeElement.style.cursor = 'auto';
-            if (chrome.runtime.lastError || !response || response.error) { return alert(`Error: ${response?.error || 'Unknown error'}`); }
+            if (chrome.runtime.lastError || !response || response.error) { this._showNotification(`Error: ${response?.error || 'Unknown error'}`); return; }
             if (response.generatedText) {
               if (processingMode === 'full') {
                 if (typeof activeElement.value !== 'undefined') activeElement.value = response.generatedText;
@@ -324,13 +346,13 @@
         const activeElement = this._getTargetElement();
         if (!activeElement || !this._isElementSuitable(activeElement)) {
           this._hideListeningIndicator();
-          if (this.isDetachedMode) alert("Please select a text field to dictate into, or use the target icon to map one.");
+          if (this.isDetachedMode) this._showNotification("Please select a text field to dictate into, or use the target icon to map one.");
           return;
         }
         activeElement.focus();
         if (start && this.recognition) {
           chrome.runtime.sendMessage({ command: 'check-api-key' }, (response) => {
-            if (!response.apiKeyExists) { alert("Please set your Gemini API key in the extension's popup first."); return; }
+            if (!response.apiKeyExists) { this._showNotification("Please set your Gemini API key in the extension's popup first."); return; }
             this.dictationTargetElement = activeElement; this.currentDictationBypassesAi = bypassAi;
             chrome.storage.local.get('selectedLanguage', ({ selectedLanguage }) => {
               this.recognition.lang = selectedLanguage || 'en-US'; this._playSound('assets/audio/start.mp3');
@@ -340,7 +362,7 @@
             });
           });
         } else if (!start && this.recognition) { this.dictationCancelled = true; this.cancellationReason = 'user_action'; this.recognition.stop(); }
-        else if (!this.recognition) { alert("Speech recognition is not available in this browser."); }
+        else if (!this.recognition) { this._showNotification("Speech recognition is not available in this browser."); }
       }
 
       _onRecognitionEnd() {
@@ -358,7 +380,7 @@
             chrome.runtime.sendMessage({ prompt: this.finalTranscript.trim(), bypassAi: this.currentDictationBypassesAi }, response => {
                 finishedTarget.style.opacity = '1'; finishedTarget.style.cursor = 'auto';
                 if (chrome.runtime.lastError || !response) return; 
-                if (response.error) { this._insertTextAtCursor(finishedTarget, this.finalTranscript.trim() + ' '); alert(`Error: ${response.error}`); }
+                if (response.error) { this._insertTextAtCursor(finishedTarget, this.finalTranscript.trim() + ' '); this._showNotification(`Error: ${response.error}`); }
                 else if (response.generatedText) { this._insertTextAtCursor(finishedTarget, response.generatedText); finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true })); }
                 if (document.activeElement === finishedTarget && !this.isDetachedMode) this._showOnFocusMicIcon(finishedTarget);
             });
@@ -503,6 +525,31 @@
       _setFabHover(isHovering) { if (!this.isMouseDownOnFab) this.fab.style.backgroundColor = isHovering ? COLORS.FAB_HOVER_BG : COLORS.FAB_BG; }
       
       // --- 6. UTILITY METHODS ---
+
+      // --- START: MODIFIED CODE BLOCK ---
+      _showNotification(message, duration = 4000) {
+        const notification = this._createElement('div', { 
+            className: 'gemini-assistant-notification',
+            textContent: message
+        });
+        document.body.appendChild(notification);
+        
+        // Fade in
+        setTimeout(() => {
+            notification.style.opacity = '1';
+            notification.style.top = '30px';
+        }, 100);
+
+        // Fade out and remove
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.top = '20px';
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, duration);
+      }
+      // --- END: MODIFIED CODE BLOCK ---
 
       _createSvgElement(tag, attr) { const el = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const key in attr) el.setAttribute(key, attr[key]); return el; }
       _createElement(tag, prop = {}) { const el = document.createElement(tag); Object.entries(prop).forEach(([key, val]) => { if (key === 'style') Object.assign(el.style, val); else if (key === 'dataset') Object.assign(el.dataset, val); else el[key] = val; }); return el; }
