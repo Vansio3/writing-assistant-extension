@@ -180,12 +180,11 @@
         }
 
         const addPressEffect = (el) => { el.addEventListener('mousedown', () => el.style.transform = 'scale(0.9)'); el.addEventListener('mouseup', () => el.style.transform = 'scale(1)'); el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)'); };
-        [this.onFocusMicIcon, this.fab, this.selectorIcon].forEach(addPressEffect);
+        [this.onFocusMicIcon, this.fab].forEach(addPressEffect);
         
         buttonColumn.appendChild(this.transcriptionOnlyButton);
         buttonColumn.appendChild(this.onFocusMicIcon);
         buttonColumn.appendChild(this.fab);
-        buttonColumn.appendChild(this.selectorIcon);
         this.detachedContainer.appendChild(buttonColumn);
         this.detachedContainer.appendChild(this.dragHandle);
         document.body.appendChild(this.detachedContainer);
@@ -200,14 +199,6 @@
         Object.assign(selectorIconContainer.style, STYLES.SELECTOR_ICON);
         
         selectorIconContainer.appendChild(selectorSvg);
-        selectorIconContainer.addEventListener('mouseenter', () => selectorIconContainer.style.backgroundColor = COLORS.SELECTOR_HOVER_BG);
-        
-        selectorIconContainer.addEventListener('mouseleave', () => {
-            if (!this.isSelectionMode) {
-                selectorIconContainer.style.backgroundColor = COLORS.SELECTOR_DEFAULT_BG;
-            }
-        });
-        selectorIconContainer.addEventListener('click', (e) => { e.stopPropagation(); this._toggleSelectionMode(); });
         this.selectorIcon = selectorIconContainer;
       }
 
@@ -217,13 +208,9 @@
         this._highlightSelectableFields(this.isSelectionMode);
 
         if (this.isSelectionMode) {
-          this.selectorIcon.style.backgroundColor = COLORS.SELECTOR_ACTIVE_BG;
-          this.selectorIcon.querySelector('svg').setAttribute('stroke', COLORS.SELECTOR_ICON_ACTIVE);
           document.addEventListener('click', this._handleSelectionClick, true);
           document.addEventListener('keydown', this._handleSelectionKeydown, true);
         } else {
-          this.selectorIcon.style.backgroundColor = COLORS.SELECTOR_DEFAULT_BG;
-          this.selectorIcon.querySelector('svg').setAttribute('stroke', COLORS.SELECTOR_ICON_DEFAULT);
           document.removeEventListener('click', this._handleSelectionClick, true);
           document.removeEventListener('keydown', this._handleSelectionKeydown, true);
         }
@@ -236,21 +223,13 @@
       }
 
       _handleSelectionClick = (e) => {
-        // Prevent the click from having any other effect on the page
         e.preventDefault(); 
         e.stopPropagation();
 
-        // START: MODIFIED CODE BLOCK
-        // Check if the clicked element is a valid input field
         if (this._isElementSuitable(e.target)) {
-            // If it is, set it as the target
             this.mappedTargetElement = e.target;
-            // Now, exit selection mode (which also reverts the button style)
             this._toggleSelectionMode();
         }
-        // If a non-suitable element is clicked, do nothing.
-        // The selection mode remains active, and the button stays highlighted.
-        // END: MODIFIED CODE BLOCK
       }
 
       _handleSelectionKeydown = (e) => { 
@@ -290,6 +269,7 @@
           chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               if (request.command === "process-text") this.processSelectedText();
               else if (request.command === "toggle-dictation") this._handleToggleDictation({ ...request, start: !this.dictationTargetElement });
+              else if (request.command === "enter-selection-mode") this._toggleSelectionMode();
               sendResponse(true); return true;
           });
       }
@@ -456,12 +436,9 @@
               if (this.transcriptionOnlyButton.style.display === 'flex') {
                 this._handleToggleDictation({ start: true, bypassAi: this.isOverSecondaryButton });
                 this.transcriptionOnlyButton.style.display = 'none';
-                // START: MODIFIED CODE BLOCK
-                // Only reset the transform property if not in detached mode.
                 if (!this.isDetachedMode) {
                     this.transcriptionOnlyButton.style.transform = `translateY(10px)`;
                 }
-                // END: MODIFIED CODE BLOCK
               } else if (!this.stopDictationClickHandler) this._handleToggleDictation({ start: true, bypassAi: false });
           } else if(this.transcriptionOnlyButton.style.display === 'flex') {
               this.transcriptionOnlyButton.style.display = 'none';

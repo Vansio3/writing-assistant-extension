@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
       scrollToPlaygroundButton: document.getElementById('scrollToPlaygroundButton'),
       toggleDomainButton: document.getElementById('toggleDomainButton'),
       domainStatus: document.getElementById('domainStatus'),
+      selectTargetButton: document.getElementById('selectTargetButton'),
       detachButtonsToggle: document.getElementById('detachButtonsToggle'),
       detachButtonsStatus: document.getElementById('detachButtonsStatus'),
     },
@@ -202,6 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
       this.ui.playgroundProcessButton.addEventListener('click', () => this._handlePlaygroundProcess());
       this.ui.scrollToPlaygroundButton.addEventListener('click', () => this._handleScrollToPlayground());
       this.ui.toggleDomainButton.addEventListener('click', () => this._handleToggleDomain());
+      this.ui.selectTargetButton.addEventListener('click', () => this._handleSelectTarget());
 
       this._bindSetting(this.ui.languageSelect, 'selectedLanguage');
       this._bindSetting(this.ui.outputLengthSelect, 'outputLength');
@@ -261,6 +263,16 @@ document.addEventListener('DOMContentLoaded', () => {
         await this._updateDomainButtonState();
         
         this._showStatusMessage('Please reload the page for changes to take effect.', 4000, this.ui.domainStatus);
+    },
+
+    async _handleSelectTarget() {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.id) {
+        // Send a message to the content script in the active tab
+        chrome.tabs.sendMessage(tab.id, { command: "enter-selection-mode" });
+        // Close the popup so the user can see the page
+        window.close();
+      }
     },
 
     _handleSaveApiKey() {
