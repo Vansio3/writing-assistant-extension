@@ -1,13 +1,18 @@
 // content.js (Idempotent - safe to inject multiple times)
 
 (async () => {
-  const data = await chrome.storage.local.get('disabledDomains');
-  const disabledDomains = data.disabledDomains || [];
+  // --- START: MODIFIED CODE BLOCK ---
+  // The logic is inverted. The extension is now disabled by default.
+  // It will only run on sites that the user has explicitly enabled.
+  const data = await chrome.storage.local.get('enabledDomains');
+  const enabledDomains = data.enabledDomains || [];
   const currentHostname = window.location.hostname;
 
-  if (disabledDomains.includes(currentHostname)) {
+  // If the current hostname is NOT in the enabled list, stop executing the script.
+  if (!enabledDomains.includes(currentHostname)) {
     return;
   }
+  // --- END: MODIFIED CODE BLOCK ---
 
   if (typeof window.geminiAssistantInitialized === 'undefined') {
     window.geminiAssistantInitialized = true;

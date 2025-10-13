@@ -94,7 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
     },
 
     currentDomain: null,
-    disabledDomains: [],
+    // --- START: MODIFIED CODE BLOCK ---
+    // Renamed 'disabledDomains' to 'enabledDomains' for clarity with the new logic.
+    enabledDomains: [],
+    // --- END: MODIFIED CODE BLOCK ---
 
     init() {
       this._populateSelects();
@@ -117,16 +120,20 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     
     async _loadSettings() {
-      // START: MODIFIED CODE BLOCK
+      // --- START: MODIFIED CODE BLOCK ---
+      // Replaced 'disabledDomains' with 'enabledDomains' in the keys to fetch from storage.
       const keys = [
         'geminiApiKey', 'totalCount', 'dailyCount', 'originalInputsHistory',
         'selectedLanguage', 'outputStyle', 'outputLength', 'aiProcessingEnabled',
-        'soundEnabled', 'customOutputStyle', 'disabledDomains', 'detachButtons'
+        'soundEnabled', 'customOutputStyle', 'enabledDomains', 'detachButtons'
       ];
-      // END: MODIFIED CODE BLOCK
+      // --- END: MODIFIED CODE BLOCK ---
       const settings = await chrome.storage.local.get(keys);
 
-      this.disabledDomains = settings.disabledDomains || [];
+      // --- START: MODIFIED CODE BLOCK ---
+      // The logic now works with an 'enabledDomains' list.
+      this.enabledDomains = settings.enabledDomains || [];
+      // --- END: MODIFIED CODE BLOCK ---
       await this._updateDomainButtonState();
 
       if (settings.geminiApiKey) {
@@ -224,7 +231,10 @@ document.addEventListener('DOMContentLoaded', () => {
           const url = new URL(tab.url);
           if (url.protocol.startsWith('http')) {
             this.currentDomain = url.hostname;
-            const isEnabled = !this.disabledDomains.includes(this.currentDomain);
+            // --- START: MODIFIED CODE BLOCK ---
+            // The definition of 'isEnabled' is now a direct check of the enabledDomains list.
+            const isEnabled = this.enabledDomains.includes(this.currentDomain);
+            // --- END: MODIFIED CODE BLOCK ---
             this.ui.toggleDomainButton.textContent = isEnabled ? `Disable for this site` : `Enable for this site`;
             this.ui.toggleDomainButton.dataset.enabled = isEnabled;
             this.ui.toggleDomainButton.style.display = 'block';
@@ -241,18 +251,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!this.currentDomain) return;
         const isCurrentlyEnabled = this.ui.toggleDomainButton.dataset.enabled === 'true';
 
+        // --- START: MODIFIED CODE BLOCK ---
+        // The logic is inverted. If the site is enabled, disable it by removing it from the list.
+        // If it's disabled, enable it by adding it to the list.
         if (isCurrentlyEnabled) {
-            this.disabledDomains.push(this.currentDomain);
+            this.enabledDomains = this.enabledDomains.filter(d => d !== this.currentDomain);
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
             if (tab && tab.id) {
+                // This message can be used to tear down the content script's UI if it's already running.
                 chrome.tabs.sendMessage(tab.id, { command: "teardown-content-script" });
             }
         } else {
-            this.disabledDomains = this.disabledDomains.filter(d => d !== this.currentDomain);
+            this.enabledDomains.push(this.currentDomain);
         }
         
-        this.disabledDomains = [...new Set(this.disabledDomains)];
-        await chrome.storage.local.set({ disabledDomains: this.disabledDomains });
+        this.enabledDomains = [...new Set(this.enabledDomains)];
+        await chrome.storage.local.set({ enabledDomains: this.enabledDomains });
+        // --- END: MODIFIED CODE BLOCK ---
         await this._updateDomainButtonState();
         
         this._showStatusMessage('Please reload the page for changes to take effect.', 4000, this.ui.domainStatus);
