@@ -37,6 +37,7 @@
         // --- NEW STATE FOR DETACHED/SELECTOR MODE ---
         this.isDetachedMode = false;
         this.detachedContainer = null;
+        this.dragHandle = null; // <-- NEW
         this.isDragging = false;
         this.isSelectionMode = false;
         this.mappedTargetElement = null;
@@ -99,6 +100,7 @@
         this.fab.appendChild(fabSvg);
         
         this.detachedContainer = this._createElement('div');
+        this.dragHandle = this._createElement('div');
         this._createSelectorIcon();
       }
 
@@ -131,13 +133,17 @@
       _initializeDetachedMode() {
         Object.assign(this.detachedContainer.style, {
             position: 'fixed', top: '20px', left: '20px', zIndex: Z_INDEX.FAB, display: 'flex',
-            flexDirection: 'column', gap: '10px', alignItems: 'center', cursor: 'grab'
+            alignItems: 'center', backgroundColor: 'rgba(43, 45, 49, 0.85)', borderRadius: '25px',
+            padding: '10px 5px 10px 10px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            backdropFilter: 'blur(5px)'
         });
 
-        const largerButtonStyle = {
-            position: 'relative', top: 'auto', left: 'auto', width: '40px', height: '40px',
-            opacity: '1', display: 'flex', transition: 'transform 0.1s ease'
-        };
+        const buttonColumn = this._createElement('div');
+        Object.assign(buttonColumn.style, {
+            display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center'
+        });
+
+        const largerButtonStyle = { position: 'relative', top: 'auto', left: 'auto', width: '40px', height: '40px', opacity: '1', display: 'flex', transition: 'transform 0.1s ease', boxShadow: 'none' };
         Object.assign(this.onFocusMicIcon.style, largerButtonStyle);
         Object.assign(this.fab.style, largerButtonStyle);
         
@@ -146,20 +152,28 @@
         this.fab.querySelector('svg').setAttribute('width', '16');
         this.fab.querySelector('svg').setAttribute('height', '16');
 
-        const addPressEffect = (el) => {
-            el.addEventListener('mousedown', () => el.style.transform = 'scale(0.9)');
-            el.addEventListener('mouseup', () => el.style.transform = 'scale(1)');
-            el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)');
-        };
+        Object.assign(this.selectorIcon.style, { position: 'relative', top: 'auto', right: 'auto', width: '32px', height: '32px', border: '1px solid rgba(255,255,255,0.3)' });
+        
+        const addPressEffect = (el) => { el.addEventListener('mousedown', () => el.style.transform = 'scale(0.9)'); el.addEventListener('mouseup', () => el.style.transform = 'scale(1)'); el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)'); };
         addPressEffect(this.onFocusMicIcon);
         addPressEffect(this.fab);
+        addPressEffect(this.selectorIcon);
 
-        this.detachedContainer.appendChild(this.fab);
-        this.detachedContainer.appendChild(this.onFocusMicIcon);
-        this.fab.appendChild(this.selectorIcon); 
+        buttonColumn.appendChild(this.onFocusMicIcon);
+        buttonColumn.appendChild(this.fab);
+        buttonColumn.appendChild(this.selectorIcon);
+
+        Object.assign(this.dragHandle.style, { width: '15px', alignSelf: 'stretch', marginLeft: '8px', borderRadius: '10px', backgroundColor: 'rgba(0,0,0,0.2)', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '4px' });
+        for (let i = 0; i < 3; i++) {
+            const dot = this._createElement('div', { style: { width: '3px', height: '3px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.4)' } });
+            this.dragHandle.appendChild(dot);
+        }
+
+        this.detachedContainer.appendChild(buttonColumn);
+        this.detachedContainer.appendChild(this.dragHandle);
         document.body.appendChild(this.detachedContainer);
 
-        this.detachedContainer.addEventListener('mousedown', e => this._onDragStart(e));
+        this.dragHandle.addEventListener('mousedown', e => this._onDragStart(e));
       }
       
       _createSelectorIcon() {
@@ -167,10 +181,9 @@
         selectorSvg.innerHTML = '<path d="M12 2L12 5"/><path d="M12 19L12 22"/><path d="M22 12L19 12"/><path d="M5 12L2 12"/><circle cx="12" cy="12" r="7"/>';
         const selectorIconContainer = this._createElement('div');
         Object.assign(selectorIconContainer.style, {
-            position: 'absolute', top: '-5px', right: '-5px', width: '22px', height: '22px', borderRadius: '50%', 
-            backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-            cursor: 'pointer', zIndex: '2147483648', transition: 'background-color 0.2s ease', 
-            boxShadow: '0 1px 3px rgba(0,0,0,0.3)', border: '1px solid #FFF'
+            width: '22px', height: '22px', borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.7)', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', 
+            zIndex: '2147483648', transition: 'background-color 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
         });
         selectorIconContainer.appendChild(selectorSvg);
         selectorIconContainer.addEventListener('mouseenter', () => selectorIconContainer.style.backgroundColor = 'rgba(88, 101, 242, 1)');
@@ -352,7 +365,13 @@
       _onKeyUp() { if (this.isDetachedMode || !this.lastFocusedEditableElement || window.getSelection().toString().trim().length > 0) return; clearTimeout(this.typingTimer); this._hideFab(); if (this._getElementText(this.lastFocusedEditableElement).trim().length > 0) this.typingTimer = setTimeout(() => { if (document.activeElement === this.lastFocusedEditableElement && window.getSelection().toString().trim().length === 0) this._showFab(); }, TIMING.TYPING_DELAY); }
       _onSelectionChange() { if (!this.isDetachedMode && this.lastFocusedEditableElement && document.activeElement === this.lastFocusedEditableElement) { if (window.getSelection().toString().trim().length > 0) { clearTimeout(this.typingTimer); this._showFab(); } else this._hideFab(); } }
       
-      _onDragStart(e) { if (e.target.closest('div') === this.selectorIcon) return; this.isDragging = true; this.detachedContainer.style.cursor = 'grabbing'; this.dragOffsetX = e.clientX - this.detachedContainer.getBoundingClientRect().left; this.dragOffsetY = e.clientY - this.detachedContainer.getBoundingClientRect().top; }
+      _onDragStart(e) {
+        e.preventDefault(); e.stopPropagation();
+        this.isDragging = true;
+        this.dragHandle.style.cursor = 'grabbing';
+        this.dragOffsetX = e.clientX - this.detachedContainer.getBoundingClientRect().left;
+        this.dragOffsetY = e.clientY - this.detachedContainer.getBoundingClientRect().top;
+      }
       _onDrag(e) { if (!this.isDragging) return; e.preventDefault(); const el = this.detachedContainer; el.style.left = `${Math.max(0, Math.min(e.clientX - this.dragOffsetX, window.innerWidth - el.offsetWidth))}px`; el.style.top = `${Math.max(0, Math.min(e.clientY - this.dragOffsetY, window.innerHeight - el.offsetHeight))}px`; }
 
       _onMicMouseDown(e) { e.preventDefault(); e.stopPropagation(); this.isMouseDownOnMic = true; this.micHoldTimeout = setTimeout(() => { if (!this.isMouseDownOnMic || this.isDragging) return; const micRect = this.onFocusMicIcon.getBoundingClientRect(); this.transcriptionOnlyButton.style.transform = `translate(${micRect.left + window.scrollX}px, ${micRect.top + window.scrollY - 34}px)`; this.transcriptionOnlyButton.style.display = 'flex'; }, TIMING.HOLD_DURATION); }
@@ -361,7 +380,10 @@
 
       _onGlobalMouseUp(e) {
         const wasDrag = this.isDragging;
-        if (this.isDragging) { this.detachedContainer.style.cursor = 'grab'; this.isDragging = false; }
+        if (this.isDragging) {
+            this.dragHandle.style.cursor = 'grab';
+            this.isDragging = false;
+        }
         if (this.isMouseDownOnFab) {
           this.isMouseDownOnFab = false; clearTimeout(this.fabHoldTimeout);
           if (!wasDrag) {
