@@ -87,7 +87,10 @@ document.addEventListener('DOMContentLoaded', () => {
       playgroundContainer: document.querySelector('.playground-container'),
       scrollToPlaygroundButton: document.getElementById('scrollToPlaygroundButton'),
       toggleDomainButton: document.getElementById('toggleDomainButton'),
-      domainStatus: document.getElementById('domainStatus'), 
+      domainStatus: document.getElementById('domainStatus'),
+      // START: MODIFIED CODE BLOCK
+      detachButtonsToggle: document.getElementById('detachButtonsToggle'),
+      // END: MODIFIED CODE BLOCK
     },
 
     currentDomain: null,
@@ -114,11 +117,13 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     
     async _loadSettings() {
+      // START: MODIFIED CODE BLOCK
       const keys = [
         'geminiApiKey', 'totalCount', 'dailyCount', 'originalInputsHistory',
         'selectedLanguage', 'outputStyle', 'outputLength', 'aiProcessingEnabled',
-        'soundEnabled', 'customOutputStyle', 'disabledDomains'
+        'soundEnabled', 'customOutputStyle', 'disabledDomains', 'detachButtons'
       ];
+      // END: MODIFIED CODE BLOCK
       const settings = await chrome.storage.local.get(keys);
 
       this.disabledDomains = settings.disabledDomains || [];
@@ -142,6 +147,10 @@ document.addEventListener('DOMContentLoaded', () => {
         this.ui.aiProcessingToggle.checked = settings.aiProcessingEnabled !== false;
         this.ui.soundToggle.checked = settings.soundEnabled !== false;
         this.ui.customStyleInput.value = settings.customOutputStyle || '';
+        
+        // START: MODIFIED CODE BLOCK
+        this.ui.detachButtonsToggle.checked = settings.detachButtons === true;
+        // END: MODIFIED CODE BLOCK
 
         this._updateCustomStyleVisibility();
       } else {
@@ -167,7 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
             item.textContent = text;
             item.title = 'Click to copy text';
 
-            // --- START: MODIFIED CODE BLOCK ---
             item.addEventListener('click', () => {
                 navigator.clipboard.writeText(text).then(() => {
                     const originalText = item.textContent;
@@ -187,7 +195,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, 2000);
                 });
             });
-            // --- END: MODIFIED CODE BLOCK ---
             
             this.ui.inputHistoryContainer.appendChild(item);
         });
@@ -205,6 +212,9 @@ document.addEventListener('DOMContentLoaded', () => {
       this._bindSetting(this.ui.aiProcessingToggle, 'aiProcessingEnabled', 'checked');
       this._bindSetting(this.ui.soundToggle, 'soundEnabled', 'checked');
       this._bindSetting(this.ui.customStyleInput, 'customOutputStyle', 'value', 'input');
+      // START: MODIFIED CODE BLOCK
+      this._bindSetting(this.ui.detachButtonsToggle, 'detachButtons', 'checked');
+      // END: MODIFIED CODE BLOCK
     },
 
     async _updateDomainButtonState() {

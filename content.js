@@ -34,6 +34,13 @@
         this.isOverSecondaryButton = false;
         this.isMouseDownOnFab = false;
 
+        // --- NEW STATE FOR DETACHED/SELECTOR MODE ---
+        this.isDetachedMode = false;
+        this.isDragging = null;
+        this.isSelectionMode = false;
+        this.mappedTargetElement = null;
+        this.selectorIcon = null;
+
         // --- TIMERS ---
         this.focusOutTimeout = null;
         this.micHoldTimeout = null;
@@ -56,12 +63,19 @@
 
       // --- 1. INITIALIZATION ---
 
-      initialize() {
+      async initialize() {
+        const settings = await chrome.storage.local.get('detachButtons');
+        this.isDetachedMode = settings.detachButtons || false;
+
         this._createUIElements();
         this._initializeSpeechRecognition();
         this._injectStyles();
         this._attachEventListeners();
         this._setupMessageListener();
+
+        if (this.isDetachedMode) {
+            this._initializeDetachedMode();
+        }
       }
       
       _createUIElements() {
@@ -69,65 +83,42 @@
         const micSvg = this._createSvgElement('svg', {
           width: '16', height: '16', viewBox: '0 0 24 24', fill: 'none'
         });
-        const micPath1 = this._createSvgElement('path', {
-          d: 'M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z',
-          stroke: COLORS.MIC_ICON_DEFAULT, 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
-        });
-        const micPath2 = this._createSvgElement('path', {
-          d: 'M19 10V12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12V10',
-          stroke: COLORS.MIC_ICON_DEFAULT, 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
-        });
-        const micPath3 = this._createSvgElement('path', {
-          d: 'M12 19V23',
-          stroke: COLORS.MIC_ICON_DEFAULT, 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
-        });
-        micSvg.appendChild(micPath1);
-        micSvg.appendChild(micPath2);
-        micSvg.appendChild(micPath3);
-
+        micSvg.innerHTML = `
+            <path d="M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M19 10V12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12V10" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 19V23" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        `;
         this.onFocusMicIcon = this._createElement('div');
         Object.assign(this.onFocusMicIcon.style, STYLES.MIC_ICON);
-        this.onFocusMicIcon.appendChild(micSvg); // Securely append the SVG DOM element
-
+        this.onFocusMicIcon.appendChild(micSvg);
 
         // --- Transcription-Only Button ---
         const transcriptionSvg = this._createSvgElement('svg', {
           width: '16', height: '16', viewBox: '0 0 24 24', fill: 'none',
           stroke: COLORS.MIC_ICON_DEFAULT, 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
         });
-        const transPath1 = this._createSvgElement('path', { d: 'M13.67 8H18a2 2 0 0 1 2 2v4.33' });
-        const transPath2 = this._createSvgElement('path', { d: 'M2 14h2' });
-        const transPath3 = this._createSvgElement('path', { d: 'M20 14h2' });
-        const transPath4 = this._createSvgElement('path', { d: 'M22 22 2 2' });
-        const transPath5 = this._createSvgElement('path', { d: 'M8 8H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 1.414-.586' });
-        const transPath6 = this._createSvgElement('path', { d: 'M9 13v2' });
-        const transPath7 = this._createSvgElement('path', { d: 'M9.67 4H12v2.33' });
-        transcriptionSvg.append(transPath1, transPath2, transPath3, transPath4, transPath5, transPath6, transPath7);
-        
+        transcriptionSvg.innerHTML = `
+            <path d="M13.67 8H18a2 2 0 0 1 2 2v4.33"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M22 22 2 2"/><path d="M8 8H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 1.414-.586"/><path d="M9 13v2"/><path d="M9.67 4H12v2.33"/>
+        `;
         this.transcriptionOnlyButton = this._createElement('div');
         Object.assign(this.transcriptionOnlyButton.style, STYLES.TRANSCRIPTION_BUTTON);
-        this.transcriptionOnlyButton.appendChild(transcriptionSvg); // Securely append
+        this.transcriptionOnlyButton.appendChild(transcriptionSvg);
         document.body.appendChild(this.transcriptionOnlyButton);
-
 
         // --- Floating Action Button (FAB) ---
         const fabSvg = this._createSvgElement('svg', {
           width: '10', height: '10', viewBox: '8 7 8 11', fill: 'none'
         });
-        const fabPath1 = this._createSvgElement('path', {
-          d: 'M15.25 10.75L12 7.5L8.75 10.75',
-          stroke: 'white', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
-        });
-        const fabPath2 = this._createSvgElement('path', {
-          d: 'M15.25 16.75L12 13.5L8.75 16.75',
-          stroke: 'white', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
-        });
-        fabSvg.appendChild(fabPath1);
-        fabSvg.appendChild(fabPath2);
-
+        fabSvg.innerHTML = `
+            <path d="M15.25 10.75L12 7.5L8.75 10.75" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M15.25 16.75L12 13.5L8.75 16.75" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        `;
         this.fab = this._createElement('div');
         Object.assign(this.fab.style, STYLES.FAB);
-        this.fab.appendChild(fabSvg); // Securely append
+        this.fab.appendChild(fabSvg);
+        
+        // --- NEW: Create Selector Icon ---
+        this._createSelectorIcon();
       }
 
       _initializeSpeechRecognition() {
@@ -164,9 +155,127 @@
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); }
             50% { transform: scale(1.05); box-shadow: 0 0 0 5px rgba(229, 62, 62, 0); }
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); }
-        }`;
+          }
+          .gemini-assistant-selectable-target {
+            outline: 2px dashed #FFBF00 !important;
+            outline-offset: 2px;
+            box-shadow: 0 0 15px rgba(255, 191, 0, 0.7) !important;
+            transition: outline 0.2s ease, box-shadow 0.2s ease;
+          }
+          .gemini-assistant-selectable-target:hover {
+            outline: 2px solid #E53E3E !important;
+            box-shadow: 0 0 15px rgba(229, 62, 62, 1) !important;
+          }
+        `;
         document.head.appendChild(style);
         this.resizeObserver = new ResizeObserver(() => this._updateIconPositions());
+      }
+      
+      // --- NEW DETACHED MODE & FIELD SELECTOR METHODS ---
+      
+      _initializeDetachedMode() {
+        document.body.appendChild(this.onFocusMicIcon);
+        document.body.appendChild(this.fab);
+        this.fab.appendChild(this.selectorIcon);
+
+        Object.assign(this.onFocusMicIcon.style, {
+            position: 'fixed', top: '20px', left: '20px', zIndex: Z_INDEX.MIC_ICON, opacity: 1, display: 'flex'
+        });
+        Object.assign(this.fab.style, {
+            position: 'fixed', top: '20px', left: '60px', zIndex: Z_INDEX.FAB, opacity: 1, display: 'flex'
+        });
+
+        // Make them draggable
+        this.onFocusMicIcon.addEventListener('mousedown', e => this._onDragStart(e, 'mic'));
+        this.fab.addEventListener('mousedown', e => this._onDragStart(e, 'fab'));
+        document.addEventListener('mousemove', e => this._onDrag(e));
+        document.addEventListener('mouseup', e => this._onDragEnd(e));
+      }
+      
+      _createSelectorIcon() {
+        const selectorSvg = this._createSvgElement('svg', {
+            width: '14', height: '14', viewBox: '0 0 24 24', fill: 'none',
+            stroke: '#FFFFFF', 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+        });
+        selectorSvg.innerHTML = '<path d="M12 2L12 5"/><path d="M12 19L12 22"/><path d="M22 12L19 12"/><path d="M5 12L2 12"/><circle cx="12" cy="12" r="7"/>';
+        
+        const selectorIconContainer = this._createElement('div');
+        Object.assign(selectorIconContainer.style, {
+            position: 'absolute', top: '-5px', right: '-5px', width: '22px', height: '22px',
+            borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            zIndex: '2147483648', transition: 'background-color 0.2s ease',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.3)', border: '1px solid #FFF'
+        });
+        selectorIconContainer.appendChild(selectorSvg);
+
+        selectorIconContainer.addEventListener('mouseenter', () => selectorIconContainer.style.backgroundColor = 'rgba(88, 101, 242, 1)');
+        selectorIconContainer.addEventListener('mouseleave', () => selectorIconContainer.style.backgroundColor = 'rgba(0,0,0,0.7)');
+        selectorIconContainer.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._toggleSelectionMode();
+        });
+        this.selectorIcon = selectorIconContainer;
+      }
+
+      _toggleSelectionMode() {
+        this.isSelectionMode = !this.isSelectionMode;
+        if (this.isSelectionMode) {
+            document.body.style.cursor = 'crosshair';
+            this._highlightSelectableFields(true);
+            document.addEventListener('click', this._handleSelectionClick, true);
+            document.addEventListener('keydown', this._handleSelectionKeydown, true);
+        } else {
+            document.body.style.cursor = 'default';
+            this._highlightSelectableFields(false);
+            document.removeEventListener('click', this._handleSelectionClick, true);
+            document.removeEventListener('keydown', this._handleSelectionKeydown, true);
+        }
+      }
+
+      _highlightSelectableFields(enable) {
+        const fields = document.querySelectorAll('textarea, input:not([type="button"],[type="checkbox"],[type="radio"],[type="submit"],[type="reset"],[type="file"]), [contenteditable="true"]');
+        fields.forEach(field => {
+            if (this._isElementSuitable(field)) {
+                field.classList.toggle('gemini-assistant-selectable-target', enable);
+            }
+        });
+      }
+
+      _handleSelectionClick = (event) => {
+        if (!this.isSelectionMode) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (this._isElementSuitable(event.target)) {
+            this.mappedTargetElement = event.target;
+            this.selectorIcon.style.backgroundColor = '#FFBF00';
+            this.selectorIcon.querySelector('svg').setAttribute('stroke', '#000000');
+        } else {
+            this.mappedTargetElement = null;
+            this.selectorIcon.style.backgroundColor = 'rgba(0,0,0,0.7)';
+            this.selectorIcon.querySelector('svg').setAttribute('stroke', '#FFFFFF');
+        }
+        this._toggleSelectionMode();
+      }
+
+      _handleSelectionKeydown = (event) => {
+        if (this.isSelectionMode && event.key === 'Escape') {
+            event.preventDefault();
+            this._toggleSelectionMode();
+        }
+      }
+      
+      _getTargetElement() {
+        if (this.mappedTargetElement && document.body.contains(this.mappedTargetElement)) {
+            return this.mappedTargetElement;
+        }
+        if (this.lastFocusedEditableElement && document.body.contains(this.lastFocusedEditableElement)) {
+            return this.lastFocusedEditableElement;
+        }
+        if (this._isElementSuitable(document.activeElement)) {
+            return document.activeElement;
+        }
+        return null;
       }
 
       // --- 2. EVENT BINDING & MESSAGE HANDLING ---
@@ -208,17 +317,18 @@
       // --- 3. CORE LOGIC & EVENT HANDLERS ---
 
       processSelectedText(style = null) {
+        const activeElement = this._getTargetElement();
+        if (!activeElement) {
+            alert("Please select an editable text field, or use the target icon to map the buttons to a field.");
+            return;
+        }
+        activeElement.focus();
+
         chrome.runtime.sendMessage({ command: 'check-api-key' }, (response) => {
           if (!response.apiKeyExists) {
             alert("Please set your Gemini API key in the extension's popup first.");
             return;
           }
-
-          let activeElement = this.lastFocusedEditableElement;
-          if (!activeElement || !document.body.contains(activeElement)) {
-              activeElement = document.activeElement;
-          }
-          if (!this._isElementSuitable(activeElement)) return;
 
           const selection = window.getSelection();
           let promptText = selection.toString().trim();
@@ -256,50 +366,38 @@
                   activeElement.textContent = response.generatedText;
                 }
               } else {
-                // --- START: MODIFIED CODE BLOCK ---
-
-                // Check if the element is an input/textarea by looking for selectionStart property
                 if (typeof activeElement.selectionStart === 'number') {
                   const start = activeElement.selectionStart;
                   const end = activeElement.selectionEnd;
-                  const originalValue = activeElement.value;
-                  const newValue = originalValue.slice(0, start) + response.generatedText + originalValue.slice(end);
-                  
-                  activeElement.value = newValue;
-
-                  // Move the cursor to the end of the newly inserted text
+                  activeElement.value = activeElement.value.slice(0, start) + response.generatedText + activeElement.value.slice(end);
                   const newCursorPos = start + response.generatedText.length;
-                  activeElement.selectionStart = newCursorPos;
-                  activeElement.selectionEnd = newCursorPos;
-                
+                  activeElement.selectionStart = activeElement.selectionEnd = newCursorPos;
                 } else {
-                  // Fallback for contentEditable elements (the original logic)
                   const selection = window.getSelection();
                   if (selection && selection.rangeCount > 0) {
                     const range = selection.getRangeAt(0);
                     range.deleteContents();
                     const textNode = document.createTextNode(response.generatedText);
                     range.insertNode(textNode);
-                    
-                    // Move cursor to the end of the inserted node
                     selection.collapseToEnd();
                   }
                 }
-                // --- END: MODIFIED CODE BLOCK ---
               }
               activeElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-              setTimeout(() => this._updateIconPositions(), 200);
+              if(!this.isDetachedMode) setTimeout(() => this._updateIconPositions(), 200);
             }
           });
         });
       }
 
       _handleToggleDictation({ start, bypassAi = false }) {
-        const activeElement = this.lastFocusedEditableElement;
+        const activeElement = this._getTargetElement();
         if (!activeElement || !this._isElementSuitable(activeElement)) {
           this._hideListeningIndicator();
+          if (this.isDetachedMode) alert("Please select a text field to dictate into, or use the target icon to map one.");
           return;
         }
+        activeElement.focus();
 
         if (start && this.recognition) {
           chrome.runtime.sendMessage({ command: 'check-api-key' }, (response) => {
@@ -343,14 +441,9 @@
 
         if (shouldRevertText) {
             if (finishedTarget) {
-                if (typeof finishedTarget.value !== 'undefined') {
-                    finishedTarget.value = this.originalInputText;
-                } else {
-                    finishedTarget.textContent = this.originalInputText;
-                }
-                if (this.cancellationReason === 'escape') {
-                    this._showOnFocusMicIcon(finishedTarget);
-                }
+                if (typeof finishedTarget.value !== 'undefined') finishedTarget.value = this.originalInputText;
+                else finishedTarget.textContent = this.originalInputText;
+                if (this.cancellationReason === 'escape' && !this.isDetachedMode) this._showOnFocusMicIcon(finishedTarget);
             }
         } else if (finishedTarget && this.finalTranscript.trim()) {
             finishedTarget.style.opacity = '0.5';
@@ -358,10 +451,7 @@
             chrome.runtime.sendMessage({ prompt: this.finalTranscript.trim(), bypassAi: this.currentDictationBypassesAi }, response => {
                 finishedTarget.style.opacity = '1';
                 finishedTarget.style.cursor = 'auto';
-
-                if (chrome.runtime.lastError || !response) {
-                  return; 
-                }
+                if (chrome.runtime.lastError || !response) return; 
                 if (response.error) {
                   this._insertTextAtCursor(finishedTarget, this.finalTranscript.trim() + ' ');
                   alert(`Error: ${response.error}`);
@@ -369,9 +459,9 @@
                   this._insertTextAtCursor(finishedTarget, response.generatedText);
                   finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
                 }
-                if (document.activeElement === finishedTarget) this._showOnFocusMicIcon(finishedTarget);
+                if (document.activeElement === finishedTarget && !this.isDetachedMode) this._showOnFocusMicIcon(finishedTarget);
             });
-        } else if (finishedTarget && document.activeElement === finishedTarget) {
+        } else if (finishedTarget && document.activeElement === finishedTarget && !this.isDetachedMode) {
             this._showOnFocusMicIcon(finishedTarget);
         }
 
@@ -408,13 +498,14 @@
       _onFocusIn(event) {
         const target = event.target;
         if (!target || target.disabled || target.readOnly) return;
-        if (this.lastFocusedEditableElement && this.lastFocusedEditableElement !== target) {
-          this._hideOnFocusMicIcon(true); 
-        }
+        
         if (this._isElementSuitable(target)) {
           this.lastFocusedEditableElement = target;
-          this._showOnFocusMicIcon(target);
-        } else {
+          if (!this.isDetachedMode) {
+             if (this.lastFocusedEditableElement && this.lastFocusedEditableElement !== target) this._hideOnFocusMicIcon(true); 
+             this._showOnFocusMicIcon(target);
+          }
+        } else if (!this.isDetachedMode) {
           this._hideOnFocusMicIcon();
           this._hideFab();
           this.lastFocusedEditableElement = null;
@@ -422,6 +513,7 @@
       }
 
       _onFocusOut(event) {
+        if (this.isDetachedMode) return;
         if (event.target === this.lastFocusedEditableElement) {
           this.focusOutTimeout = setTimeout(() => {
               if (document.activeElement !== this.lastFocusedEditableElement) {
@@ -434,11 +526,10 @@
       }
 
       _onKeyUp() {
-        if (!this.lastFocusedEditableElement || window.getSelection().toString().trim().length > 0) return;
+        if (this.isDetachedMode || !this.lastFocusedEditableElement || window.getSelection().toString().trim().length > 0) return;
         clearTimeout(this.typingTimer);
         this._hideFab();
-        const text = this._getElementText(this.lastFocusedEditableElement);
-        if (text && text.trim().length > 0) {
+        if (this._getElementText(this.lastFocusedEditableElement).trim().length > 0) {
           this.typingTimer = setTimeout(() => {
             if (document.activeElement === this.lastFocusedEditableElement && window.getSelection().toString().trim().length === 0) {
               this._showFab();
@@ -448,7 +539,7 @@
       }
 
       _onSelectionChange() {
-        if (this.lastFocusedEditableElement && document.activeElement === this.lastFocusedEditableElement) {
+        if (!this.isDetachedMode && this.lastFocusedEditableElement && document.activeElement === this.lastFocusedEditableElement) {
           if (window.getSelection().toString().trim().length > 0) {
             clearTimeout(this.typingTimer);
             this._showFab();
@@ -457,28 +548,58 @@
           }
         }
       }
+      
+      _onDragStart(event, elementName) {
+        if (this.isMouseDownOnMic || this.isMouseDownOnFab) return;
+        this.isDragging = elementName;
+        const element = elementName === 'mic' ? this.onFocusMicIcon : this.fab;
+        element.style.cursor = 'grabbing';
+        this.dragOffsetX = event.clientX - element.getBoundingClientRect().left;
+        this.dragOffsetY = event.clientY - element.getBoundingClientRect().top;
+      }
+
+      _onDrag(event) {
+        if (!this.isDragging) return;
+        event.preventDefault();
+        const element = this.isDragging === 'mic' ? this.onFocusMicIcon : this.fab;
+        let x = Math.max(0, Math.min(event.clientX - this.dragOffsetX, window.innerWidth - element.offsetWidth));
+        let y = Math.max(0, Math.min(event.clientY - this.dragOffsetY, window.innerHeight - element.offsetHeight));
+        element.style.left = `${x}px`;
+        element.style.top = `${y}px`;
+      }
+
+      _onDragEnd(event) {
+        if (!this.isDragging) return;
+        const element = this.isDragging === 'mic' ? this.onFocusMicIcon : this.fab;
+        element.style.cursor = 'pointer';
+        setTimeout(() => { this.isDragging = null; }, 50);
+      }
 
       _onMicMouseDown(event) {
-        event.preventDefault();
-        event.stopPropagation();
-        this.isMouseDownOnMic = true;
-        this.micHoldTimeout = setTimeout(() => {
-          if (!this.isMouseDownOnMic) return;
-          const micRect = this.onFocusMicIcon.getBoundingClientRect();
-          const x = micRect.left + window.scrollX;
-          const y = micRect.top + window.scrollY - 34; // Position above the main icon
-          this.transcriptionOnlyButton.style.transform = `translate(${x}px, ${y}px)`;
-          this.transcriptionOnlyButton.style.display = 'flex';
-        }, TIMING.HOLD_DURATION);
+        event.preventDefault(); event.stopPropagation();
+        setTimeout(() => {
+            if (this.isDragging) return;
+            this.isMouseDownOnMic = true;
+            this.micHoldTimeout = setTimeout(() => {
+              if (!this.isMouseDownOnMic) return;
+              const micRect = this.onFocusMicIcon.getBoundingClientRect();
+              const x = micRect.left + window.scrollX;
+              const y = micRect.top + window.scrollY - 34;
+              this.transcriptionOnlyButton.style.transform = `translate(${x}px, ${y}px)`;
+              this.transcriptionOnlyButton.style.display = 'flex';
+            }, TIMING.HOLD_DURATION);
+        }, 150);
       }
       
       _onFabMouseDown(event) {
-          event.preventDefault();
-          event.stopPropagation();
-          this.isMouseDownOnFab = true;
-          this.fabHoldTimeout = setTimeout(() => {
-              if (this.isMouseDownOnFab) this._showFabStyleMenu();
-          }, TIMING.HOLD_DURATION);
+          event.preventDefault(); event.stopPropagation();
+          setTimeout(() => {
+              if (this.isDragging) return;
+              this.isMouseDownOnFab = true;
+              this.fabHoldTimeout = setTimeout(() => {
+                  if (this.isMouseDownOnFab) this._showFabStyleMenu();
+              }, TIMING.HOLD_DURATION);
+          }, 150);
       }
 
       _onMouseMove(event) {
@@ -491,7 +612,6 @@
       }
 
       _onMouseUp(event) {
-        // FAB mouse up logic
         if (this.isMouseDownOnFab) {
           this.isMouseDownOnFab = false;
           clearTimeout(this.fabHoldTimeout);
@@ -504,7 +624,6 @@
           }
         }
         
-        // Mic mouse up logic
         if (!this.isMouseDownOnMic) return;
         this.isMouseDownOnMic = false;
         clearTimeout(this.micHoldTimeout);
@@ -516,7 +635,7 @@
           if (!this.stopDictationClickHandler) this._handleToggleDictation({ start: true, bypassAi: false });
         }
         this.isOverSecondaryButton = false;
-        this._setMicHover(false); // Reset hover state
+        this._setMicHover(false);
       }
 
       // --- 5. UI DISPLAY & MANIPULATION ---
@@ -533,22 +652,20 @@
       }
       
       _showOnFocusMicIcon(targetElement) {
+        if (this.isDetachedMode) return;
         clearTimeout(this.focusOutTimeout);
-        
         const parent = targetElement.closest('.input-area') || targetElement.parentElement?.parentElement;
         if (!parent) return;
-
         this.currentIconParent = parent;
         this.originalParentPosition = window.getComputedStyle(parent).position;
         if (this.originalParentPosition === 'static') parent.style.position = 'relative';
-
         this._toggleUIElement(this.onFocusMicIcon, true, parent);
         if(this.resizeObserver) this.resizeObserver.observe(parent);
-        
         this._updateIconPositions();
       }
       
       _hideOnFocusMicIcon(immediately = false) {
+        if (this.isDetachedMode) return;
         const hideAction = () => {
           if (this.onFocusMicIcon?.parentElement) {
             this._toggleUIElement(this.onFocusMicIcon, false);
@@ -567,21 +684,21 @@
       }
       
       _showFab() {
-        if (!this.fab || !this.currentIconParent) return;
+        if (this.isDetachedMode || !this.fab || !this.currentIconParent) return;
         this._toggleUIElement(this.fab, true, this.currentIconParent);
         this._updateIconPositions();
       }
       
       _hideFab(immediately = false) {
-        if (!this.fab) return;
+        if (this.isDetachedMode || !this.fab) return;
         clearTimeout(this.typingTimer);
-        
+        const action = () => this._toggleUIElement(this.fab, false);
         if (immediately) {
           this.fab.style.transition = 'none';
-          this._toggleUIElement(this.fab, false);
+          action();
           setTimeout(() => { this.fab.style.transition = 'opacity 0.2s ease-in-out'; }, 50);
         } else {
-          this._toggleUIElement(this.fab, false);
+          action();
         }
         this._hideFabStyleMenu();
       }
@@ -594,7 +711,6 @@
             padding: '6px', backgroundColor: 'rgba(44, 45, 48, 0.9)', borderRadius: '20px',
             backdropFilter: 'blur(5px)', boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
           });
-          
           FAB_OUTPUT_STYLES.forEach(style => {
             const button = this._createElement('button', { textContent: style.name, dataset: { style: style.value }});
             Object.assign(button.style, {
@@ -613,7 +729,7 @@
         const fabRect = this.fab.getBoundingClientRect();
         const menuRect = this.fabStyleMenu.getBoundingClientRect();
         const x = fabRect.left + window.scrollX - menuRect.width;
-        const y = fabRect.top + window.scrollY + (fabRect.height / 2) - (menuRect.height / 2) - 50;
+        const y = fabRect.top + window.scrollY + (fabRect.height / 2) - (menuRect.height / 2);
         this.fabStyleMenu.style.transform = `translate(${x}px, ${y}px)`;
         this.fabStyleMenu.style.visibility = 'visible';
       }
@@ -623,29 +739,21 @@
       }
       
       _updateIconPositions() {
-        if (!this.currentIconParent || !this.lastFocusedEditableElement) return;
+        if (this.isDetachedMode || !this.currentIconParent || !this.lastFocusedEditableElement) return;
 
         const parentRect = this.currentIconParent.getBoundingClientRect();
         const targetRect = this.lastFocusedEditableElement.getBoundingClientRect();
-
         const targetRelativeLeft = targetRect.left - parentRect.left;
-        const targetWidth = targetRect.width;
         const parentHeight = this.currentIconParent.offsetHeight;
 
         if (this.onFocusMicIcon.parentElement === this.currentIconParent) {
-          const iconHeight = this.onFocusMicIcon.offsetHeight;
-          const top = (parentHeight / 2) - (iconHeight / 2);
-          const left = targetRelativeLeft + targetWidth - 34;
-          this.onFocusMicIcon.style.top = `${top}px`;
-          this.onFocusMicIcon.style.left = `${left}px`;
+          this.onFocusMicIcon.style.top = `${(parentHeight / 2) - (this.onFocusMicIcon.offsetHeight / 2)}px`;
+          this.onFocusMicIcon.style.left = `${targetRelativeLeft + targetRect.width - 34}px`;
         }
 
         if (this.fab.parentElement === this.currentIconParent) {
-          const fabHeight = this.fab.offsetHeight;
-          const top = (parentHeight / 2) - (fabHeight / 2);
-          const left = targetRelativeLeft + targetWidth - 64;
-          this.fab.style.top = `${top}px`;
-          this.fab.style.left = `${left}px`;
+          this.fab.style.top = `${(parentHeight / 2) - (this.fab.offsetHeight / 2)}px`;
+          this.fab.style.left = `${targetRelativeLeft + targetRect.width - 64}px`;
         }
       }
 
@@ -682,9 +790,7 @@
 
       _createSvgElement(tag, attributes) {
         const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
-        for (const key in attributes) {
-          el.setAttribute(key, attributes[key]);
-        }
+        for (const key in attributes) el.setAttribute(key, attributes[key]);
         return el;
       }
 
@@ -699,31 +805,18 @@
       }
 
       _insertTextAtCursor(element, text) {
-        // Ensure the element is focused to handle the cursor/selection correctly
         element.focus();
-
-        // Case 1: Handle standard <input> and <textarea> elements
-        if (typeof element.selectionStart === 'number' && typeof element.selectionEnd === 'number') {
+        if (typeof element.selectionStart === 'number') {
           const start = element.selectionStart;
-          const end = element.selectionEnd;
-          const value = element.value;
-
-          // Insert the text at the cursor position
-          element.value = value.slice(0, start) + text + value.slice(end);
-
-          // Move the cursor to the end of the inserted text
+          element.value = element.value.slice(0, start) + text + element.value.slice(element.selectionEnd);
           element.selectionStart = element.selectionEnd = start + text.length;
-        
-        // Case 2: Handle contenteditable elements (e.g., rich text editors)
         } else if (element.isContentEditable) {
           const selection = window.getSelection();
           if (selection && selection.rangeCount > 0) {
             const range = selection.getRangeAt(0);
-            range.deleteContents(); // Deletes selected text if any
+            range.deleteContents();
             const textNode = document.createTextNode(text);
             range.insertNode(textNode);
-            
-            // Move the cursor to the end of the inserted text
             range.setStartAfter(textNode);
             range.collapse(true);
             selection.removeAllRanges();
@@ -733,31 +826,27 @@
       }
       
       _getElementText(element) {
-          if (!element) return '';
-          return typeof element.value !== 'undefined' ? element.value : element.textContent;
+          return !element ? '' : (typeof element.value !== 'undefined' ? element.value : element.textContent);
       }
 
       _isElementSuitable(element) {
         if (!element) return false;
         const tagName = element.tagName.toUpperCase();
-        if (element.isContentEditable || ['RICH-TEXTAREA', 'TEXTAREA'].includes(tagName)) return true;
+        if (element.isContentEditable || ['TEXTAREA'].includes(tagName)) return true;
         if (tagName === 'INPUT') {
-          const unsuitableTypes = ['button', 'checkbox', 'color', 'date', 'datetime-local', 'email', 'file', 'hidden', 'image', 'month', 'number', 'password', 'radio', 'range', 'reset', 'search', 'submit', 'tel', 'time', 'url', 'week'];
-          return !unsuitableTypes.includes(element.type.toLowerCase());
+          const unsuitable = ['button', 'checkbox', 'color', 'date', 'datetime-local', 'email', 'file', 'hidden', 'image', 'month', 'number', 'password', 'radio', 'range', 'reset', 'search', 'submit', 'tel', 'time', 'url', 'week'];
+          return !unsuitable.includes(element.type.toLowerCase());
         }
         return false;
       }
       
       _playSound(soundFile) {
         chrome.storage.local.get('soundEnabled', ({ soundEnabled }) => {
-          if (soundEnabled !== false) {
-            (new Audio(chrome.runtime.getURL(soundFile))).play();
-          }
+          if (soundEnabled !== false) (new Audio(chrome.runtime.getURL(soundFile))).play();
         });
       }
     }
 
-    // Instantiate the class to start the extension logic on the page.
     new GeminiContentAssistant();
   }
 })();
