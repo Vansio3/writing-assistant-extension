@@ -14,9 +14,9 @@
     </div>
     <div class="header-right-controls">
       <div class="header-buttons">
-        <button id="selectTargetButton" class="button-secondary">Select Target</button> 
-        <button id="scrollToPlaygroundButton" class="button-secondary">Playground</button>
-        <button id="toggleDomainButton" class="button-secondary">Disable for this site</button>
+        <button id="selectTargetButton" class="button-secondary" title="Manually select a text field on the page for dictation or processing. Useful for complex websites.">Select Target</button> 
+        <button id="scrollToPlaygroundButton" class="button-secondary" title="Jump to the text processing area at the bottom of this popup.">Playground</button>
+        <button id="toggleDomainButton" class="button-secondary" title="Enable or disable the assistant for the current website.">Disable for this site</button>
       </div>
       <p id="domainStatus" class="status-message header-status"></p>
     </div>
@@ -31,30 +31,30 @@
         </div>
         <div class="card-body">
           <div class="setting-row">
-            <label for="languageSelect">Language</label>
-            <select id="languageSelect" class="select-css"></select>
+            <label for="languageSelect" title="Choose the output language for dictation and text processing.">Language</label>
+            <select id="languageSelect" class="select-css" title="Choose the output language for dictation and text processing."></select>
           </div>
           <div class="setting-row">
-            <label for="outputStyleSelect">Style</label>
-            <select id="outputStyleSelect" class="select-css"></select>
+            <label for="outputStyleSelect" title="Select the writing style for the AI-processed text.">Style</label>
+            <select id="outputStyleSelect" class="select-css" title="Select the writing style for the AI-processed text."></select>
           </div>
           <div id="customStyleRow" class="setting-row" style="display: none;">
-            <label for="customStyleInput">Custom</label>
-            <input type="text" id="customStyleInput" placeholder="e.g., 'like a pirate'">
+            <label for="customStyleInput" title="Define a custom style when 'Custom' is selected (e.g., 'like a pirate', 'as a formal legal document').">Custom</label>
+            <input type="text" id="customStyleInput" placeholder="e.g., 'like a pirate'" title="Define a custom style when 'Custom' is selected (e.g., 'like a pirate', 'as a formal legal document').">
           </div>
           <div class="setting-row">
-            <label for="outputLengthSelect">Length</label>
-            <select id="outputLengthSelect" class="select-css"></select>
+            <label for="outputLengthSelect" title="Choose the desired length of the AI-processed text relative to the original.">Length</label>
+            <select id="outputLengthSelect" class="select-css" title="Choose the desired length of the AI-processed text relative to the original."></select>
           </div>
           <div class="setting-row toggle-row">
-            <label for="aiProcessingToggle">AI Processing</label>
+            <label for="aiProcessingToggle" title="Enable or disable Gemini AI processing. When off, dictation provides a direct transcript, and text processing simply trims whitespace.">AI Processing</label>
             <label class="switch">
               <input type="checkbox" id="aiProcessingToggle">
               <span class="slider round"></span>
             </label>
           </div>
           <div class="setting-row toggle-row">
-            <label for="soundToggle">Sounds</label>
+            <label for="soundToggle" title="Enable or disable the start/stop sounds for dictation.">Sounds</label>
             <label class="switch">
               <input type="checkbox" id="soundToggle">
               <span class="slider round"></span>
@@ -62,7 +62,7 @@
           </div>
           <!-- START: MODIFIED CODE BLOCK -->
           <div class="setting-row toggle-row">
-            <label for="detachButtonsToggle" title="Show microphone/FAB as movable widgets on the page instead of attached to input fields.">Detach Buttons</label>
+            <label for="detachButtonsToggle" title="Controls button display mode. OFF: Buttons appear inside the focused text field. ON: Buttons appear as a single, movable widget on the page.">Detach Buttons</label>
             <label class="switch">
               <input type="checkbox" id="detachButtonsToggle">
               <span class="slider round"></span>
@@ -84,8 +84,8 @@
           </div>
           <div class="card-body">
             <p class="api-key-label">Enter your Gemini API Key:</p>
-            <input type="password" id="apiKeyInput" placeholder="Paste your API key here">
-            <button id="saveApiKeyButton" class="button-primary amber-button">Save Key</button>
+            <input type="password" id="apiKeyInput" placeholder="Paste your API key here" title="Enter your Google AI Studio API key for Gemini.">
+            <button id="saveApiKeyButton" class="button-primary amber-button" title="Save the API key to your browser's local storage.">Save Key</button>
             <p id="apiKeyStatus" class="status-message"></p>
             <div class="api-key-warning">
               <p>
@@ -97,7 +97,7 @@
       </div>
 
       <!-- API Usage Section -->
-      <div id="apiUsageSection" style="display: none;">
+      <div id="apiUsageSection" style="display: none;" title="Shows the number of API calls made today and in total. Counts are stored locally and may not be perfectly accurate.">
         <div class="card">
           <div class="card-header">
             <h4>API Usage</h4>
@@ -118,7 +118,7 @@
 
     <!-- Column 3: Original Inputs History -->
     <section class="column column-right" id="historyContent" style="display: none;">
-        <div class="card" id="history-card">
+        <div class="card" id="history-card" title="Shows a history of your original, unprocessed inputs. Click any item to copy it to your clipboard.">
             <div class="card-header">
                 <h4>Original Inputs History</h4>
             </div>
@@ -132,14 +132,14 @@
   </main>
 
   <!-- Processing Playground Section -->
-  <section class="playground-container">
+  <section class="playground-container" title="Test different settings and styles directly within the extension popup.">
     <div class="card">
       <div class="card-header">
         <h4>Processing Playground</h4>
       </div>
       <div class="card-body">
-        <textarea id="playgroundInput" placeholder="Enter text to process, select options above, and click 'Process'." rows="6"></textarea>
-        <button id="playgroundProcessButton" class="button-primary amber-button">Process</button>
+        <textarea id="playgroundInput" placeholder="Enter text to process, select options above, and click 'Process'." rows="6" title="Type or paste text here to process it with the current settings."></textarea>
+        <button id="playgroundProcessButton" class="button-primary amber-button" title="Process the text in the text area above using your selected settings.">Process</button>
         <p id="playgroundStatus" class="status-message"></p>
       </div>
     </div>
