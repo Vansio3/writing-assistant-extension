@@ -24,7 +24,7 @@
 
   <main class="layout-container">
     <!-- Column 1: Settings -->
-    <section class="column column-left" id="mainContent" style="display: none;">
+    <section class="column column-left hidden" id="mainContent">
       <div class="card">
         <div class="card-header">
           <h4>Settings</h4>
@@ -38,7 +38,7 @@
             <label for="outputStyleSelect" title="Select the writing style for the AI-processed text.">Style</label>
             <select id="outputStyleSelect" class="select-css" title="Select the writing style for the AI-processed text."></select>
           </div>
-          <div id="customStyleRow" class="setting-row" style="display: none;">
+          <div id="customStyleRow" class="setting-row hidden">
             <label for="customStyleInput" title="Define a custom style when 'Custom' is selected (e.g., 'like a pirate', 'as a formal legal document').">Custom</label>
             <input type="text" id="customStyleInput" placeholder="e.g., 'like a pirate'" title="Define a custom style when 'Custom' is selected (e.g., 'like a pirate', 'as a formal legal document').">
           </div>
@@ -68,7 +68,7 @@
               <span class="slider round"></span>
             </label>
           </div>
-          <p id="detachButtonsStatus" class="status-message info" style="display: none; text-align: center; margin-top: 8px;">Please reload the page for changes to take effect.</p>
+          <p id="detachButtonsStatus" class="status-message info hidden">Please reload the page for changes to take effect.</p>
           <!-- END: MODIFIED CODE BLOCK -->
         </div>
       </div>
@@ -97,7 +97,7 @@
       </div>
 
       <!-- API Usage Section -->
-      <div id="apiUsageSection" style="display: none;" title="Shows the number of API calls made today and in total. Counts are stored locally and may not be perfectly accurate.">
+      <div id="apiUsageSection" class="hidden" title="Shows the number of API calls made today and in total. Counts are stored locally and may not be perfectly accurate.">
         <div class="card">
           <div class="card-header">
             <h4>API Usage</h4>
@@ -117,7 +117,7 @@
     </section>
 
     <!-- Column 3: Original Inputs History -->
-    <section class="column column-right" id="historyContent" style="display: none;">
+    <section class="column column-right hidden" id="historyContent">
         <div class="card" id="history-card" title="Shows a history of your original, unprocessed inputs. Click any item to copy it to your clipboard.">
             <div class="card-header">
                 <h4>Original Inputs History</h4>

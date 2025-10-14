@@ -129,10 +129,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (settings.geminiApiKey) {
         this.ui.apiKeyInput.value = atob(settings.geminiApiKey); // Decode for display
-        this.ui.mainContent.style.display = 'flex';
-        this.ui.historyContent.style.display = 'flex';
-        this.ui.apiUsageSection.style.display = 'block';
-        this.ui.playgroundContainer.style.display = 'block';
+        this.ui.mainContent.classList.remove('hidden');
+        this.ui.historyContent.classList.remove('hidden');
+        this.ui.apiUsageSection.classList.remove('hidden');
+        this.ui.playgroundContainer.classList.remove('hidden');
 
         this.ui.dailyCount.textContent = settings.dailyCount ?? 0;
         this.ui.totalCount.textContent = settings.totalCount ?? 0;
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
         this._updateCustomStyleVisibility();
       } else {
         [this.ui.mainContent, this.ui.historyContent, this.ui.apiUsageSection, this.ui.playgroundContainer]
-          .forEach(el => el.style.display = 'none');
+          .forEach(el => el.classList.add('hidden'));
       }
     },
 
@@ -216,9 +216,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // Add a separate listener to show the status message for the detach toggle.
       // This listener now ONLY handles making the existing message visible.
       this.ui.detachButtonsToggle.addEventListener('change', () => {
-        this.ui.detachButtonsStatus.style.display = 'block';
+        this.ui.detachButtonsStatus.classList.remove('hidden');
         setTimeout(() => {
-          this.ui.detachButtonsStatus.style.display = 'none';
+          this.ui.detachButtonsStatus.classList.add('hidden');
         }, 4000);
       });
       // END: MODIFIED CODE BLOCK
@@ -234,12 +234,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const isEnabled = this.enabledDomains.includes(this.currentDomain);
             this.ui.toggleDomainButton.textContent = isEnabled ? `Disable for this site` : `Enable for this site`;
             this.ui.toggleDomainButton.dataset.enabled = isEnabled;
-            this.ui.toggleDomainButton.style.display = 'block';
+            this.ui.toggleDomainButton.classList.remove('hidden');
           } else {
-            this.ui.toggleDomainButton.style.display = 'none';
+            this.ui.toggleDomainButton.classList.add('hidden');
           }
         } catch (e) {
-          this.ui.toggleDomainButton.style.display = 'none';
+          this.ui.toggleDomainButton.classList.add('hidden');
         }
       }
     },
@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     _updateCustomStyleVisibility() {
       const isCustom = this.ui.outputStyleSelect.value === 'custom';
-      this.ui.customStyleRow.style.display = isCustom ? 'flex' : 'none';
+      this.ui.customStyleRow.classList.toggle('hidden', !isCustom);
     },
 
     _showStatusMessage(message, duration = 3000, element = this.ui.apiKeyStatus) {

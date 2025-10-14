@@ -1,4 +1,15 @@
-/* popup.css - Enhanced Professional UI */
+/* popup.css */
+
+/* --- CSP Compliance --- */
+.hidden {
+  display: none !important;
+}
+
+#detachButtonsStatus {
+  text-align: center;
+  margin-top: 8px;
+}
+/* --- CSP Compliance --- */
 
 :root {
   --background-primary: #1e1f22;
