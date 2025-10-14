@@ -29,10 +29,11 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_icon": "assets/icons/icon.png"
+    "default_icon": "assets/icons/icon-48.png"
   },
   "icons": {
-    "48": "assets/icons/icon.png"
+    "48": "assets/icons/icon-48.png",
+    "128": "assets/icons/icon-128.png"
   },
   "web_accessible_resources": [
     {
