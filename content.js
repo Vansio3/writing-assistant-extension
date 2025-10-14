@@ -39,6 +39,10 @@
         this.isOverSecondaryButton = false;
         this.isMouseDownOnFab = false;
 
+        // Add a session ID and a placeholder for the API constructor
+        this.dictationSessionId = 0;
+        this.SpeechRecognitionApi = null;
+
         // --- NEW STATE FOR DETACHED/SELECTOR MODE ---
         this.isDetachedMode = false;
         this.detachedContainer = null;
@@ -112,14 +116,11 @@
       }
 
       _initializeSpeechRecognition() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) { console.warn("Gemini Assistant: Speech Recognition API not supported."); return; }
-        this.recognition = new SpeechRecognition();
-        this.recognition.continuous = true;
-        this.recognition.interimResults = true;
-        this.recognition.onresult = e => { for (let i = e.resultIndex; i < e.results.length; ++i) if (e.results[i].isFinal) this.finalTranscript += e.results[i][0].transcript; };
-        this.recognition.onend = () => this._onRecognitionEnd();
-        this.recognition.onerror = e => this._onRecognitionError(e);
+        // Store the API constructor but don't create an instance yet.
+        this.SpeechRecognitionApi = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!this.SpeechRecognitionApi) {
+          console.warn("Gemini Assistant: Speech Recognition API not supported.");
+        }
       }
       
       _injectStyles() {
@@ -372,45 +373,124 @@
           return;
         }
         activeElement.focus();
-        if (start && this.recognition) {
+        
+        if (start && this.SpeechRecognitionApi) {
           chrome.runtime.sendMessage({ command: 'check-api-key' }, (response) => {
             if (!response.apiKeyExists) { this._showNotification("Please set your Gemini API key in the extension's popup first."); return; }
-            this.dictationTargetElement = activeElement; this.currentDictationBypassesAi = bypassAi;
+            
+            // Terminate any existing session before starting a new one.
+            if (this.recognition) {
+              this.recognition.onend = null; // Detach listener to prevent stale events
+              this.recognition.stop();
+            }
+
+            // Create a completely new recognition instance for this session.
+            this.dictationSessionId++;
+            const currentSessionId = this.dictationSessionId;
+            this.recognition = new this.SpeechRecognitionApi();
+            this.recognition.continuous = true;
+            this.recognition.interimResults = true;
+            
+            // Assign event handlers that are scoped to this specific session.
+            this.recognition.onresult = e => { for (let i = e.resultIndex; i < e.results.length; ++i) if (e.results[i].isFinal) this.finalTranscript += e.results[i][0].transcript; };
+            this.recognition.onend = () => this._onRecognitionEnd(currentSessionId);
+            this.recognition.onerror = e => this._onRecognitionError(e, currentSessionId);
+            
+            this.finalTranscript = '';
+            this.dictationCancelled = false;
+            this.cancellationReason = null;
+
+            this.dictationTargetElement = activeElement;
+            this.currentDictationBypassesAi = bypassAi;
             chrome.storage.local.get('selectedLanguage', ({ selectedLanguage }) => {
-              this.recognition.lang = selectedLanguage || 'en-US'; this._playSound('assets/audio/start.mp3');
+              this.recognition.lang = selectedLanguage || 'en-US';
+              this._playSound('assets/audio/start.mp3');
               this.originalInputText = this._getElementText(this.dictationTargetElement);
               this.dictationTargetElement.addEventListener('blur', this._handleFocusLoss, { once: true });
-              this._showListeningIndicator(); this.recognition.start();
+              this._showListeningIndicator();
+              this.recognition.start();
             });
           });
-        } else if (!start && this.recognition) { this.dictationCancelled = true; this.cancellationReason = 'user_action'; this.recognition.stop(); }
-        else if (!this.recognition) { this._showNotification("Speech recognition is not available in this browser."); }
+        } else if (!start && this.recognition) {
+          this.dictationCancelled = true;
+          this.cancellationReason = 'user_action';
+          this.recognition.stop();
+        } else if (!this.SpeechRecognitionApi) {
+          this._showNotification("Speech recognition is not available in this browser.");
+        }
       }
 
-      _onRecognitionEnd() {
-        if (this.dictationTargetElement && !this.dictationCancelled) { this.recognition.start(); return; }
-        this._playSound('assets/audio/end.mp3'); this._hideListeningIndicator();
+      _onRecognitionEnd(sessionId) {
+        // Critical Step: Ignore this event if it's from a previous, stale session.
+        if (sessionId !== this.dictationSessionId) {
+          return;
+        }
+
+        if (this.dictationTargetElement && !this.dictationCancelled) {
+          this.recognition.start();
+          return;
+        }
+        
+        this._playSound('assets/audio/end.mp3');
+        this._hideListeningIndicator();
+        
         const finishedTarget = this.dictationTargetElement;
-        if (finishedTarget) finishedTarget.removeEventListener('blur', this._handleFocusLoss);
+        if (finishedTarget) {
+          finishedTarget.removeEventListener('blur', this._handleFocusLoss);
+        }
+
         if (this.dictationCancelled && (this.cancellationReason === 'escape' || this.cancellationReason === 'blur')) {
             if (finishedTarget) {
                 if (typeof finishedTarget.value !== 'undefined') finishedTarget.value = this.originalInputText; else finishedTarget.textContent = this.originalInputText;
                 if (this.cancellationReason === 'escape' && !this.isDetachedMode) this._showOnFocusMicIcon(finishedTarget);
             }
         } else if (finishedTarget && this.finalTranscript.trim()) {
-            finishedTarget.style.opacity = '0.5'; finishedTarget.style.cursor = 'wait';
+            finishedTarget.style.opacity = '0.5';
+            finishedTarget.style.cursor = 'wait';
             chrome.runtime.sendMessage({ prompt: this.finalTranscript.trim(), bypassAi: this.currentDictationBypassesAi }, response => {
-                finishedTarget.style.opacity = '1'; finishedTarget.style.cursor = 'auto';
+                finishedTarget.style.opacity = '1';
+                finishedTarget.style.cursor = 'auto';
                 if (chrome.runtime.lastError || !response) return; 
-                if (response.error) { this._insertTextAtCursor(finishedTarget, this.finalTranscript.trim() + ' '); this._showNotification(`Error: ${response.error}`); }
-                else if (response.generatedText) { this._insertTextAtCursor(finishedTarget, response.generatedText); finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true })); }
-                if (document.activeElement === finishedTarget && !this.isDetachedMode) this._showOnFocusMicIcon(finishedTarget);
+                if (response.error) {
+                  this._insertTextAtCursor(finishedTarget, this.finalTranscript.trim() + ' ');
+                  this._showNotification(`Error: ${response.error}`);
+                } else if (response.generatedText) {
+                  this._insertTextAtCursor(finishedTarget, response.generatedText);
+                  finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                }
+                if (document.activeElement === finishedTarget && !this.isDetachedMode) {
+                  this._showOnFocusMicIcon(finishedTarget);
+                }
             });
-        } else if (finishedTarget && document.activeElement === finishedTarget && !this.isDetachedMode) { this._showOnFocusMicIcon(finishedTarget); }
-        this.dictationTargetElement = null; this.originalInputText = ''; this.finalTranscript = ''; this.dictationCancelled = false; this.cancellationReason = null;
+        } else if (finishedTarget && document.activeElement === finishedTarget && !this.isDetachedMode) {
+          this._showOnFocusMicIcon(finishedTarget);
+        }
+        
+        // Reset all state for the next session.
+        this.dictationTargetElement = null;
+        this.originalInputText = '';
+        this.finalTranscript = '';
+        this.dictationCancelled = false;
+        this.cancellationReason = null;
+        this.recognition = null; // Clean up the instance
       }
 
-      _onRecognitionError(e) { if (e.error !== 'no-speech') { console.error("Speech recognition error:", e.error); this._hideListeningIndicator(); if (this.dictationTargetElement) { this.dictationTargetElement.removeEventListener('blur', this._handleFocusLoss); this.dictationTargetElement.value = this.originalInputText; } this.dictationTargetElement = null; this.originalInputText = ''; } }
+      _onRecognitionError(e, sessionId) {
+        // Ignore errors from stale sessions.
+        if (sessionId !== this.dictationSessionId) {
+          return;
+        }
+        if (e.error !== 'no-speech') {
+          console.error("Speech recognition error:", e.error);
+          this._hideListeningIndicator();
+          if (this.dictationTargetElement) {
+            this.dictationTargetElement.removeEventListener('blur', this._handleFocusLoss);
+            this.dictationTargetElement.value = this.originalInputText;
+          }
+          this.dictationTargetElement = null;
+          this.originalInputText = '';
+        }
+      }
       _handleFocusLoss = () => { if (this.recognition && this.dictationTargetElement) { this.dictationCancelled = true; this.cancellationReason = 'blur'; this.recognition.stop(); } }
 
       // --- 4. UI EVENT HANDLERS (FOCUS, MOUSE, KEYBOARD) ---
