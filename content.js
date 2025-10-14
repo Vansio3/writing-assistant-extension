@@ -93,25 +93,25 @@
       _createUIElements() {
         const micSvg = this._createSvgElement('svg', { width: '16', height: '16', viewBox: '0 0 24 24', fill: 'none' });
         micSvg.innerHTML = `<path d="M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 10V12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12V10" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 19V23" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
-        this.onFocusMicIcon = this._createElement('div');
+        this.onFocusMicIcon = this._createElement('div', { 'aria-label': 'Start Dictation' });
         Object.assign(this.onFocusMicIcon.style, STYLES.MIC_ICON);
         this.onFocusMicIcon.appendChild(micSvg);
 
         const transcriptionSvg = this._createSvgElement('svg', { width: '16', height: '16', viewBox: '0 0 24 24', fill: 'none', stroke: COLORS.MIC_ICON_DEFAULT, 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
         transcriptionSvg.innerHTML = `<path d="M13.67 8H18a2 2 0 0 1 2 2v4.33"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M22 22 2 2"/><path d="M8 8H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 1.414-.586"/><path d="M9 13v2"/><path d="M9.67 4H12v2.33"/>`;
-        this.transcriptionOnlyButton = this._createElement('div');
+        this.transcriptionOnlyButton = this._createElement('div', { 'aria-label': 'Transcribe without AI processing' });
         Object.assign(this.transcriptionOnlyButton.style, STYLES.TRANSCRIPTION_BUTTON);
         this.transcriptionOnlyButton.appendChild(transcriptionSvg);
         document.body.appendChild(this.transcriptionOnlyButton);
 
         const fabSvg = this._createSvgElement('svg', STYLES.FAB_SVG);
         fabSvg.innerHTML = STYLES.FAB_SVG_PATH;
-        this.fab = this._createElement('div');
+        this.fab = this._createElement('div', { 'aria-label': 'Process selected text with Gemini' });
         Object.assign(this.fab.style, STYLES.FAB);
         this.fab.appendChild(fabSvg);
         
         this.detachedContainer = this._createElement('div');
-        this.dragHandle = this._createElement('div');
+        this.dragHandle = this._createElement('div', { 'aria-label': 'Drag to move UI' });
         this._createSelectorIcon();
       }
 
@@ -240,7 +240,7 @@
         const selectorSvg = this._createSvgElement('svg', STYLES.SELECTOR_SVG);
         selectorSvg.innerHTML = '<path d="M12 2L12 5"/><path d="M12 19L12 22"/><path d="M22 12L19 12"/><path d="M5 12L2 12"/><circle cx="12" cy="12" r="7"/>';
         
-        const selectorIconContainer = this._createElement('div');
+        const selectorIconContainer = this._createElement('div', { 'aria-label': 'Select a text field to target' });
         Object.assign(selectorIconContainer.style, STYLES.SELECTOR_ICON);
         
         selectorIconContainer.appendChild(selectorSvg);
@@ -656,8 +656,29 @@
 
       _hideFabStyleMenu() { if (this.fabStyleMenu) this.fabStyleMenu.style.display = 'none'; }
       _updateIconPositions() { if (this.isDetachedMode || !this.currentIconParent || !this.lastFocusedEditableElement) return; const parentRect = this.currentIconParent.getBoundingClientRect(); const targetRect = this.lastFocusedEditableElement.getBoundingClientRect(); const targetRelativeLeft = targetRect.left - parentRect.left; const parentHeight = this.currentIconParent.offsetHeight; if (this.onFocusMicIcon.parentElement === this.currentIconParent) { this.onFocusMicIcon.style.top = `${(parentHeight / 2) - (this.onFocusMicIcon.offsetHeight / 2)}px`; this.onFocusMicIcon.style.left = `${targetRelativeLeft + targetRect.width - 34}px`; } if (this.fab.parentElement === this.currentIconParent) { this.fab.style.top = `${(parentHeight / 2) - (this.fab.offsetHeight / 2)}px`; this.fab.style.left = `${targetRelativeLeft + targetRect.width - 64}px`; } }
-      _showListeningIndicator() { if (!this.onFocusMicIcon) return; this.onFocusMicIcon.style.backgroundColor = COLORS.MIC_ACTIVE_BG; this.onFocusMicIcon.classList.add('gemini-mic-pulsing'); this.onFocusMicIcon.querySelectorAll('svg path').forEach(p => p.setAttribute('stroke', COLORS.MIC_ICON_ACTIVE)); this.stopDictationClickHandler = e => { e.preventDefault(); e.stopPropagation(); this._handleToggleDictation({ start: false }); }; this.onFocusMicIcon.addEventListener('click', this.stopDictationClickHandler); }
-      _hideListeningIndicator() { if (!this.onFocusMicIcon) return; this.onFocusMicIcon.style.backgroundColor = COLORS.MIC_DEFAULT_BG; this.onFocusMicIcon.classList.remove('gemini-mic-pulsing'); this.onFocusMicIcon.querySelectorAll('svg path').forEach(p => p.setAttribute('stroke', COLORS.MIC_ICON_DEFAULT)); if (this.stopDictationClickHandler) { this.onFocusMicIcon.removeEventListener('click', this.stopDictationClickHandler); this.stopDictationClickHandler = null; } }
+      
+      _showListeningIndicator() {
+        if (!this.onFocusMicIcon) return;
+        this.onFocusMicIcon.setAttribute('aria-label', 'Stop Dictation');
+        this.onFocusMicIcon.style.backgroundColor = COLORS.MIC_ACTIVE_BG;
+        this.onFocusMicIcon.classList.add('gemini-mic-pulsing');
+        this.onFocusMicIcon.querySelectorAll('svg path').forEach(p => p.setAttribute('stroke', COLORS.MIC_ICON_ACTIVE));
+        this.stopDictationClickHandler = e => { e.preventDefault(); e.stopPropagation(); this._handleToggleDictation({ start: false }); };
+        this.onFocusMicIcon.addEventListener('click', this.stopDictationClickHandler);
+      }
+      
+      _hideListeningIndicator() {
+        if (!this.onFocusMicIcon) return;
+        this.onFocusMicIcon.setAttribute('aria-label', 'Start Dictation');
+        this.onFocusMicIcon.style.backgroundColor = COLORS.MIC_DEFAULT_BG;
+        this.onFocusMicIcon.classList.remove('gemini-mic-pulsing');
+        this.onFocusMicIcon.querySelectorAll('svg path').forEach(p => p.setAttribute('stroke', COLORS.MIC_ICON_DEFAULT));
+        if (this.stopDictationClickHandler) {
+            this.onFocusMicIcon.removeEventListener('click', this.stopDictationClickHandler);
+            this.stopDictationClickHandler = null;
+        }
+      }
+
       _setMicHover(isHovering) { if (!this.isMouseDownOnMic && !this.stopDictationClickHandler) this.onFocusMicIcon.style.backgroundColor = isHovering ? COLORS.MIC_HOVER_BG : COLORS.MIC_DEFAULT_BG; }
       _setFabHover(isHovering) { if (!this.isMouseDownOnFab) this.fab.style.backgroundColor = isHovering ? COLORS.FAB_HOVER_BG : COLORS.FAB_BG; }
       
