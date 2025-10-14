@@ -14,7 +14,13 @@ const setupContextMenu = () => {
   });
 };
 
-chrome.runtime.onInstalled.addListener(setupContextMenu);
+chrome.runtime.onInstalled.addListener((details) => {
+  // On first install, open a welcome page
+  if (details.reason === 'install') {
+    chrome.tabs.create({ url: 'welcome.html' });
+  }
+  setupContextMenu();
+});
 chrome.runtime.onStartup.addListener(setupContextMenu);
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
