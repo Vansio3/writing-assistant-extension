@@ -5,10 +5,9 @@
   "description": "A Gemini-powered writing assistant triggered by a shortcut or context menu.",
   "homepage_url": "https://sites.google.com/view/gemini-writing-assistant",
   "permissions": [
-    "activeTab",
-    "scripting",
-    "storage",
-    "contextMenus"
+  "activeTab",
+  "storage",
+  "contextMenus"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; connect-src https://generativelanguage.googleapis.com; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'self';"
