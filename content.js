@@ -57,6 +57,7 @@
         this.micHoldTimeout = null;
         this.typingTimer = null;
         this.fabHoldTimeout = null;
+        this.resizeDebounceTimer = null;
 
         // --- UI ELEMENTS ---
         this.onFocusMicIcon = null;
@@ -157,7 +158,7 @@
       
       _initializeDetachedMode() {
         Object.assign(this.detachedContainer.style, {
-            position: 'fixed', bottom: '200px', right: '20px', zIndex: Z_INDEX.FAB, display: 'flex',
+            position: 'fixed', bottom: '20%', right: '20px', zIndex: Z_INDEX.FAB, display: 'flex',
             flexDirection: 'column',
             alignItems: 'center', backgroundColor: 'rgba(43, 45, 49, 0.85)', borderRadius: '25px',
             padding: '7px',
@@ -213,7 +214,7 @@
         this.detachedContainer.appendChild(this.dragHandle);
         document.body.appendChild(this.detachedContainer);
         this.dragHandle.addEventListener('mousedown', e => this._onDragStart(e));
-        window.addEventListener('resize', this._keepDetachedUiInViewport.bind(this));
+        window.addEventListener('resize', this._onWindowResize.bind(this));
       }
       _keepDetachedUiInViewport() {
         if (!this.detachedContainer || !document.body.contains(this.detachedContainer) || this.isDragging) return;
@@ -231,6 +232,31 @@
             this.detachedContainer.style.left = `${newLeft}px`;
             this.detachedContainer.style.top = `${newTop}px`;
         }
+      }
+
+      _onWindowResize() {
+        clearTimeout(this.resizeDebounceTimer);
+        this._keepDetachedUiInViewport();
+        this.resizeDebounceTimer = setTimeout(() => {
+          this._resetDetachedUiPosition();
+        }, 250);
+      }
+
+      _resetDetachedUiPosition() {
+        if (!this.detachedContainer || this.isDragging) return;
+
+        const el = this.detachedContainer;
+        el.style.transition = 'top 0.3s ease, left 0.3s ease, right 0.3s ease, bottom 0.3s ease';
+
+        el.style.top = 'auto';
+        el.style.left = 'auto';
+        el.style.right = '20px';
+        el.style.bottom = '20%';
+        el.style.borderRadius = '25px';
+
+        setTimeout(() => {
+          el.style.transition = '';
+        }, 300);
       }
 
       _createSelectorIcon() {
