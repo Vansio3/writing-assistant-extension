@@ -158,11 +158,13 @@
       
       _initializeDetachedMode() {
         Object.assign(this.detachedContainer.style, {
-            position: 'fixed', bottom: '20%', right: '20px', zIndex: Z_INDEX.FAB, display: 'flex',
+            position: 'fixed', bottom: '20%', right: '0px', zIndex: Z_INDEX.FAB, display: 'flex',
             flexDirection: 'column',
             alignItems: 'center', backgroundColor: 'rgba(43, 45, 49, 0.85)', borderRadius: '25px',
+            borderTopRightRadius: '0px',
+            borderBottomRightRadius: '0px',
             padding: '7px',
-            width: '50px', 
+            width: '44px', 
             boxSizing: 'border-box',
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             backdropFilter: 'blur(5px)'
@@ -199,7 +201,7 @@
         transcriptionSvg.setAttribute('width', newTranscriptionIconSize);
         transcriptionSvg.setAttribute('height', newTranscriptionIconSize);
         
-        Object.assign(this.dragHandle.style, { height: '5px', alignSelf: 'stretch', marginTop: '8px', borderRadius: '10px', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: '4px', flexShrink: '0' });
+        Object.assign(this.dragHandle.style, { height: '15px', alignSelf: 'stretch', marginTop: '8px', borderRadius: '10px', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: '4px', flexShrink: '0' });
         for (let i = 0; i < 3; i++) {
             this.dragHandle.appendChild(this._createElement('div', { style: { width: '3px', height: '3px', borderRadius: '50%', backgroundColor: COLORS.DETACHED_DRAG_HANDLE_DOT } }));
         }
@@ -250,9 +252,11 @@
 
         el.style.top = 'auto';
         el.style.left = 'auto';
-        el.style.right = '20px';
+        el.style.right = '0px';
         el.style.bottom = '20%';
         el.style.borderRadius = '25px';
+        el.style.borderTopRightRadius = '0px';
+        el.style.borderBottomRightRadius = '0px';
 
         setTimeout(() => {
           el.style.transition = '';
@@ -661,8 +665,7 @@
           });
           document.body.appendChild(this.fabStyleMenu);
         }
-        this.fabStyleMenu.style.visibility = 'hidden';
-        this.fabStyleMenu.style.display = 'flex';
+
         if (this.isDetachedMode) {
           this.fabStyleMenu.style.flexDirection = 'column';
           this.fabStyleMenu.style.width = '140px'; 
@@ -670,24 +673,33 @@
           this.fabStyleMenu.style.flexDirection = 'row';
           this.fabStyleMenu.style.width = 'auto'; 
         }
+        
+        this.fabStyleMenu.style.visibility = 'hidden';
+        this.fabStyleMenu.style.display = 'flex';
+        
         const fabRect = this.fab.getBoundingClientRect();
         const menuRect = this.fabStyleMenu.getBoundingClientRect();
-        let left, top;
-        if (this.isDetachedMode) {
-          left = fabRect.left + window.scrollX + (fabRect.width / 2) - (menuRect.width / 2);
-          top = fabRect.top + window.scrollY - menuRect.height - 10;
+        const viewportMargin = 10;
+        let top, left;
+
+        top = fabRect.top + (fabRect.height / 2) - (menuRect.height / 2);
+
+        const spaceToLeft = fabRect.left;
+        const spaceToRight = window.innerWidth - fabRect.right;
+
+        if (spaceToLeft > spaceToRight) {
+          left = fabRect.left - menuRect.width - 10;
         } else {
-          left = fabRect.left + window.scrollX - menuRect.width - 10;
-          top = fabRect.top + window.scrollY + (fabRect.height / 2) - (menuRect.height / 2);
+          left = fabRect.right + 10;
         }
-        const viewportMargin = 10; 
-        if (left < viewportMargin) {
-            left = viewportMargin;
-        }
-        if (left + menuRect.width > window.innerWidth - viewportMargin) {
-            left = window.innerWidth - menuRect.width - viewportMargin;
-        }
-        this.fabStyleMenu.style.transform = `translate(${left}px, ${top}px)`;
+
+        top = Math.max(viewportMargin, Math.min(top, window.innerHeight - menuRect.height - viewportMargin));
+        left = Math.max(viewportMargin, Math.min(left, window.innerWidth - menuRect.width - viewportMargin));
+
+        this.fabStyleMenu.style.top = `${top}px`;
+        this.fabStyleMenu.style.left = `${left}px`;
+        this.fabStyleMenu.style.transform = '';
+
         this.fabStyleMenu.style.visibility = 'visible';
       }
 

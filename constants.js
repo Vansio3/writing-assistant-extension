@@ -51,7 +51,7 @@ const STYLES = {
   },
   FAB_SVG_PATH: `<path d="M15.25 10.75L12 7.5L8.75 10.75" stroke="${COLORS.FAB_ICON}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15.25 16.75L12 13.5L8.75 16.75" stroke="${COLORS.FAB_ICON}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
   FAB_MENU: {
-    position: 'absolute', zIndex: Z_INDEX.FAB_MENU, display: 'flex', flexDirection: 'row',
+    position: 'fixed', zIndex: Z_INDEX.FAB_MENU, display: 'flex', flexDirection: 'row',
     gap: '6px', padding: '6px', backgroundColor: COLORS.FAB_MENU_BG, borderRadius: '20px',
     backdropFilter: 'blur(5px)', boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
   },
