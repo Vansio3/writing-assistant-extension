@@ -167,7 +167,7 @@
             width: '44px', 
             boxSizing: 'border-box',
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            backdropFilter: 'blur(5px)'
+            backdropFilter: 'blur(2px)'
         });
 
         const buttonColumn = this._createElement('div', { style: { position: 'relative', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', flexShrink: '0' } });
