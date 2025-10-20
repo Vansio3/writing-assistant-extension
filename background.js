@@ -46,55 +46,49 @@ chrome.commands.onCommand.addListener((command, tab) => {
 // --- MAIN API LOGIC ---
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.prompt) {
-    handlePromptRequest(request)
-      .then(sendResponse)
-      .catch(error => sendResponse({ error: error.message }));
+    handlePromptRequest(request).then(sendResponse);
   } else if (request.command === 'check-api-key') {
     chrome.storage.local.get('geminiApiKey', (result) => {
       sendResponse({ apiKeyExists: !!result.geminiApiKey });
     });
   }
-  return true; // Indicates an asynchronous response.
+  return true;
 });
 
 async function handlePromptRequest(request) {
-  const storageKeys = [
-    'geminiApiKey', 'selectedLanguage', 'outputStyle', 
-    'outputLength', 'aiProcessingEnabled', 'customOutputStyle',
-    'originalInputsHistory'
-  ];
-  const settings = await chrome.storage.local.get(storageKeys);
-
-  if (!settings.geminiApiKey) {
-    throw new Error("API key not set. Please set it in the extension's popup.");
-  }
-  
-  const apiKey = atob(settings.geminiApiKey);
-
-  // --- MODIFIED CODE BLOCK ---
-  // Save the new prompt to the beginning of the history array
-  const history = settings.originalInputsHistory || [];
-  history.unshift(request.prompt);
-  // Keep the last 20 inputs
-  const updatedHistory = history.slice(0, 20); 
-  await chrome.storage.local.set({ originalInputsHistory: updatedHistory });
-  // --- END MODIFIED CODE BLOCK ---
-
-  if (request.bypassAi === true || settings.aiProcessingEnabled === false) {
-    return { generatedText: request.prompt.trim() + ' ' };
-  }
-  
-  const finalPrompt = createPrompt(
-    request.prompt,
-    settings.selectedLanguage || 'en-US',
-    request.style || settings.outputStyle || 'default',
-    settings.outputLength || 'default',
-    settings.customOutputStyle
-  );
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-
   try {
+    const storageKeys = [
+      'geminiApiKey', 'selectedLanguage', 'outputStyle', 
+      'outputLength', 'aiProcessingEnabled', 'customOutputStyle',
+      'originalInputsHistory'
+    ];
+    const settings = await chrome.storage.local.get(storageKeys);
+
+    if (!settings.geminiApiKey) {
+      return { error: "API key not set. Please set it in the extension's popup." };
+    }
+    
+    const apiKey = atob(settings.geminiApiKey);
+
+    const history = settings.originalInputsHistory || [];
+    history.unshift(request.prompt);
+    const updatedHistory = history.slice(0, 20); 
+    await chrome.storage.local.set({ originalInputsHistory: updatedHistory });
+
+    if (request.bypassAi === true || settings.aiProcessingEnabled === false) {
+      return { generatedText: request.prompt.trim() + ' ' };
+    }
+    
+    const finalPrompt = createPrompt(
+      request.prompt,
+      settings.selectedLanguage || 'en-US',
+      request.style || settings.outputStyle || 'default',
+      settings.outputLength || 'default',
+      settings.customOutputStyle
+    );
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
     const response = await fetch(url, {
       method: "POST",
       headers: { 
@@ -108,11 +102,13 @@ async function handlePromptRequest(request) {
 
     if (!response.ok || data.error) {
         const errorMessage = data.error?.message || `HTTP error! status: ${response.status}`;
-        throw new Error(errorMessage);
+        return { error: errorMessage };
     }
     
     const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!generatedText) throw new Error("Invalid response structure from API.");
+    if (!generatedText) {
+      return { error: "Invalid response structure from API." };
+    }
 
     const sanitizedText = generatedText.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const finalText = sanitizedText.trim() + ' ';
@@ -121,11 +117,12 @@ async function handlePromptRequest(request) {
     return { generatedText: finalText };
 
   } catch (error) {
-    console.error("Error with Gemini API:", error);
+    console.error("Error in handlePromptRequest:", error);
+    let errorMessage = `Failed to generate text: ${error.message}`;
     if (error.message.includes('API key not valid')) {
-      throw new Error('The saved API key is invalid. Please update it in the popup.');
+      errorMessage = 'The saved API key is invalid. Please update it in the popup.';
     }
-    throw new Error(`Failed to generate text: ${error.message}`);
+    return { error: errorMessage };
   }
 }
 

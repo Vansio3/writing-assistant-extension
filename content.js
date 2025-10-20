@@ -132,7 +132,6 @@
           @keyframes gemini-icon-pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); } 50% { transform: scale(1.05); box-shadow: 0 0 0 5px rgba(229, 62, 62, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); } }
           .gemini-assistant-selectable-target { outline: 2px dashed #FFBF00 !important; outline-offset: 2px; box-shadow: 0 0 15px rgba(255, 191, 0, 0.7) !important; transition: outline 0.2s ease, box-shadow 0.2s ease; }
           .gemini-assistant-selectable-target:hover { outline: 2px solid #E53E3E !important; box-shadow: 0 0 15px rgba(229, 62, 62, 1) !important; }
-          /* --- START: MODIFIED CODE BLOCK --- */
           .gemini-assistant-notification {
             position: fixed;
             top: 20px;
@@ -152,7 +151,6 @@
             transition: opacity 0.3s ease-in-out, top 0.3s ease-in-out;
             pointer-events: none;
           }
-          /* --- END: MODIFIED CODE BLOCK --- */
         `;
         document.head.appendChild(style);
         this.resizeObserver = new ResizeObserver(() => this._updateIconPositions());
@@ -420,6 +418,15 @@
         }
       }
 
+      _resetDictationState() {
+        this.dictationTargetElement = null;
+        this.originalInputText = '';
+        this.finalTranscript = '';
+        this.dictationCancelled = false;
+        this.cancellationReason = null;
+        this.recognition = null; // Clean up the instance
+      }
+
       _onRecognitionEnd(sessionId) {
         // Critical Step: Ignore this event if it's from a previous, stale session.
         if (sessionId !== this.dictationSessionId) {
@@ -444,35 +451,48 @@
                 if (typeof finishedTarget.value !== 'undefined') finishedTarget.value = this.originalInputText; else finishedTarget.textContent = this.originalInputText;
                 if (this.cancellationReason === 'escape' && !this.isDetachedMode) this._showOnFocusMicIcon(finishedTarget);
             }
+            this._resetDictationState(); // Reset state on cancellation.
         } else if (finishedTarget && this.finalTranscript.trim()) {
             finishedTarget.style.opacity = '0.5';
             finishedTarget.style.cursor = 'wait';
             chrome.runtime.sendMessage({ prompt: this.finalTranscript.trim(), bypassAi: this.currentDictationBypassesAi }, response => {
                 finishedTarget.style.opacity = '1';
                 finishedTarget.style.cursor = 'auto';
-                if (chrome.runtime.lastError || !response) return; 
-                if (response.error) {
-                  this._insertTextAtCursor(finishedTarget, this.finalTranscript.trim() + ' ');
-                  this._showNotification(`Error: ${response.error}`);
+
+                // --- START: MODIFIED CODE BLOCK ---
+                if (chrome.runtime.lastError || !response) {
+                    this._insertTextAtCursor(finishedTarget, this.finalTranscript.trim() + ' ');
+                    finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                    const errorMsg = chrome.runtime.lastError ? chrome.runtime.lastError.message : 'No response from the extension.';
+                    this._showNotification(`Error: ${errorMsg}`);
+                } else if (response.error) {
+                    this._insertTextAtCursor(finishedTarget, this.finalTranscript.trim() + ' ');
+                    finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                    this._showNotification(`Error: ${response.error}`);
                 } else if (response.generatedText) {
-                  this._insertTextAtCursor(finishedTarget, response.generatedText);
-                  finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                    this._insertTextAtCursor(finishedTarget, response.generatedText);
+                    finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                } else {
+                    this._insertTextAtCursor(finishedTarget, this.finalTranscript.trim() + ' ');
+                    finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                    this._showNotification('Received an unexpected response.');
                 }
+                // --- END: MODIFIED CODE BLOCK ---
+
                 if (document.activeElement === finishedTarget && !this.isDetachedMode) {
                   this._showOnFocusMicIcon(finishedTarget);
                 }
+                
+                this._resetDictationState(); 
             });
-        } else if (finishedTarget && document.activeElement === finishedTarget && !this.isDetachedMode) {
-          this._showOnFocusMicIcon(finishedTarget);
+        } else if (finishedTarget) {
+          if (document.activeElement === finishedTarget && !this.isDetachedMode) {
+            this._showOnFocusMicIcon(finishedTarget);
+          }
+          this._resetDictationState();
+        } else {
+          this._resetDictationState();
         }
-        
-        // Reset all state for the next session.
-        this.dictationTargetElement = null;
-        this.originalInputText = '';
-        this.finalTranscript = '';
-        this.dictationCancelled = false;
-        this.cancellationReason = null;
-        this.recognition = null; // Clean up the instance
       }
 
       _onRecognitionError(e, sessionId) {
@@ -487,8 +507,7 @@
             this.dictationTargetElement.removeEventListener('blur', this._handleFocusLoss);
             this.dictationTargetElement.value = this.originalInputText;
           }
-          this.dictationTargetElement = null;
-          this.originalInputText = '';
+          this._resetDictationState();
         }
       }
       _handleFocusLoss = () => { if (this.recognition && this.dictationTargetElement) { this.dictationCancelled = true; this.cancellationReason = 'blur'; this.recognition.stop(); } }
