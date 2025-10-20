@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gemini Writing Assistant",
-  "version": "1.0",
+  "version": "1.0.1",
   "description": "A Gemini-powered writing assistant triggered by a shortcut or context menu.",
   "homepage_url": "https://sites.google.com/view/gemini-writing-assistant",
   "permissions": [

@@ -1,8 +1,7 @@
-// content.js (Idempotent - safe to inject multiple times)
+// content.js
 
 (async () => {
-  // --- START: MODIFIED CODE BLOCK ---
-  // The logic is inverted. The extension is now disabled by default.
+  // The extension is disabled by default.
   // It will only run on sites that the user has explicitly enabled.
   const data = await chrome.storage.local.get('enabledDomains');
   const enabledDomains = data.enabledDomains || [];
@@ -12,7 +11,6 @@
   if (!enabledDomains.includes(currentHostname)) {
     return;
   }
-  // --- END: MODIFIED CODE BLOCK ---
 
   if (typeof window.geminiAssistantInitialized === 'undefined') {
     window.geminiAssistantInitialized = true;
@@ -116,7 +114,6 @@
       }
 
       _initializeSpeechRecognition() {
-        // Store the API constructor but don't create an instance yet.
         this.SpeechRecognitionApi = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!this.SpeechRecognitionApi) {
           console.warn("Gemini Assistant: Speech Recognition API not supported.");
@@ -189,10 +186,10 @@
 
         Object.assign(this.transcriptionOnlyButton.style, {
             position: 'absolute',
-            width: `${newTranscriptionButtonSize}px`, // Apply new width
-            height: `${newTranscriptionButtonSize}px`,// Apply new height
-            top: `-${newTranscriptionButtonSize + gapAboveMic}px`, // Recalculate top position
-            left: `${(detachedMicWidth - newTranscriptionButtonSize) / 2}px`, // Recalculate left to re-center
+            width: `${newTranscriptionButtonSize}px`,
+            height: `${newTranscriptionButtonSize}px`,
+            top: `-${newTranscriptionButtonSize + gapAboveMic}px`,
+            left: `${(detachedMicWidth - newTranscriptionButtonSize) / 2}px`,
             transform: 'none',
             display: 'none'
         });
@@ -378,20 +375,17 @@
           chrome.runtime.sendMessage({ command: 'check-api-key' }, (response) => {
             if (!response.apiKeyExists) { this._showNotification("Please set your Gemini API key in the extension's popup first."); return; }
             
-            // Terminate any existing session before starting a new one.
             if (this.recognition) {
-              this.recognition.onend = null; // Detach listener to prevent stale events
+              this.recognition.onend = null;
               this.recognition.stop();
             }
 
-            // Create a completely new recognition instance for this session.
             this.dictationSessionId++;
             const currentSessionId = this.dictationSessionId;
             this.recognition = new this.SpeechRecognitionApi();
             this.recognition.continuous = true;
             this.recognition.interimResults = true;
             
-            // Assign event handlers that are scoped to this specific session.
             this.recognition.onresult = e => { for (let i = e.resultIndex; i < e.results.length; ++i) if (e.results[i].isFinal) this.finalTranscript += e.results[i][0].transcript; };
             this.recognition.onend = () => this._onRecognitionEnd(currentSessionId);
             this.recognition.onerror = e => this._onRecognitionError(e, currentSessionId);
@@ -426,11 +420,10 @@
         this.finalTranscript = '';
         this.dictationCancelled = false;
         this.cancellationReason = null;
-        this.recognition = null; // Clean up the instance
+        this.recognition = null;
       }
 
       _onRecognitionEnd(sessionId) {
-        // Critical Step: Ignore this event if it's from a previous, stale session.
         if (sessionId !== this.dictationSessionId) {
           return;
         }
@@ -453,7 +446,7 @@
                 if (typeof finishedTarget.value !== 'undefined') finishedTarget.value = this.originalInputText; else finishedTarget.textContent = this.originalInputText;
                 if (this.cancellationReason === 'escape' && !this.isDetachedMode) this._showOnFocusMicIcon(finishedTarget);
             }
-            this._resetDictationState(); // Reset state on cancellation.
+            this._resetDictationState();
         } else if (finishedTarget && this.finalTranscript.trim()) {
             finishedTarget.style.opacity = '0.5';
             finishedTarget.style.cursor = 'wait';
@@ -461,7 +454,6 @@
                 finishedTarget.style.opacity = '1';
                 finishedTarget.style.cursor = 'auto';
 
-                // --- START: MODIFIED CODE BLOCK ---
                 if (chrome.runtime.lastError || !response) {
                     this._insertTextAtCursor(finishedTarget, this.finalTranscript.trim() + ' ');
                     finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
@@ -479,7 +471,6 @@
                     finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
                     this._showNotification('Received an unexpected response.');
                 }
-                // --- END: MODIFIED CODE BLOCK ---
 
                 if (document.activeElement === finishedTarget && !this.isDetachedMode) {
                   this._showOnFocusMicIcon(finishedTarget);
@@ -498,7 +489,6 @@
       }
 
       _onRecognitionError(e, sessionId) {
-        // Ignore errors from stale sessions.
         if (sessionId !== this.dictationSessionId) {
           return;
         }
