@@ -135,11 +135,11 @@
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: rgba(44, 45, 48, 0.9);
+            background-color: rgba(71, 34, 34, 0.9);
             color: #f2f3f5;
             padding: 12px 20px;
             border-radius: 8px;
-            border: 1px solid #35363b;
+            border: 1px solid #251111;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(5px);
             z-index: 2147483647;
