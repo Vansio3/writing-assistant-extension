@@ -163,7 +163,9 @@
             position: 'fixed', bottom: '200px', right: '20px', zIndex: Z_INDEX.FAB, display: 'flex',
             flexDirection: 'column',
             alignItems: 'center', backgroundColor: 'rgba(43, 45, 49, 0.85)', borderRadius: '25px',
-            padding: '7px 7px 7px 7px',
+            padding: '7px',
+            width: '50px', 
+            boxSizing: 'border-box',
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             backdropFilter: 'blur(5px)'
         });
