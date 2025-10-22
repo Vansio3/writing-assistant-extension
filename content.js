@@ -368,26 +368,20 @@
           chrome.runtime.sendMessage({ prompt: promptText, style: style }, (response) => {
             activeElement.style.opacity = '1'; activeElement.style.cursor = 'auto';
             if (chrome.runtime.lastError || !response || response.error) { this._showNotification(`Error: ${response?.error || 'Unknown error'}`); return; }
+
+            // --- START: MODIFIED CODE BLOCK ---
             if (response.generatedText) {
-              if (processingMode === 'full') {
-                if (typeof activeElement.value !== 'undefined') activeElement.value = response.generatedText;
-                else activeElement.textContent = response.generatedText;
-              } else {
-                if (typeof activeElement.selectionStart === 'number') {
-                  const start = activeElement.selectionStart; const end = activeElement.selectionEnd;
-                  activeElement.value = activeElement.value.slice(0, start) + response.generatedText + activeElement.value.slice(end);
-                  activeElement.selectionStart = activeElement.selectionEnd = start + response.generatedText.length;
-                } else {
-                  if (selection && selection.rangeCount > 0) {
-                    const range = selection.getRangeAt(0); range.deleteContents();
-                    const textNode = document.createTextNode(response.generatedText);
-                    range.insertNode(textNode); selection.collapseToEnd();
-                  }
-                }
-              }
-              activeElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+              // We now call our single, unified, and secure function to insert the text.
+              // It correctly handles replacing the current selection (or inserting at the cursor),
+              // which is exactly what's needed for both "selection" and "full" processing modes.
+              this._insertTextAtCursor(activeElement, response.generatedText);
+
+              // The _insertTextAtCursor function now handles dispatching its own events,
+              // so the redundant dispatchEvent call has been removed from here.
+
               if(!this.isDetachedMode) setTimeout(() => this._updateIconPositions(), 200);
             }
+            // --- END: MODIFIED CODE BLOCK ---
           });
         });
       }
@@ -756,7 +750,76 @@
 
       _createSvgElement(tag, attr) { const el = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const key in attr) el.setAttribute(key, attr[key]); return el; }
       _createElement(tag, prop = {}) { const el = document.createElement(tag); Object.entries(prop).forEach(([key, val]) => { if (key === 'style') Object.assign(el.style, val); else if (key === 'dataset') Object.assign(el.dataset, val); else el[key] = val; }); return el; }
-      _insertTextAtCursor(el, text) { el.focus(); if (typeof el.selectionStart === 'number') { const start = el.selectionStart; el.value = el.value.slice(0, start) + text + el.value.slice(el.selectionEnd); el.selectionStart = el.selectionEnd = start + text.length; } else if (el.isContentEditable) { const sel = window.getSelection(); if (sel && sel.rangeCount > 0) { const range = sel.getRangeAt(0); range.deleteContents(); const node = document.createTextNode(text); range.insertNode(node); range.setStartAfter(node); range.collapse(true); sel.removeAllRanges(); sel.addRange(range); } } }
+      _insertTextAtCursor(el, text) {
+        el.focus();
+
+        // --- START: SECURE, MODERN, EXECCOMMAND-FREE SOLUTION ---
+
+        // This is the primary strategy for all inputs, React or otherwise.
+        // It uses the modern event model that frameworks rely on.
+        try {
+            // 1. Get the current cursor position to correctly insert the text.
+            const selectionStart = el.selectionStart;
+            const selectionEnd = el.selectionEnd;
+
+            // 2. Dispatch the `beforeinput` event. This announces the change to the framework.
+            // A framework can cancel this event to handle the input itself.
+            const beforeInputEvent = new InputEvent('beforeinput', {
+                bubbles: true,
+                cancelable: true,
+                composed: true,
+                data: text,
+                inputType: 'insertText',
+            });
+            el.dispatchEvent(beforeInputEvent);
+
+            // 3. If the event was not cancelled by a framework, we perform the DOM update ourselves.
+            if (!beforeInputEvent.defaultPrevented) {
+                // Manually update the element's value.
+                const newValue = el.value.slice(0, selectionStart) + text + el.value.slice(selectionEnd);
+                el.value = newValue;
+
+                // Update the cursor position to be after the inserted text.
+                const newCursorPosition = selectionStart + text.length;
+                el.setSelectionRange(newCursorPosition, newCursorPosition);
+
+                // 4. Dispatch the `input` event to confirm the change.
+                const inputEvent = new InputEvent('input', {
+                    bubbles: true,
+                    cancelable: false, // Input events are not cancelable
+                    composed: true,
+                    data: text,
+                    inputType: 'insertText',
+                });
+                el.dispatchEvent(inputEvent);
+            }
+            return; // Success!
+
+        } catch (e) {
+            console.error("Gemini Assistant: Modern event simulation failed. Falling back to legacy method.", e);
+            // Fallback for very old browsers or edge cases.
+            if (typeof el.selectionStart === 'number') {
+                const start = el.selectionStart;
+                el.value = el.value.slice(0, start) + text + el.value.slice(el.selectionEnd);
+                el.selectionStart = el.selectionEnd = start + text.length;
+                const event = new Event('input', { bubbles: true });
+                el.dispatchEvent(event);
+            } else if (el.isContentEditable) { // Fallback for contentEditable
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount > 0) {
+                    const range = sel.getRangeAt(0);
+                    range.deleteContents();
+                    const node = document.createTextNode(text);
+                    range.insertNode(node);
+                    range.setStartAfter(node);
+                    range.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            }
+        }
+        // --- END: SECURE, MODERN, EXECCOMMAND-FREE SOLUTION ---
+      }
       _getElementText(el) { return !el ? '' : (typeof el.value !== 'undefined' ? el.value : el.textContent); }
       _isElementSuitable(el) { if (!el) return false; const tag = el.tagName.toUpperCase(); if (el.isContentEditable || ['TEXTAREA'].includes(tag)) return true; if (tag === 'INPUT') return !['button', 'checkbox', 'color', 'date', 'datetime-local', 'email', 'file', 'hidden', 'image', 'month', 'number', 'password', 'radio', 'range', 'reset', 'search', 'submit', 'tel', 'time', 'url', 'week'].includes(el.type.toLowerCase()); return false; }
       _playSound(file) { chrome.storage.local.get('soundEnabled', ({ soundEnabled }) => { if (soundEnabled !== false) (new Audio(chrome.runtime.getURL(file))).play(); }); }
