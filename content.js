@@ -388,7 +388,9 @@
           return;
         }
         activeElement.focus();
-        
+
+        this._moveCursorToEnd(activeElement);
+
         if (start && this.SpeechRecognitionApi) {
           chrome.runtime.sendMessage({ command: 'check-api-key' }, (response) => {
             if (!response.apiKeyExists) { this._showNotification("Please set your Gemini API key in the extension's popup first."); return; }
@@ -740,22 +742,20 @@
 
       _createSvgElement(tag, attr) { const el = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const key in attr) el.setAttribute(key, attr[key]); return el; }
       _createElement(tag, prop = {}) { const el = document.createElement(tag); Object.entries(prop).forEach(([key, val]) => { if (key === 'style') Object.assign(el.style, val); else if (key === 'dataset') Object.assign(el.dataset, val); else el[key] = val; }); return el; }
+      
       _insertText(element, text, mode = 'replaceSelection') { // Modes: 'replaceSelection', 'replaceAll'
         element.focus();
     
-        // --- Handle contenteditable elements (Robust method for React, etc.) ---
+        // --- Method 1: Robust `execCommand` for `contenteditable` (e.g., Google Gemini, Facebook) ---
         if (element.isContentEditable) {
-            // For 'replaceAll', we must first select the existing content.
             if (mode === 'replaceAll') {
                 document.execCommand('selectAll', false, null);
             }
-            // 'insertText' command will replace the selection or insert at the cursor.
-            // This is the most reliable way to trigger framework event listeners.
             document.execCommand('insertText', false, text);
             return;
         }
     
-        // --- Handle standard <input> and <textarea> elements (with React compatibility) ---
+        // --- Method 2: Comprehensive Event Simulation for standard inputs (e.g., Angular) ---
         if (typeof element.selectionStart === 'number') {
             const start = element.selectionStart;
             const end = element.selectionEnd;
@@ -770,17 +770,38 @@
                 newCursorPos = start + text.length;
             }
     
-            // Use native setter for framework compatibility
+            // Use native value setter for maximum framework compatibility.
             const nativeSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value')?.set;
             if (nativeSetter) {
                 nativeSetter.call(element, newTextValue);
             } else {
-                element.value = newTextValue; // Fallback
+                element.value = newTextValue; // Fallback for older browsers.
             }
     
-            // Set cursor position and dispatch event
+            // Set the selection range to the end of the inserted text.
             element.selectionStart = element.selectionEnd = newCursorPos;
+    
+            // Dispatch a sequence of events to ensure frameworks detect the change.
+            element.dispatchEvent(new Event('keydown', { bubbles: true, cancelable: true }));
             element.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+            element.dispatchEvent(new Event('keyup', { bubbles: true, cancelable: true }));
+            element.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+        }
+      }
+
+      _moveCursorToEnd(element) {
+        // For standard input and textarea elements
+        if (typeof element.selectionStart === "number") {
+          element.selectionStart = element.selectionEnd = element.value.length;
+        } 
+        // For contenteditable elements
+        else if (element.isContentEditable) {
+          const range = document.createRange();
+          const selection = window.getSelection();
+          range.selectNodeContents(element);
+          range.collapse(false); // false collapses to the end
+          selection.removeAllRanges();
+          selection.addRange(range);
         }
       }
 
