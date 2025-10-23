@@ -90,9 +90,10 @@ const TIMING = {
 
 const FAB_OUTPUT_STYLES = [
     { value: 'default', name: 'Clear' },
+    { value: 'grammar', name: 'Grammar' },
     { value: 'professional', name: 'Professional' },
-    { value: 'friendly', name: 'Friendly' },
-    { value: 'casual', name: 'Casual' },
-    { value: 'technical', name: 'Technical' },
-    { value: 'creative', name: 'Creative' }
+    { value: 'friendly', name: 'Friendly' }
+    // { value: 'casual', name: 'Casual' },
+    // { value: 'technical', name: 'Technical' },
+    // { value: 'creative', name: 'Creative' }
 ];

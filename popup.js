@@ -47,11 +47,12 @@ const supportedLanguages = [
 
 const outputStyles = [
     { value: 'default', name: 'Default' },
+    { value: 'grammar', name: 'Grammar' },
     { value: 'professional', name: 'Professional' },
     { value: 'friendly', name: 'Friendly' },
-    { value: 'casual', name: 'Casual' },
-    { value: 'technical', name: 'Technical' },
-    { value: 'creative', name: 'Creative' },
+    // { value: 'casual', name: 'Casual' },
+    // { value: 'technical', name: 'Technical' },
+    // { value: 'creative', name: 'Creative' },
     { value: 'custom', name: 'Custom' }
 ];
 

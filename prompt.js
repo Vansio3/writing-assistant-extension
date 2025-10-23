@@ -63,7 +63,9 @@ export function createPrompt(inputText, languageCode = 'en-US', style = 'default
 
   // Build the instruction parts dynamically.
   let styleInstruction = '';
-  if (style === 'custom' && customStyle.trim()) {
+  if (style === 'grammar') {
+    styleInstruction = `You must **only correct grammatical errors, spelling, and punctuation**. Do NOT rephrase, change words, or alter the original meaning in any way. Preserve the user's exact vocabulary.`;
+  } else if (style === 'custom' && customStyle.trim()) {
     styleInstruction = `Your response must adopt a **${customStyle.trim()}** tone.`;
   } else if (style !== 'default') {
     styleInstruction = `Your response must adopt a **${style}** tone.`;
@@ -97,6 +99,10 @@ export function createPrompt(inputText, languageCode = 'en-US', style = 'default
 **Example 2:**
 *User Input:* "let's develop a calculator app that has two modes one scientific and another standard the standards mode should be the default"
 *Your Output (assuming default settings):* Let's develop a calculator app that has two modes: scientific and standard. The standard mode should be the default.
+
+**Example 3:**
+*User Input:* "let's develop a calculator app that has two modes one scientific and another standard the standards mode should be the default"
+*Your Output (assuming grammer settings):* Let's develop a calculator app that has two modes: one scientific and another standard. The standard mode should be the default.
 ---
 
 **User Input:** "${inputText}"
