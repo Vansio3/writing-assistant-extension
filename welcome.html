@@ -10,7 +10,7 @@
     <div class="container">
         <header>
             <h1>Welcome to the Gemini Writing Assistant!</h1>
-            <p class="subtitle">You're just one step away from supercharging your writing across the web.</p>
+            <p class="subtitle">You're just a couple of steps away from supercharging your writing across the web.</p>
         </header>
 
         <main>
@@ -18,40 +18,52 @@
                 <h2>Action Required: Set Up Your API Key</h2>
                 <p>To start using the assistant, you need a free Google Gemini API key. This is required because the extension communicates directly between your browser and Google's AI, ensuring your privacy.</p>
 
-                <!-- START: Strengthened Security Warning -->
                 <div class="security-warning">
                     <h3>⚠️ Important Security Best Practice</h3>
                     <p>
                         For your security, we **strongly recommend creating a new, restricted API key** specifically for this extension. An unrestricted key could potentially be used to access other Google Cloud services on your account. Restricting it ensures it can *only* be used for the Gemini AI model.
                     </p>
                 </div>
-                <!-- END: Strengthened Security Warning -->
 
                 <h3>How to Create a Secure, Restricted Key</h3>
                 <ol>
-                    <li>Click the button below to go to Google AI Studio and click <strong>"Create API key"</strong>.</li>
+                    <li>Click the button below to go to Google AI Studio and click <strong>"Create API key"</strong>. 
+                    <br><a href="https://aistudio.google.com/app/apikey" target="_blank" class="button-primary">
+                            Get Your Gemini API Key
+                        </a>
+                    </li>
                     <li>Copy the new key. Then, go to the <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Credentials page</a> to find the key you just created.</li>
                     <li>Click on the key's name to edit it. Under "API restrictions", select "Restrict key" and choose the <strong>"Generative Language API"</strong>. Click Save.</li>
-                    <li>Finally, click the extension icon in your toolbar, and paste your new, secure key into the popup.</li>
+                    <li>Finally, paste your new, secure key below.</li>
                 </ol>
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="button-primary">
-                    Get Your Gemini API Key
-                </a>
+                <div class="api-key-input-container">
+                  <input type="password" id="apiKeyInput" placeholder="Paste your API key here">
+                  <button id="saveApiKeyButton" class="button-primary">Save Key</button>
+                </div>
+                <p id="apiKeyStatus" class="status-message"></p>
             </div>
 
             <h2>Getting Started: Your New Superpowers</h2>
             <div class="features">
                 <div class="feature">
+                    <h3>🧩 Pin for Easy Access</h3>
+                    <p>Pin the extension to your toolbar for quick access. Click the puzzle piece icon in your browser's toolbar, find the Gemini Writing Assistant, and click the pin icon next to it.</p>
+                </div>
+                <div class="feature">
+                    <h3>✅ Activate on Any Site</h3>
+                    <p>The assistant is off by default. To use it, click the extension icon on any site, press <strong>"Enable for this site,"</strong> and then reload the page.</p>
+                </div>
+                <div class="feature">
                     <h3>✍️ Rewrite Text Instantly</h3>
-                    <p>Select any text on a website and press <kbd>Alt</kbd> + <kbd>R</kbd>. The assistant will instantly improve it for clarity, tone, and style.</p>
+                    <p>Select any text on an enabled website and press <kbd>Alt</kbd> + <kbd>R</kbd>. The assistant will instantly improve it for clarity, tone, and style.</p>
                 </div>
                 <div class="feature">
                     <h3>🎤 Dictate with AI</h3>
                     <p>Click into any text field and press <kbd>Alt</kbd> + <kbd>L</kbd> to start and stop dictation. Your speech will be transcribed and cleaned up by Gemini.</p>
                 </div>
                 <div class="feature">
-                    <h3>⚙️ Customize Everything</h3>
-                    <p>Click the extension icon in your toolbar at any time to open the settings panel. You can change the output language, writing style, and more.</p>
+                    <h3>🎯 Precisely Target Fields</h3>
+                    <p>On complex pages, click the extension icon and use the <strong>"Select Target"</strong> button to manually choose which text box to control.</p>
                 </div>
             </div>
         </main>
@@ -60,6 +72,6 @@
             <p>Thank you for installing! For more details on how your data is handled, please review our <a href="https://sites.google.com/view/gemini-writing-assistant" target="_blank">Privacy Policy</a>.</p>
         </footer>
     </div>
-
+    <script src="welcome.js"></script>
 </body>
 </html>
