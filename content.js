@@ -370,22 +370,10 @@
             if (chrome.runtime.lastError || !response || response.error) { this._showNotification(`Error: ${response?.error || 'Unknown error'}`); return; }
             if (response.generatedText) {
               if (processingMode === 'full') {
-                if (typeof activeElement.value !== 'undefined') activeElement.value = response.generatedText;
-                else activeElement.textContent = response.generatedText;
+                this._insertText(activeElement, response.generatedText, 'replaceAll');
               } else {
-                if (typeof activeElement.selectionStart === 'number') {
-                  const start = activeElement.selectionStart; const end = activeElement.selectionEnd;
-                  activeElement.value = activeElement.value.slice(0, start) + response.generatedText + activeElement.value.slice(end);
-                  activeElement.selectionStart = activeElement.selectionEnd = start + response.generatedText.length;
-                } else {
-                  if (selection && selection.rangeCount > 0) {
-                    const range = selection.getRangeAt(0); range.deleteContents();
-                    const textNode = document.createTextNode(response.generatedText);
-                    range.insertNode(textNode); selection.collapseToEnd();
-                  }
-                }
+                this._insertText(activeElement, response.generatedText, 'replaceSelection');
               }
-              activeElement.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
               if(!this.isDetachedMode) setTimeout(() => this._updateIconPositions(), 200);
             }
           });
@@ -485,20 +473,16 @@
                 finishedTarget.style.cursor = 'auto';
 
                 if (chrome.runtime.lastError || !response) {
-                    this._insertTextAtCursor(finishedTarget, this.finalTranscript.trim() + ' ');
-                    finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                    this._insertText(finishedTarget, this.finalTranscript.trim() + ' ', 'replaceSelection');
                     const errorMsg = chrome.runtime.lastError ? chrome.runtime.lastError.message : 'No response from the extension.';
                     this._showNotification(`Error: ${errorMsg}`);
                 } else if (response.error) {
-                    this._insertTextAtCursor(finishedTarget, this.finalTranscript.trim() + ' ');
-                    finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                    this._insertText(finishedTarget, this.finalTranscript.trim() + ' ', 'replaceSelection');
                     this._showNotification(`Error: ${response.error}`);
                 } else if (response.generatedText) {
-                    this._insertTextAtCursor(finishedTarget, response.generatedText);
-                    finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                    this._insertText(finishedTarget, response.generatedText, 'replaceSelection');
                 } else {
-                    this._insertTextAtCursor(finishedTarget, this.finalTranscript.trim() + ' ');
-                    finishedTarget.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                    this._insertText(finishedTarget, this.finalTranscript.trim() + ' ', 'replaceSelection');
                     this._showNotification('Received an unexpected response.');
                 }
 
@@ -756,7 +740,50 @@
 
       _createSvgElement(tag, attr) { const el = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const key in attr) el.setAttribute(key, attr[key]); return el; }
       _createElement(tag, prop = {}) { const el = document.createElement(tag); Object.entries(prop).forEach(([key, val]) => { if (key === 'style') Object.assign(el.style, val); else if (key === 'dataset') Object.assign(el.dataset, val); else el[key] = val; }); return el; }
-      _insertTextAtCursor(el, text) { el.focus(); if (typeof el.selectionStart === 'number') { const start = el.selectionStart; el.value = el.value.slice(0, start) + text + el.value.slice(el.selectionEnd); el.selectionStart = el.selectionEnd = start + text.length; } else if (el.isContentEditable) { const sel = window.getSelection(); if (sel && sel.rangeCount > 0) { const range = sel.getRangeAt(0); range.deleteContents(); const node = document.createTextNode(text); range.insertNode(node); range.setStartAfter(node); range.collapse(true); sel.removeAllRanges(); sel.addRange(range); } } }
+      _insertText(element, text, mode = 'replaceSelection') { // Modes: 'replaceSelection', 'replaceAll'
+        element.focus();
+    
+        // --- Handle contenteditable elements (Robust method for React, etc.) ---
+        if (element.isContentEditable) {
+            // For 'replaceAll', we must first select the existing content.
+            if (mode === 'replaceAll') {
+                document.execCommand('selectAll', false, null);
+            }
+            // 'insertText' command will replace the selection or insert at the cursor.
+            // This is the most reliable way to trigger framework event listeners.
+            document.execCommand('insertText', false, text);
+            return;
+        }
+    
+        // --- Handle standard <input> and <textarea> elements (with React compatibility) ---
+        if (typeof element.selectionStart === 'number') {
+            const start = element.selectionStart;
+            const end = element.selectionEnd;
+            let newTextValue;
+            let newCursorPos;
+    
+            if (mode === 'replaceAll') {
+                newTextValue = text;
+                newCursorPos = text.length;
+            } else { // 'replaceSelection'
+                newTextValue = element.value.slice(0, start) + text + element.value.slice(end);
+                newCursorPos = start + text.length;
+            }
+    
+            // Use native setter for framework compatibility
+            const nativeSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value')?.set;
+            if (nativeSetter) {
+                nativeSetter.call(element, newTextValue);
+            } else {
+                element.value = newTextValue; // Fallback
+            }
+    
+            // Set cursor position and dispatch event
+            element.selectionStart = element.selectionEnd = newCursorPos;
+            element.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+        }
+      }
+
       _getElementText(el) { return !el ? '' : (typeof el.value !== 'undefined' ? el.value : el.textContent); }
       _isElementSuitable(el) { if (!el) return false; const tag = el.tagName.toUpperCase(); if (el.isContentEditable || ['TEXTAREA'].includes(tag)) return true; if (tag === 'INPUT') return !['button', 'checkbox', 'color', 'date', 'datetime-local', 'email', 'file', 'hidden', 'image', 'month', 'number', 'password', 'radio', 'range', 'reset', 'search', 'submit', 'tel', 'time', 'url', 'week'].includes(el.type.toLowerCase()); return false; }
       _playSound(file) { chrome.storage.local.get('soundEnabled', ({ soundEnabled }) => { if (soundEnabled !== false) (new Audio(chrome.runtime.getURL(file))).play(); }); }
