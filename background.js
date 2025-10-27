@@ -40,6 +40,8 @@ chrome.commands.onCommand.addListener((command, tab) => {
     chrome.tabs.sendMessage(tab.id, { command: "process-text" });
   } else if (command === "dictate-and-process") {
     chrome.tabs.sendMessage(tab.id, { command: "toggle-dictation" });
+  } else if (command === "cycle-output-style") {
+    chrome.tabs.sendMessage(tab.id, { command: "cycle-style" });
   }
 });
 

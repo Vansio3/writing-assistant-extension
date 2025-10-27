@@ -36,6 +36,9 @@
         this.isMouseDownOnMic = false;
         this.isOverSecondaryButton = false;
         this.isMouseDownOnFab = false;
+        this.currentStyleIndex = 0;
+        this.cycleNotificationElement = null;
+
 
         // Add a session ID and a placeholder for the API constructor
         this.dictationSessionId = 0;
@@ -75,8 +78,15 @@
       // --- 1. INITIALIZATION ---
 
       async initialize() {
-        const settings = await chrome.storage.local.get('detachButtons');
+        const settings = await chrome.storage.local.get(['detachButtons', 'outputStyle']);
         this.isDetachedMode = settings.detachButtons !== false;
+
+        const savedStyle = settings.outputStyle || 'default';
+        this.currentStyleIndex = FAB_OUTPUT_STYLES.findIndex(s => s.value === savedStyle);
+        if (this.currentStyleIndex === -1) {
+            this.currentStyleIndex = 0;
+        }
+
 
         this._createUIElements();
         this._initializeSpeechRecognition();
@@ -342,11 +352,46 @@
               if (request.command === "process-text") this.processSelectedText();
               else if (request.command === "toggle-dictation") this._handleToggleDictation({ ...request, start: !this.dictationTargetElement });
               else if (request.command === "enter-selection-mode") this._toggleSelectionMode();
+              else if (request.command === "cycle-style") this._cycleStyle();
               sendResponse(true); return true;
           });
       }
 
       // --- 3. CORE LOGIC & EVENT HANDLERS ---
+      _cycleStyle() {
+        this.currentStyleIndex = (this.currentStyleIndex + 1) % FAB_OUTPUT_STYLES.length;
+        const newStyle = FAB_OUTPUT_STYLES[this.currentStyleIndex];
+        chrome.storage.local.set({ outputStyle: newStyle.value });
+        this._showCycleNotification(`Style: ${newStyle.name}`);
+      }
+
+      _showCycleNotification(message) {
+        if (!this.cycleNotificationElement) {
+            this.cycleNotificationElement = this._createElement('div', {
+                className: 'gemini-assistant-notification',
+            });
+            document.body.appendChild(this.cycleNotificationElement);
+        }
+
+        this.cycleNotificationElement.textContent = message;
+
+        // Make it visible
+        setTimeout(() => {
+            this.cycleNotificationElement.style.opacity = '1';
+            this.cycleNotificationElement.style.top = '30px';
+        }, 50);
+
+        // Clear any existing timer
+        if (this.cycleNotificationTimer) {
+            clearTimeout(this.cycleNotificationTimer);
+        }
+
+        // Set a new timer to hide it
+        this.cycleNotificationTimer = setTimeout(() => {
+            this.cycleNotificationElement.style.opacity = '0';
+            this.cycleNotificationElement.style.top = '20px';
+        }, 2000);
+      }
 
       processSelectedText(style = null) {
         const activeElement = this._getTargetElement();
@@ -365,7 +410,10 @@
               else if (activeElement.isContentEditable) { const range = document.createRange(); range.selectNodeContents(activeElement); selection.removeAllRanges(); selection.addRange(range); }
           }
           activeElement.style.opacity = '0.5'; activeElement.style.cursor = 'wait';
-          chrome.runtime.sendMessage({ prompt: promptText, style: style }, (response) => {
+          
+          const styleToUse = style || FAB_OUTPUT_STYLES[this.currentStyleIndex].value;
+
+          chrome.runtime.sendMessage({ prompt: promptText, style: styleToUse }, (response) => {
             activeElement.style.opacity = '1'; activeElement.style.cursor = 'auto';
             if (chrome.runtime.lastError || !response || response.error) { this._showNotification(`Error: ${response?.error || 'Unknown error'}`); return; }
             if (response.generatedText) {

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gemini Writing Assistant",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A Gemini-powered writing assistant triggered by a shortcut or context menu.",
   "homepage_url": "https://sites.google.com/view/gemini-writing-assistant",
   "permissions": [
@@ -28,6 +28,12 @@
         "default": "Alt+L"
       },
       "description": "Start or stop dictation"
+    },
+    "cycle-output-style": {
+      "suggested_key": {
+        "default": "Alt+O"
+      },
+      "description": "Cycle through output styles"
     }
   },
   "action": {
