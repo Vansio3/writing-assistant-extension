@@ -455,9 +455,6 @@
             this.recognition.interimResults = true;
             
             this.recognition.onresult = e => {
-              // By iterating from `e.resultIndex`, we only process new results.
-              // The finalized text is saved in `this.finalTranscript` and we continuously
-              // append new finalized text to it. This preserves the transcript across pauses.
               for (let i = e.resultIndex; i < e.results.length; ++i) {
                 if (e.results[i].isFinal) {
                   this.finalTranscript += e.results[i][0].transcript;
