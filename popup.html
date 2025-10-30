@@ -139,7 +139,16 @@
       </div>
       <div class="card-body">
         <textarea id="playgroundInput" placeholder="Enter text to process, select options above, and click 'Process'." rows="6" title="Type or paste text here to process it with the current settings."></textarea>
-        <button id="playgroundProcessButton" class="button-primary amber-button" title="Process the text in the text area above using your selected settings.">Process</button>
+        <div class="playground-buttons">
+          <button id="playgroundProcessButton" class="button-primary amber-button" title="Process the text in the text area above using your selected settings.">Process</button>
+          <button id="playgroundDictateButton" class="button-icon" title="Start dictation">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M19 10V12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12V10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 19V23" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
         <p id="playgroundStatus" class="status-message"></p>
       </div>
     </div>

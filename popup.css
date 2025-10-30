@@ -366,3 +366,49 @@ input:checked + .slider:before {
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover { background: #4e5058; }
+
+.playground-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: stretch; /* Make buttons same height */
+}
+
+#playgroundProcessButton {
+  flex-grow: 1; /* Allow process button to take available space */
+}
+
+.button-icon {
+  flex-shrink: 0;
+  width: 40px; /* Fixed width */
+  padding: 8px;
+  background-color: var(--background-tertiary);
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.button-icon:hover {
+  background-color: #44474e;
+  color: var(--text-primary);
+}
+
+.button-icon:active {
+  transform: scale(0.95);
+}
+
+.button-icon.dictating {
+  background-color: var(--accent-error);
+  color: white;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(242, 63, 67, 0.7); }
+  50% { transform: scale(1.02); box-shadow: 0 0 0 4px rgba(242, 63, 67, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(242, 63, 67, 0); }
+}

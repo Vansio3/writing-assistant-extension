@@ -92,10 +92,14 @@ document.addEventListener('DOMContentLoaded', () => {
       selectTargetButton: document.getElementById('selectTargetButton'),
       detachButtonsToggle: document.getElementById('detachButtonsToggle'),
       detachButtonsStatus: document.getElementById('detachButtonsStatus'),
+      playgroundDictateButton: document.getElementById('playgroundDictateButton'),
     },
 
     currentDomain: null,
     enabledDomains: [],
+    recognition: null,
+    isDictating: false,
+    finalTranscript: '',
 
     init() {
       this._populateSelects();
@@ -205,6 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
       this.ui.scrollToPlaygroundButton.addEventListener('click', () => this._handleScrollToPlayground());
       this.ui.toggleDomainButton.addEventListener('click', () => this._handleToggleDomain());
       this.ui.selectTargetButton.addEventListener('click', () => this._handleSelectTarget());
+      this.ui.playgroundDictateButton.addEventListener('click', () => this._handlePlaygroundDictate());
 
       this._bindSetting(this.ui.languageSelect, 'selectedLanguage');
       this._bindSetting(this.ui.outputLengthSelect, 'outputLength');
@@ -213,7 +218,6 @@ document.addEventListener('DOMContentLoaded', () => {
       this._bindSetting(this.ui.customStyleInput, 'customOutputStyle', 'value', 'input');
       this._bindSetting(this.ui.detachButtonsToggle, 'detachButtons', 'checked');
 
-      // START: MODIFIED CODE BLOCK
       // Add a separate listener to show the status message for the detach toggle.
       // This listener now ONLY handles making the existing message visible.
       this.ui.detachButtonsToggle.addEventListener('change', () => {
@@ -222,7 +226,6 @@ document.addEventListener('DOMContentLoaded', () => {
           this.ui.detachButtonsStatus.classList.add('hidden');
         }, 4000);
       });
-      // END: MODIFIED CODE BLOCK
     },
 
     async _updateDomainButtonState() {
@@ -293,6 +296,61 @@ document.addEventListener('DOMContentLoaded', () => {
       const selectedStyle = this.ui.outputStyleSelect.value;
       chrome.storage.local.set({ outputStyle: selectedStyle });
       this._updateCustomStyleVisibility();
+    },
+
+    _handlePlaygroundDictate() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            this._showStatusMessage('Speech recognition not supported in this browser.', 4000, this.ui.playgroundStatus);
+            return;
+        }
+
+        if (this.isDictating) {
+            this.recognition.stop();
+            return;
+        }
+        
+        this.recognition = new SpeechRecognition();
+        this.recognition.lang = this.ui.languageSelect.value;
+        this.recognition.continuous = true;
+        this.recognition.interimResults = true;
+        this.finalTranscript = '';
+        
+        this.recognition.onstart = () => {
+            this.isDictating = true;
+            this.ui.playgroundDictateButton.classList.add('dictating');
+            this.ui.playgroundDictateButton.title = 'Stop dictation';
+            this.ui.playgroundProcessButton.disabled = true;
+            this._showStatusMessage('Listening...', 0, this.ui.playgroundStatus);
+        };
+
+        this.recognition.onend = () => {
+            this.isDictating = false;
+            this.recognition = null;
+            this.ui.playgroundDictateButton.classList.remove('dictating');
+            this.ui.playgroundDictateButton.title = 'Start dictation';
+            this.ui.playgroundProcessButton.disabled = false;
+            this._showStatusMessage('', 0, this.ui.playgroundStatus);
+        };
+        
+        this.recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            this._showStatusMessage(`Error: ${event.error}`, 4000, this.ui.playgroundStatus);
+        };
+
+        this.recognition.onresult = (event) => {
+            let interim_transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    this.finalTranscript += event.results[i][0].transcript;
+                } else {
+                    interim_transcript += event.results[i][0].transcript;
+                }
+            }
+            this.ui.playgroundInput.value = this.finalTranscript + interim_transcript;
+        };
+
+        this.recognition.start();
     },
     
     _handlePlaygroundProcess() {
