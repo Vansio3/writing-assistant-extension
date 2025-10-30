@@ -314,7 +314,12 @@ document.addEventListener('DOMContentLoaded', () => {
         this.recognition.lang = this.ui.languageSelect.value;
         this.recognition.continuous = true;
         this.recognition.interimResults = true;
-        this.finalTranscript = '';
+        
+        // To preserve text across pauses, initialize the transcript with existing text.
+        this.finalTranscript = this.ui.playgroundInput.value;
+        if (this.finalTranscript.length > 0 && !/\s$/.test(this.finalTranscript)) {
+            this.finalTranscript += ' ';
+        }
         
         this.recognition.onstart = () => {
             this.isDictating = true;
@@ -340,13 +345,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         this.recognition.onresult = (event) => {
             let interim_transcript = '';
+            // This loop processes new results. Finalized text is appended to `this.finalTranscript`
+            // to ensure that no matter how long the user pauses, previous words are preserved.
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 if (event.results[i].isFinal) {
+                    // Append the finalized transcript part.
                     this.finalTranscript += event.results[i][0].transcript;
                 } else {
+                    // Otherwise, it's an interim result that might still change.
                     interim_transcript += event.results[i][0].transcript;
                 }
             }
+            // Update the display with the stable final transcript and the current interim part.
             this.ui.playgroundInput.value = this.finalTranscript + interim_transcript;
         };
 
