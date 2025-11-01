@@ -138,6 +138,21 @@
         style.innerHTML = `
           .gemini-mic-pulsing { animation: gemini-icon-pulse 1.5s infinite ease-in-out; }
           @keyframes gemini-icon-pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); } 50% { transform: scale(1.05); box-shadow: 0 0 0 5px rgba(229, 62, 62, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); } }
+          
+          .gemini-loading-spinner {
+            width: 10px;
+            height: 10px;
+            border: 2px solid #afafaf;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: gemini-spinner-spin 1s linear infinite;
+          }
+
+          @keyframes gemini-spinner-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+
           .gemini-assistant-selectable-target { outline: 2px dashed #FFBF00 !important; outline-offset: 2px; box-shadow: 0 0 15px rgba(255, 191, 0, 0.7) !important; transition: outline 0.2s ease, box-shadow 0.2s ease; }
           .gemini-assistant-selectable-target:hover { outline: 2px solid #E53E3E !important; box-shadow: 0 0 15px rgba(229, 62, 62, 1) !important; }
           .gemini-assistant-notification {
@@ -522,9 +537,11 @@
             }
             this._resetDictationState();
         } else if (finishedTarget && this.finalTranscript.trim()) {
+            this._showLoadingIndicator();
             finishedTarget.style.opacity = '0.5';
             finishedTarget.style.cursor = 'wait';
             chrome.runtime.sendMessage({ prompt: this.finalTranscript.trim(), bypassAi: this.currentDictationBypassesAi }, response => {
+                this._hideLoadingIndicator();
                 finishedTarget.style.opacity = '1';
                 finishedTarget.style.cursor = 'auto';
 
@@ -766,6 +783,29 @@
             this.onFocusMicIcon.removeEventListener('click', this.stopDictationClickHandler);
             this.stopDictationClickHandler = null;
         }
+      }
+
+      _showLoadingIndicator() {
+        if (!this.onFocusMicIcon) return;
+        this.onFocusMicIcon.innerHTML = '';
+        const spinner = this._createElement('div', { className: 'gemini-loading-spinner' });
+        this.onFocusMicIcon.appendChild(spinner);
+        this.onFocusMicIcon.setAttribute('aria-label', 'Processing...');
+        this.onFocusMicIcon.style.backgroundColor = COLORS.MIC_DEFAULT_BG;
+        this.onFocusMicIcon.classList.remove('gemini-mic-pulsing');
+        if (this.stopDictationClickHandler) {
+            this.onFocusMicIcon.removeEventListener('click', this.stopDictationClickHandler);
+            this.stopDictationClickHandler = null;
+        }
+      }
+
+      _hideLoadingIndicator() {
+        if (!this.onFocusMicIcon) return;
+        this.onFocusMicIcon.innerHTML = '';
+        const micSvg = this._createSvgElement('svg', { width: '16', height: '16', viewBox: '0 0 24 24', fill: 'none' });
+        micSvg.innerHTML = `<path d="M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 10V12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12V10" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 19V23" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+        this.onFocusMicIcon.appendChild(micSvg);
+        this.onFocusMicIcon.setAttribute('aria-label', 'Start Dictation');
       }
 
       _setMicHover(isHovering) { if (!this.isMouseDownOnMic && !this.stopDictationClickHandler) this.onFocusMicIcon.style.backgroundColor = isHovering ? COLORS.MIC_HOVER_BG : COLORS.MIC_DEFAULT_BG; }
