@@ -140,8 +140,8 @@
           @keyframes gemini-icon-pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); } 50% { transform: scale(1.05); box-shadow: 0 0 0 5px rgba(229, 62, 62, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); } }
           
           .gemini-loading-spinner {
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             border: 2px solid #afafaf;
             border-top: 2px solid transparent;
             border-radius: 50%;
