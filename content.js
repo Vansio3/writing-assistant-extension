@@ -353,7 +353,7 @@
         document.addEventListener('mousemove', e => this._onMouseMove(e));
         document.addEventListener('mousemove', e => this._onDrag(e));
         document.addEventListener('mouseup', e => this._onGlobalMouseUp(e));
-        document.addEventListener('keydown', e => { if (e.key === 'Escape' && this.dictationTargetElement) { this.dictationCancelled = true; this.cancellationReason = 'escape'; if (this.recognition) this.recognition.stop(); } });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && this.recognition) this._cancelDictation('escape'); });
         this.onFocusMicIcon.addEventListener('mouseenter', () => this._setMicHover(true));
         this.onFocusMicIcon.addEventListener('mouseleave', () => this._setMicHover(false));
         this.onFocusMicIcon.addEventListener('mousedown', e => this._onMicMouseDown(e));
@@ -495,12 +495,27 @@
             });
           });
         } else if (!start && this.recognition) {
+          this._playSound('assets/audio/end.mp3');
+          this._hideListeningIndicator();
+          this._showLoadingIndicator();
           this.dictationCancelled = true;
           this.cancellationReason = 'user_action';
           this.recognition.stop();
         } else if (!this.SpeechRecognitionApi) {
           this._showNotification("Speech recognition is not available in this browser.");
         }
+      }
+
+      _cancelDictation(reason) {
+        if (!this.recognition) return;
+        
+        this._playSound('assets/audio/end.mp3');
+        this._hideListeningIndicator();
+        this._hideLoadingIndicator(); // Ensure no spinner is shown on cancel
+        
+        this.dictationCancelled = true;
+        this.cancellationReason = reason;
+        this.recognition.stop();
       }
 
       _resetDictationState() {
@@ -522,9 +537,6 @@
           return;
         }
         
-        this._playSound('assets/audio/end.mp3');
-        this._hideListeningIndicator();
-        
         const finishedTarget = this.dictationTargetElement;
         if (finishedTarget) {
           finishedTarget.removeEventListener('blur', this._handleFocusLoss);
@@ -537,7 +549,6 @@
             }
             this._resetDictationState();
         } else if (finishedTarget && this.finalTranscript.trim()) {
-            this._showLoadingIndicator();
             finishedTarget.style.opacity = '0.5';
             finishedTarget.style.cursor = 'wait';
             chrome.runtime.sendMessage({ prompt: this.finalTranscript.trim(), bypassAi: this.currentDictationBypassesAi }, response => {
@@ -565,7 +576,8 @@
                 
                 this._resetDictationState(); 
             });
-        } else if (finishedTarget) {
+        } else if (finishedTarget) { // This handles cases where dictation was stopped with no speech
+          this._hideLoadingIndicator(); // Ensure loading indicator is hidden
           if (document.activeElement === finishedTarget && !this.isDetachedMode) {
             this._showOnFocusMicIcon(finishedTarget);
           }
@@ -589,7 +601,7 @@
           this._resetDictationState();
         }
       }
-      _handleFocusLoss = () => { if (this.recognition && this.dictationTargetElement) { this.dictationCancelled = true; this.cancellationReason = 'blur'; this.recognition.stop(); } }
+      _handleFocusLoss = () => { if (this.recognition) this._cancelDictation('blur'); }
 
       // --- 4. UI EVENT HANDLERS (FOCUS, MOUSE, KEYBOARD) ---
 
