@@ -506,7 +506,7 @@
       }
 
       _cancelDictation(reason) {
-        if (!this.recognition) return;
+        if (!this.recognition || this.dictationCancelled) return;
         
         this._playSound('assets/audio/end.mp3');
         this._hideListeningIndicator();
