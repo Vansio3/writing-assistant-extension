@@ -24,6 +24,7 @@
       constructor() {
         // --- STATE MANAGEMENT ---
         this.recognition = null;
+        this.isProcessing = false; 
         this.finalTranscript = '';
         this.dictationTargetElement = null;
         this.originalInputText = '';
@@ -444,6 +445,8 @@
       }
 
       _handleToggleDictation({ start, bypassAi = false }) {
+        if (this.isProcessing) return;
+
         const activeElement = this._getTargetElement();
         if (!activeElement || !this._isElementSuitable(activeElement)) {
           this._hideListeningIndicator();
@@ -511,6 +514,9 @@
         this._playSound('assets/audio/end.mp3');
         this._hideListeningIndicator();
         this._hideLoadingIndicator(); // Ensure no spinner is shown on cancel
+        if (reason === 'escape' || reason === 'blur') {
+          this.finalTranscript = '';
+        }
         
         this.dictationCancelled = true;
         this.cancellationReason = reason;
@@ -548,10 +554,12 @@
           }
           this._resetDictationState();
         } else if (finishedTarget && this.finalTranscript.trim()) {
+          this.isProcessing = true;
           finishedTarget.style.opacity = '0.5';
           finishedTarget.style.cursor = 'wait';
             chrome.runtime.sendMessage({ prompt: this.finalTranscript.trim(), bypassAi: this.currentDictationBypassesAi }, response => {
-                this._hideLoadingIndicator();
+              this.isProcessing = false;  
+              this._hideLoadingIndicator();
                 this._playSound('assets/audio/end.mp3');
                 finishedTarget.style.opacity = '1';
                 finishedTarget.style.cursor = 'auto';
