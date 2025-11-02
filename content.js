@@ -495,7 +495,6 @@
             });
           });
         } else if (!start && this.recognition) {
-          this._playSound('assets/audio/end.mp3');
           this._hideListeningIndicator();
           this._showLoadingIndicator();
           this.dictationCancelled = true;
@@ -541,18 +540,19 @@
         if (finishedTarget) {
           finishedTarget.removeEventListener('blur', this._handleFocusLoss);
         }
-
+     
         if (this.dictationCancelled && (this.cancellationReason === 'escape' || this.cancellationReason === 'blur')) {
-            if (finishedTarget) {
-                if (typeof finishedTarget.value !== 'undefined') finishedTarget.value = this.originalInputText; else finishedTarget.textContent = this.originalInputText;
-                if (this.cancellationReason === 'escape' && !this.isDetachedMode) this._showOnFocusMicIcon(finishedTarget);
-            }
-            this._resetDictationState();
+          if (finishedTarget) {
+            if (typeof finishedTarget.value !== 'undefined') finishedTarget.value = this.originalInputText; else finishedTarget.textContent = this.originalInputText;
+            if (this.cancellationReason === 'escape' && !this.isDetachedMode) this._showOnFocusMicIcon(finishedTarget);
+          }
+          this._resetDictationState();
         } else if (finishedTarget && this.finalTranscript.trim()) {
-            finishedTarget.style.opacity = '0.5';
-            finishedTarget.style.cursor = 'wait';
+          finishedTarget.style.opacity = '0.5';
+          finishedTarget.style.cursor = 'wait';
             chrome.runtime.sendMessage({ prompt: this.finalTranscript.trim(), bypassAi: this.currentDictationBypassesAi }, response => {
                 this._hideLoadingIndicator();
+                this._playSound('assets/audio/end.mp3');
                 finishedTarget.style.opacity = '1';
                 finishedTarget.style.cursor = 'auto';
 
@@ -578,6 +578,7 @@
             });
         } else if (finishedTarget) { // This handles cases where dictation was stopped with no speech
           this._hideLoadingIndicator(); // Ensure loading indicator is hidden
+          this._playSound('assets/audio/end.mp3');
           if (document.activeElement === finishedTarget && !this.isDetachedMode) {
             this._showOnFocusMicIcon(finishedTarget);
           }
