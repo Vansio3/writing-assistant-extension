@@ -86,7 +86,7 @@
         const savedStyle = settings.outputStyle || 'default';
         this.currentStyleIndex = FAB_OUTPUT_STYLES.findIndex(s => s.value === savedStyle);
         if (this.currentStyleIndex === -1) {
-            this.currentStyleIndex = 0;
+          this.currentStyleIndex = 0;
         }
 
 
@@ -97,7 +97,7 @@
         this._setupMessageListener();
 
         if (this.isDetachedMode) {
-            this._initializeDetachedMode();
+          this._initializeDetachedMode();
         }
       }
 
@@ -189,16 +189,16 @@
 
       _initializeDetachedMode() {
         Object.assign(this.detachedContainer.style, {
-            position: 'fixed', bottom: '20%', right: '0px', zIndex: Z_INDEX.FAB, display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center', backgroundColor: 'rgba(43, 45, 49, 0.85)', borderRadius: '25px',
-            borderTopRightRadius: '0px',
-            borderBottomRightRadius: '0px',
-            padding: '7px',
-            width: '44px',
-            boxSizing: 'border-box',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            backdropFilter: 'blur(2px)'
+          position: 'fixed', bottom: '20%', right: '0px', zIndex: Z_INDEX.FAB, display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center', backgroundColor: 'rgba(43, 45, 49, 0.85)', borderRadius: '25px',
+          borderTopRightRadius: '0px',
+          borderBottomRightRadius: '0px',
+          padding: '7px',
+          width: '44px',
+          boxSizing: 'border-box',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          backdropFilter: 'blur(2px)'
         });
 
         const buttonColumn = this._createElement('div', { style: { position: 'relative', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', flexShrink: '0' } });
@@ -219,13 +219,13 @@
         const gapAboveMic = 10;
 
         Object.assign(this.transcriptionOnlyButton.style, {
-            position: 'absolute',
-            width: `${newTranscriptionButtonSize}px`,
-            height: `${newTranscriptionButtonSize}px`,
-            top: `-${newTranscriptionButtonSize + gapAboveMic}px`,
-            left: `${(detachedMicWidth - newTranscriptionButtonSize) / 2}px`,
-            transform: 'none',
-            display: 'none'
+          position: 'absolute',
+          width: `${newTranscriptionButtonSize}px`,
+          height: `${newTranscriptionButtonSize}px`,
+          top: `-${newTranscriptionButtonSize + gapAboveMic}px`,
+          left: `${(detachedMicWidth - newTranscriptionButtonSize) / 2}px`,
+          transform: 'none',
+          display: 'none'
         });
 
         const transcriptionSvg = this.transcriptionOnlyButton.querySelector('svg');
@@ -234,7 +234,7 @@
 
         Object.assign(this.dragHandle.style, { height: '15px', alignSelf: 'stretch', marginTop: '8px', borderRadius: '10px', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: '4px', flexShrink: '0' });
         for (let i = 0; i < 3; i++) {
-            this.dragHandle.appendChild(this._createElement('div', { style: { width: '3px', height: '3px', borderRadius: '50%', backgroundColor: COLORS.DETACHED_DRAG_HANDLE_DOT } }));
+          this.dragHandle.appendChild(this._createElement('div', { style: { width: '3px', height: '3px', borderRadius: '50%', backgroundColor: COLORS.DETACHED_DRAG_HANDLE_DOT } }));
         }
 
         const addPressEffect = (el) => { el.addEventListener('mousedown', () => el.style.transform = 'scale(0.9)'); el.addEventListener('mouseup', () => el.style.transform = 'scale(1)'); el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)'); };
@@ -262,8 +262,8 @@
         const newTop = Math.max(buffer, Math.min(rect.top, window.innerHeight - rect.height - buffer));
 
         if (Math.abs(rect.left - newLeft) > 1 || Math.abs(rect.top - newTop) > 1) {
-            this.detachedContainer.style.left = `${newLeft}px`;
-            this.detachedContainer.style.top = `${newTop}px`;
+          this.detachedContainer.style.left = `${newLeft}px`;
+          this.detachedContainer.style.top = `${newTop}px`;
         }
       }
 
@@ -321,7 +321,7 @@
 
       _highlightSelectableFields(enable) {
         document.querySelectorAll('textarea, input:not([type="button"],[type="checkbox"],[type="radio"],[type="submit"],[type="reset"],[type="file"]), [contenteditable="true"]').forEach(field => {
-            if (this._isElementSuitable(field)) field.classList.toggle('gemini-assistant-selectable-target', enable);
+          if (this._isElementSuitable(field)) field.classList.toggle('gemini-assistant-selectable-target', enable);
         });
       }
 
@@ -330,8 +330,8 @@
         e.stopPropagation();
 
         if (this._isElementSuitable(e.target)) {
-            this.mappedTargetElement = e.target;
-            this._toggleSelectionMode();
+          this.mappedTargetElement = e.target;
+          this._toggleSelectionMode();
         }
       }
 
@@ -369,13 +369,13 @@
       }
 
       _setupMessageListener() {
-          chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-              if (request.command === "process-text") this.processSelectedText();
-              else if (request.command === "toggle-dictation") this._handleToggleDictation({ ...request, start: !this.isDictating });
-              else if (request.command === "enter-selection-mode") this._toggleSelectionMode();
-              else if (request.command === "cycle-style") this._cycleStyle();
-              sendResponse(true); return true;
-          });
+        chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+          if (request.command === "process-text") this.processSelectedText();
+          else if (request.command === "toggle-dictation") this._handleToggleDictation({ ...request, start: !this.isDictating });
+          else if (request.command === "enter-selection-mode") this._toggleSelectionMode();
+          else if (request.command === "cycle-style") this._cycleStyle();
+          sendResponse(true); return true;
+        });
       }
 
       // --- 3. CORE LOGIC & EVENT HANDLERS ---
@@ -388,29 +388,29 @@
 
       _showCycleNotification(message) {
         if (!this.cycleNotificationElement) {
-            this.cycleNotificationElement = this._createElement('div', {
-                className: 'gemini-assistant-notification',
-            });
-            document.body.appendChild(this.cycleNotificationElement);
+          this.cycleNotificationElement = this._createElement('div', {
+            className: 'gemini-assistant-notification',
+          });
+          document.body.appendChild(this.cycleNotificationElement);
         }
 
         this.cycleNotificationElement.textContent = message;
 
         // Make it visible
         setTimeout(() => {
-            this.cycleNotificationElement.style.opacity = '1';
-            this.cycleNotificationElement.style.top = '30px';
+          this.cycleNotificationElement.style.opacity = '1';
+          this.cycleNotificationElement.style.top = '30px';
         }, 50);
 
         // Clear any existing timer
         if (this.cycleNotificationTimer) {
-            clearTimeout(this.cycleNotificationTimer);
+          clearTimeout(this.cycleNotificationTimer);
         }
 
         // Set a new timer to hide it
         this.cycleNotificationTimer = setTimeout(() => {
-            this.cycleNotificationElement.style.opacity = '0';
-            this.cycleNotificationElement.style.top = '20px';
+          this.cycleNotificationElement.style.opacity = '0';
+          this.cycleNotificationElement.style.top = '20px';
         }, 2000);
       }
 
@@ -477,7 +477,8 @@
               if (isGoogleDocs) {
                 // Google Docs: Copy to clipboard and notify user
                 navigator.clipboard.writeText(response.generatedText).then(() => {
-                  this._showNotification("✓ Text copied! Press Ctrl+V (or Cmd+V) to paste in Google Docs.", 5000, 'success');                }).catch(err => {
+                  this._showNotification("✓ Text copied! Press Ctrl+V (or Cmd+V) to paste in Google Docs.", 5000, 'success');
+                }).catch(err => {
                   console.error('Clipboard error:', err);
                   this._showNotification("✗ Failed to copy. Please check browser clipboard permissions.", 4000);
                 });
@@ -488,7 +489,7 @@
                 } else {
                   this._insertText(activeElement, response.generatedText, 'replaceSelection');
                 }
-                if(!this.isDetachedMode) setTimeout(() => this._updateIconPositions(), 200);
+                if (!this.isDetachedMode) setTimeout(() => this._updateIconPositions(), 200);
               }
             }
           });
@@ -753,39 +754,39 @@
         el.style.top = `${newTop}px`;
 
         if (newLeft < this.snapThreshold) {
-            this.snapState = 'left';
+          this.snapState = 'left';
         } else if (newLeft + el.offsetWidth > window.innerWidth - this.snapThreshold) {
-            this.snapState = 'right';
+          this.snapState = 'right';
         } else {
-            this.snapState = 'none';
+          this.snapState = 'none';
         }
       }
 
-      _onMicMouseDown(e) { e.preventDefault(); e.stopPropagation(); this.isMouseDownOnMic = true; this.micHoldTimeout = setTimeout(() => { if (!this.isMouseDownOnMic || this.isDragging) return; if (this.isDetachedMode) { this.transcriptionOnlyButton.style.display = 'flex'; } else { const micRect = this.onFocusMicIcon.getBoundingClientRect(); this.transcriptionOnlyButton.style.transform = `translate(${micRect.left + window.scrollX}px, ${micRect.top + window.scrollY - 34}px)`; this.transcriptionOnlyButton.style.display = 'flex'; }}, TIMING.HOLD_DURATION);}
+      _onMicMouseDown(e) { e.preventDefault(); e.stopPropagation(); this.isMouseDownOnMic = true; this.micHoldTimeout = setTimeout(() => { if (!this.isMouseDownOnMic || this.isDragging) return; if (this.isDetachedMode) { this.transcriptionOnlyButton.style.display = 'flex'; } else { const micRect = this.onFocusMicIcon.getBoundingClientRect(); this.transcriptionOnlyButton.style.transform = `translate(${micRect.left + window.scrollX}px, ${micRect.top + window.scrollY - 34}px)`; this.transcriptionOnlyButton.style.display = 'flex'; } }, TIMING.HOLD_DURATION); }
       _onFabMouseDown(e) { e.preventDefault(); e.stopPropagation(); this.isMouseDownOnFab = true; this.fabHoldTimeout = setTimeout(() => { if (this.isMouseDownOnFab && !this.isDragging) this._showFabStyleMenu(); }, TIMING.HOLD_DURATION); }
       _onMouseMove(e) { if (!this.isMouseDownOnMic || this.transcriptionOnlyButton.style.display !== 'flex') return; const sR = this.transcriptionOnlyButton.getBoundingClientRect(); this.isOverSecondaryButton = (e.clientX >= sR.left && e.clientX <= sR.right && e.clientY >= sR.top && e.clientY <= sR.bottom); this.transcriptionOnlyButton.style.backgroundColor = this.isOverSecondaryButton ? COLORS.TRANSCRIPTION_HOVER_BG : COLORS.TRANSCRIPTION_BG; }
 
       _onGlobalMouseUp(e) {
         const wasDrag = this.isDragging;
         if (this.isDragging) {
-            this.dragHandle.style.cursor = 'grab';
-            document.body.style.cursor = '';
-            document.body.style.userSelect = '';
-            const el = this.detachedContainer;
-            switch (this.snapState) {
-                case 'left':
-                    el.style.left = '0px';
-                    el.style.borderTopLeftRadius = '0px';
-                    el.style.borderBottomLeftRadius = '0px';
-                    break;
-                case 'right':
-                    el.style.left = `${window.innerWidth - el.offsetWidth}px`;
-                    el.style.borderTopRightRadius = '0px';
-                    el.style.borderBottomRightRadius = '0px';
-                    break;
-            }
-            this.snapState = 'none';
-            this.isDragging = false;
+          this.dragHandle.style.cursor = 'grab';
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+          const el = this.detachedContainer;
+          switch (this.snapState) {
+            case 'left':
+              el.style.left = '0px';
+              el.style.borderTopLeftRadius = '0px';
+              el.style.borderBottomLeftRadius = '0px';
+              break;
+            case 'right':
+              el.style.left = `${window.innerWidth - el.offsetWidth}px`;
+              el.style.borderTopRightRadius = '0px';
+              el.style.borderBottomRightRadius = '0px';
+              break;
+          }
+          this.snapState = 'none';
+          this.isDragging = false;
         }
         if (this.isMouseDownOnFab) {
           this.isMouseDownOnFab = false; clearTimeout(this.fabHoldTimeout);
@@ -802,15 +803,15 @@
         if (this.isMouseDownOnMic) {
           this.isMouseDownOnMic = false; clearTimeout(this.micHoldTimeout);
           if (!wasDrag) {
-              if (this.transcriptionOnlyButton.style.display === 'flex') {
-                this._handleToggleDictation({ start: true, bypassAi: this.isOverSecondaryButton });
-                this.transcriptionOnlyButton.style.display = 'none';
-                if (!this.isDetachedMode) {
-                    this.transcriptionOnlyButton.style.transform = `translateY(10px)`;
-                }
-              } else if (!this.stopDictationClickHandler) this._handleToggleDictation({ start: true, bypassAi: false });
-          } else if(this.transcriptionOnlyButton.style.display === 'flex') {
+            if (this.transcriptionOnlyButton.style.display === 'flex') {
+              this._handleToggleDictation({ start: true, bypassAi: this.isOverSecondaryButton });
               this.transcriptionOnlyButton.style.display = 'none';
+              if (!this.isDetachedMode) {
+                this.transcriptionOnlyButton.style.transform = `translateY(10px)`;
+              }
+            } else if (!this.stopDictationClickHandler) this._handleToggleDictation({ start: true, bypassAi: false });
+          } else if (this.transcriptionOnlyButton.style.display === 'flex') {
+            this.transcriptionOnlyButton.style.display = 'none';
           }
           this.isOverSecondaryButton = false; this._setMicHover(false);
         }
@@ -819,8 +820,8 @@
       // --- 5. UI DISPLAY & MANIPULATION ---
 
       _toggleUIElement(el, show, parent = null) { if (show && parent && el) { parent.appendChild(el); el.style.display = 'flex'; setTimeout(() => { el.style.opacity = '1'; }, 10); } else if (!show && el?.parentElement) { el.style.opacity = '0'; setTimeout(() => el.remove(), TIMING.ICON_FADE_DURATION); } }
-      _showOnFocusMicIcon(target) { if (this.isDetachedMode) return; clearTimeout(this.focusOutTimeout); const parent = target.closest('.input-area') || target.parentElement?.parentElement; if (!parent) return; this.currentIconParent = parent; this.originalParentPosition = window.getComputedStyle(parent).position; if (this.originalParentPosition === 'static') parent.style.position = 'relative'; this._toggleUIElement(this.onFocusMicIcon, true, parent); if(this.resizeObserver) this.resizeObserver.observe(parent); this._updateIconPositions(); }
-      _hideOnFocusMicIcon(immediately = false) { if (this.isDetachedMode) return; const hide = () => { if (this.onFocusMicIcon?.parentElement) { this._toggleUIElement(this.onFocusMicIcon, false); setTimeout(() => { if (this.currentIconParent) { this.currentIconParent.style.position = this.originalParentPosition; this.currentIconParent = null; } if(this.resizeObserver) this.resizeObserver.disconnect(); }, TIMING.ICON_FADE_DURATION); } }; clearTimeout(this.focusOutTimeout); if (immediately) hide(); else this.focusOutTimeout = setTimeout(hide, TIMING.ICON_FADE_DURATION); }
+      _showOnFocusMicIcon(target) { if (this.isDetachedMode) return; clearTimeout(this.focusOutTimeout); const parent = target.closest('.input-area') || target.parentElement?.parentElement; if (!parent) return; this.currentIconParent = parent; this.originalParentPosition = window.getComputedStyle(parent).position; if (this.originalParentPosition === 'static') parent.style.position = 'relative'; this._toggleUIElement(this.onFocusMicIcon, true, parent); if (this.resizeObserver) this.resizeObserver.observe(parent); this._updateIconPositions(); }
+      _hideOnFocusMicIcon(immediately = false) { if (this.isDetachedMode) return; const hide = () => { if (this.onFocusMicIcon?.parentElement) { this._toggleUIElement(this.onFocusMicIcon, false); setTimeout(() => { if (this.currentIconParent) { this.currentIconParent.style.position = this.originalParentPosition; this.currentIconParent = null; } if (this.resizeObserver) this.resizeObserver.disconnect(); }, TIMING.ICON_FADE_DURATION); } }; clearTimeout(this.focusOutTimeout); if (immediately) hide(); else this.focusOutTimeout = setTimeout(hide, TIMING.ICON_FADE_DURATION); }
       _showFab() { if (this.isDetachedMode || !this.fab || !this.currentIconParent) return; this._toggleUIElement(this.fab, true, this.currentIconParent); this._updateIconPositions(); }
       _hideFab(immediately = false) { if (this.isDetachedMode || !this.fab) return; clearTimeout(this.typingTimer); const action = () => this._toggleUIElement(this.fab, false); if (immediately) { this.fab.style.transition = 'none'; action(); setTimeout(() => { this.fab.style.transition = 'opacity 0.2s ease-in-out'; }, 50); } else action(); this._hideFabStyleMenu(); }
 
@@ -829,7 +830,7 @@
           this.fabStyleMenu = this._createElement('div');
           Object.assign(this.fabStyleMenu.style, STYLES.FAB_MENU);
           FAB_OUTPUT_STYLES.forEach(style => {
-            const button = this._createElement('button', { textContent: style.name, dataset: { style: style.value }});
+            const button = this._createElement('button', { textContent: style.name, dataset: { style: style.value } });
             Object.assign(button.style, STYLES.FAB_MENU_BUTTON);
             button.addEventListener('mouseenter', () => button.style.backgroundColor = COLORS.FAB_MENU_BUTTON_HOVER_BG);
             button.addEventListener('mouseleave', () => button.style.backgroundColor = COLORS.FAB_MENU_BUTTON_BG);
@@ -895,8 +896,8 @@
         this.onFocusMicIcon.classList.remove('gemini-mic-pulsing');
         this.onFocusMicIcon.querySelectorAll('svg path').forEach(p => p.setAttribute('stroke', COLORS.MIC_ICON_DEFAULT));
         if (this.stopDictationClickHandler) {
-            this.onFocusMicIcon.removeEventListener('click', this.stopDictationClickHandler);
-            this.stopDictationClickHandler = null;
+          this.onFocusMicIcon.removeEventListener('click', this.stopDictationClickHandler);
+          this.stopDictationClickHandler = null;
         }
       }
 
@@ -909,8 +910,8 @@
         this.onFocusMicIcon.style.backgroundColor = COLORS.MIC_DEFAULT_BG;
         this.onFocusMicIcon.classList.remove('gemini-mic-pulsing');
         if (this.stopDictationClickHandler) {
-            this.onFocusMicIcon.removeEventListener('click', this.stopDictationClickHandler);
-            this.stopDictationClickHandler = null;
+          this.onFocusMicIcon.removeEventListener('click', this.stopDictationClickHandler);
+          this.stopDictationClickHandler = null;
         }
       }
 
@@ -930,27 +931,27 @@
 
       _showNotification(message, duration = 4000, type = 'default') {
         const notification = this._createElement('div', {
-            className: 'gemini-assistant-notification',
-            textContent: message
+          className: 'gemini-assistant-notification',
+          textContent: message
         });
 
         if (type === 'success') {
-            notification.classList.add('gemini-assistant-notification--success');
+          notification.classList.add('gemini-assistant-notification--success');
         }
 
         document.body.appendChild(notification);
 
         setTimeout(() => {
-            notification.style.opacity = '1';
-            notification.style.top = '30px';
+          notification.style.opacity = '1';
+          notification.style.top = '30px';
         }, 100);
 
         setTimeout(() => {
-            notification.style.opacity = '0';
-            notification.style.top = '20px';
-            setTimeout(() => {
-                notification.remove();
-            }, 300);
+          notification.style.opacity = '0';
+          notification.style.top = '20px';
+          setTimeout(() => {
+            notification.remove();
+          }, 300);
         }, duration);
       }
 
@@ -962,44 +963,44 @@
 
         // --- Method 1: Robust `execCommand` for `contenteditable` (e.g., Google Gemini, Facebook) ---
         if (element.isContentEditable) {
-            if (mode === 'replaceAll') {
-                document.execCommand('selectAll', false, null);
-            }
-            document.execCommand('insertText', false, text);
-            return;
+          if (mode === 'replaceAll') {
+            document.execCommand('selectAll', false, null);
+          }
+          document.execCommand('insertText', false, text);
+          return;
         }
 
         // --- Method 2: Comprehensive Event Simulation for standard inputs (e.g., Angular) ---
         if (typeof element.selectionStart === 'number') {
-            const start = element.selectionStart;
-            const end = element.selectionEnd;
-            let newTextValue;
-            let newCursorPos;
+          const start = element.selectionStart;
+          const end = element.selectionEnd;
+          let newTextValue;
+          let newCursorPos;
 
-            if (mode === 'replaceAll') {
-                newTextValue = text;
-                newCursorPos = text.length;
-            } else { // 'replaceSelection'
-                newTextValue = element.value.slice(0, start) + text + element.value.slice(end);
-                newCursorPos = start + text.length;
-            }
+          if (mode === 'replaceAll') {
+            newTextValue = text;
+            newCursorPos = text.length;
+          } else { // 'replaceSelection'
+            newTextValue = element.value.slice(0, start) + text + element.value.slice(end);
+            newCursorPos = start + text.length;
+          }
 
-            // Use native value setter for maximum framework compatibility.
-            const nativeSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value')?.set;
-            if (nativeSetter) {
-                nativeSetter.call(element, newTextValue);
-            } else {
-                element.value = newTextValue; // Fallback for older browsers.
-            }
+          // Use native value setter for maximum framework compatibility.
+          const nativeSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value')?.set;
+          if (nativeSetter) {
+            nativeSetter.call(element, newTextValue);
+          } else {
+            element.value = newTextValue; // Fallback for older browsers.
+          }
 
-            // Set the selection range to the end of the inserted text.
-            element.selectionStart = element.selectionEnd = newCursorPos;
+          // Set the selection range to the end of the inserted text.
+          element.selectionStart = element.selectionEnd = newCursorPos;
 
-            // Dispatch a sequence of events to ensure frameworks detect the change.
-            element.dispatchEvent(new Event('keydown', { bubbles: true, cancelable: true }));
-            element.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-            element.dispatchEvent(new Event('keyup', { bubbles: true, cancelable: true }));
-            element.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+          // Dispatch a sequence of events to ensure frameworks detect the change.
+          element.dispatchEvent(new Event('keydown', { bubbles: true, cancelable: true }));
+          element.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+          element.dispatchEvent(new Event('keyup', { bubbles: true, cancelable: true }));
+          element.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
         }
       }
 
@@ -1028,7 +1029,7 @@
        */
       _isGoogleDocs() {
         return window.location.hostname === 'docs.google.com' &&
-               window.location.pathname.startsWith('/document');
+          window.location.pathname.startsWith('/document');
       }
 
       _playSound(file) { chrome.storage.local.get('soundEnabled', ({ soundEnabled }) => { if (soundEnabled !== false) (new Audio(chrome.runtime.getURL(file))).play(); }); }
