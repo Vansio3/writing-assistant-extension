@@ -24,7 +24,7 @@
       constructor() {
         // --- STATE MANAGEMENT ---
         this.recognition = null;
-        this.isProcessing = false; 
+        this.isProcessing = false;
         this.isDictating = false;
         this.finalTranscript = '';
         this.dictationTargetElement = null;
@@ -69,11 +69,11 @@
         this.transcriptionOnlyButton = null;
         this.fab = null;
         this.fabStyleMenu = null;
-        
+
         // --- HANDLERS & OBSERVERS ---
         this.stopDictationClickHandler = null;
         this.resizeObserver = null;
-        
+
         this.initialize();
       }
 
@@ -100,7 +100,7 @@
             this._initializeDetachedMode();
         }
       }
-      
+
       _createUIElements() {
         const micSvg = this._createSvgElement('svg', { width: '16', height: '16', viewBox: '0 0 24 24', fill: 'none' });
         micSvg.innerHTML = `<path d="M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 10V12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12V10" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 19V23" stroke="${COLORS.MIC_ICON_DEFAULT}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -120,7 +120,7 @@
         this.fab = this._createElement('div', { 'aria-label': 'Process selected text with Gemini' });
         Object.assign(this.fab.style, STYLES.FAB);
         this.fab.appendChild(fabSvg);
-        
+
         this.detachedContainer = this._createElement('div');
         this.dragHandle = this._createElement('div', { 'aria-label': 'Drag to move UI' });
         this._createSelectorIcon();
@@ -132,7 +132,7 @@
           console.warn("Gemini Assistant: Speech Recognition API not supported.");
         }
       }
-      
+
       _injectStyles() {
         const styleId = 'gemini-assistant-styles';
         if (document.getElementById(styleId)) return;
@@ -140,7 +140,7 @@
         style.innerHTML = `
           .gemini-mic-pulsing { animation: gemini-icon-pulse 1.5s infinite ease-in-out; }
           @keyframes gemini-icon-pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); } 50% { transform: scale(1.05); box-shadow: 0 0 0 5px rgba(229, 62, 62, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); } }
-          
+
           .gemini-loading-spinner {
             width: 12px;
             height: 12px;
@@ -184,9 +184,9 @@
         document.head.appendChild(style);
         this.resizeObserver = new ResizeObserver(() => this._updateIconPositions());
       }
-      
+
       // --- DETACHED MODE & FIELD SELECTOR METHODS ---
-      
+
       _initializeDetachedMode() {
         Object.assign(this.detachedContainer.style, {
             position: 'fixed', bottom: '20%', right: '0px', zIndex: Z_INDEX.FAB, display: 'flex',
@@ -195,7 +195,7 @@
             borderTopRightRadius: '0px',
             borderBottomRightRadius: '0px',
             padding: '7px',
-            width: '44px', 
+            width: '44px',
             boxSizing: 'border-box',
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             backdropFilter: 'blur(2px)'
@@ -204,11 +204,11 @@
         const buttonColumn = this._createElement('div', { style: { position: 'relative', display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', flexShrink: '0' } });
 
         const largerButtonStyle = { position: 'relative', top: 'auto', left: 'auto', width: '36px', height: '36px', opacity: '1', display: 'flex', transition: 'transform 0.1s ease', boxShadow: 'none' };
-        
+
         Object.assign(this.onFocusMicIcon.style, largerButtonStyle);
         this.onFocusMicIcon.querySelector('svg').setAttribute('width', '16');
         this.onFocusMicIcon.querySelector('svg').setAttribute('height', '16');
-        
+
         Object.assign(this.fab.style, largerButtonStyle);
         this.fab.querySelector('svg').setAttribute('width', '10');
         this.fab.querySelector('svg').setAttribute('height', '10');
@@ -216,7 +216,7 @@
         const detachedMicWidth = 34;
         const newTranscriptionButtonSize = 28;
         const newTranscriptionIconSize = 14;
-        const gapAboveMic = 10; 
+        const gapAboveMic = 10;
 
         Object.assign(this.transcriptionOnlyButton.style, {
             position: 'absolute',
@@ -231,7 +231,7 @@
         const transcriptionSvg = this.transcriptionOnlyButton.querySelector('svg');
         transcriptionSvg.setAttribute('width', newTranscriptionIconSize);
         transcriptionSvg.setAttribute('height', newTranscriptionIconSize);
-        
+
         Object.assign(this.dragHandle.style, { height: '15px', alignSelf: 'stretch', marginTop: '8px', borderRadius: '10px', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: '4px', flexShrink: '0' });
         for (let i = 0; i < 3; i++) {
             this.dragHandle.appendChild(this._createElement('div', { style: { width: '3px', height: '3px', borderRadius: '50%', backgroundColor: COLORS.DETACHED_DRAG_HANDLE_DOT } }));
@@ -239,7 +239,7 @@
 
         const addPressEffect = (el) => { el.addEventListener('mousedown', () => el.style.transform = 'scale(0.9)'); el.addEventListener('mouseup', () => el.style.transform = 'scale(1)'); el.addEventListener('mouseleave', () => el.style.transform = 'scale(1)'); };
         [this.onFocusMicIcon, this.fab].forEach(addPressEffect);
-        
+
         buttonColumn.appendChild(this.transcriptionOnlyButton);
         buttonColumn.appendChild(this.onFocusMicIcon);
         buttonColumn.appendChild(this.fab);
@@ -254,13 +254,13 @@
         this.detachedContainer.style.borderRadius = '25px';
 
         const rect = this.detachedContainer.getBoundingClientRect();
-        const buffer = 5; 
+        const buffer = 5;
 
         this.detachedContainer.style.bottom = 'auto';
 
         const newLeft = Math.max(buffer, Math.min(rect.left, window.innerWidth - rect.width - buffer));
         const newTop = Math.max(buffer, Math.min(rect.top, window.innerHeight - rect.height - buffer));
-        
+
         if (Math.abs(rect.left - newLeft) > 1 || Math.abs(rect.top - newTop) > 1) {
             this.detachedContainer.style.left = `${newLeft}px`;
             this.detachedContainer.style.top = `${newTop}px`;
@@ -297,10 +297,10 @@
       _createSelectorIcon() {
         const selectorSvg = this._createSvgElement('svg', STYLES.SELECTOR_SVG);
         selectorSvg.innerHTML = '<path d="M12 2L12 5"/><path d="M12 19L12 22"/><path d="M22 12L19 12"/><path d="M5 12L2 12"/><circle cx="12" cy="12" r="7"/>';
-        
+
         const selectorIconContainer = this._createElement('div', { 'aria-label': 'Select a text field to target' });
         Object.assign(selectorIconContainer.style, STYLES.SELECTOR_ICON);
-        
+
         selectorIconContainer.appendChild(selectorSvg);
         this.selectorIcon = selectorIconContainer;
       }
@@ -326,7 +326,7 @@
       }
 
       _handleSelectionClick = (e) => {
-        e.preventDefault(); 
+        e.preventDefault();
         e.stopPropagation();
 
         if (this._isElementSuitable(e.target)) {
@@ -335,13 +335,13 @@
         }
       }
 
-      _handleSelectionKeydown = (e) => { 
-        if (e.key === 'Escape') { 
-          e.preventDefault(); 
-          this._toggleSelectionMode(); 
-        } 
+      _handleSelectionKeydown = (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          this._toggleSelectionMode();
+        }
       }
-      
+
       _getTargetElement() {
         if (this.mappedTargetElement && document.body.contains(this.mappedTargetElement)) return this.mappedTargetElement;
         if (this.lastFocusedEditableElement && document.body.contains(this.lastFocusedEditableElement)) return this.lastFocusedEditableElement;
@@ -350,7 +350,7 @@
       }
 
       // --- 2. EVENT BINDING & MESSAGE HANDLING ---
-      
+
       _attachEventListeners() {
         document.addEventListener('focusin', e => this._onFocusIn(e));
         document.addEventListener('focusout', e => this._onFocusOut(e));
@@ -367,7 +367,7 @@
         this.fab.addEventListener('mouseenter', () => this._setFabHover(true));
         this.fab.addEventListener('mouseleave', () => this._setFabHover(false));
       }
-      
+
       _setupMessageListener() {
           chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               if (request.command === "process-text") this.processSelectedText();
@@ -417,7 +417,7 @@
       processSelectedText(style = null) {
         const isGoogleDocs = this._isGoogleDocs();
         const activeElement = this._getTargetElement();
-        
+
         // Allow Google Docs even without a focused element
         if (!activeElement && !isGoogleDocs) {
           this._showNotification("Please select an editable text field, or use the target icon to map the buttons to a field.");
@@ -433,11 +433,11 @@
             this._showNotification("Please set your Gemini API key in the extension's popup first.");
             return;
           }
-          
+
           const selection = window.getSelection();
           let promptText = selection.toString().trim();
           let processingMode = 'selection';
-          
+
           if (!promptText) {
             if (isGoogleDocs) {
               this._showNotification("Unable to process text on Google Docs due to restrictions.");
@@ -447,11 +447,11 @@
             promptText = this._getElementText(activeElement);
             if (!promptText.trim()) return;
             if (typeof activeElement.select === 'function') activeElement.select();
-            else if (activeElement.isContentEditable) { 
-              const range = document.createRange(); 
-              range.selectNodeContents(activeElement); 
-              selection.removeAllRanges(); 
-              selection.addRange(range); 
+            else if (activeElement.isContentEditable) {
+              const range = document.createRange();
+              range.selectNodeContents(activeElement);
+              selection.removeAllRanges();
+              selection.addRange(range);
             }
           }
 
@@ -472,7 +472,7 @@
               this._showNotification(`Error: ${response?.error || 'Unknown error'}`);
               return;
             }
-            
+
             if (response.generatedText) {
               if (isGoogleDocs) {
                 // Google Docs: Copy to clipboard and notify user
@@ -500,7 +500,7 @@
 
         const isGoogleDocs = this._isGoogleDocs();
         const activeElement = this._getTargetElement();
-        
+
         // For Google Docs, we don't need a target element
         if (!isGoogleDocs && (!activeElement || !this._isElementSuitable(activeElement))) {
           this._hideListeningIndicator();
@@ -515,13 +515,14 @@
 
         if (start && this.SpeechRecognitionApi) {
           this.isDictating = true;
-          
+
           chrome.runtime.sendMessage({ command: 'check-api-key' }, (response) => {
             if (!response.apiKeyExists) {
               this._showNotification("Please set your Gemini API key in the extension's popup first.");
+              this.isDictating = false; // Reset state on failure
               return;
             }
-            
+
             if (this.recognition) {
               this.recognition.onend = null;
               this.recognition.stop();
@@ -532,7 +533,7 @@
             this.recognition = new this.SpeechRecognitionApi();
             this.recognition.continuous = true;
             this.recognition.interimResults = true;
-            
+
             this.recognition.onresult = e => {
               for (let i = e.resultIndex; i < e.results.length; ++i) {
                 if (e.results[i].isFinal) {
@@ -542,7 +543,7 @@
             };
             this.recognition.onend = () => this._onRecognitionEnd(currentSessionId);
             this.recognition.onerror = e => this._onRecognitionError(e, currentSessionId);
-            
+
             this.finalTranscript = '';
             this.dictationCancelled = false;
             this.cancellationReason = null;
@@ -550,18 +551,18 @@
             // For Google Docs, store null as the target
             this.dictationTargetElement = isGoogleDocs ? null : activeElement;
             this.currentDictationBypassesAi = bypassAi;
-            
+
             chrome.storage.local.get('selectedLanguage', ({ selectedLanguage }) => {
               this.recognition.lang = selectedLanguage || 'en-US';
               this._playSound('assets/audio/start.mp3');
-              
+
               // Only store original text for non-Google Docs sites
               this.originalInputText = isGoogleDocs ? '' : this._getElementText(this.dictationTargetElement);
-              
+
               if (!isGoogleDocs && this.dictationTargetElement) {
                 this.dictationTargetElement.addEventListener('blur', this._handleFocusLoss, { once: true });
               }
-              
+
               this._showListeningIndicator();
               this.recognition.start();
             });
@@ -580,7 +581,7 @@
 
       _cancelDictation(reason) {
         if (!this.recognition || this.dictationCancelled) return;
-        
+
         // Clear dictating flag when cancelling
         this.isDictating = false;
         this._playSound('assets/audio/end.mp3');
@@ -589,7 +590,7 @@
         if (reason === 'escape' || reason === 'blur') {
           this.finalTranscript = '';
         }
-        
+
         this.dictationCancelled = true;
         this.cancellationReason = reason;
         this.recognition.stop();
@@ -602,7 +603,7 @@
         this.dictationCancelled = false;
         this.cancellationReason = null;
         this.recognition = null;
-        this.isDictating = false; 
+        this.isDictating = false;
       }
 
       _onRecognitionEnd(sessionId) {
@@ -610,18 +611,21 @@
           return;
         }
 
-        const isGoogleDocs = this._isGoogleDocs();
+        // Determine if we were dictating into Google Docs
+        const isGoogleDocs = this.dictationTargetElement === null && this._isGoogleDocs();
 
+        // This handles automatic restart for continuous dictation on standard sites.
+        // For user-stopped dictation or Google Docs, we proceed to process.
         if (this.dictationTargetElement && !this.dictationCancelled) {
           this.recognition.start();
           return;
         }
-        
+
         const finishedTarget = this.dictationTargetElement;
         if (finishedTarget) {
           finishedTarget.removeEventListener('blur', this._handleFocusLoss);
         }
-     
+
         if (this.dictationCancelled && (this.cancellationReason === 'escape' || this.cancellationReason === 'blur')) {
           if (finishedTarget) {
             if (typeof finishedTarget.value !== 'undefined') finishedTarget.value = this.originalInputText; else finishedTarget.textContent = this.originalInputText;
@@ -630,17 +634,17 @@
           this._resetDictationState();
         } else if ((finishedTarget || isGoogleDocs) && this.finalTranscript.trim()) {
           this.isProcessing = true;
-          
+
           if (!isGoogleDocs && finishedTarget) {
             finishedTarget.style.opacity = '0.5';
             finishedTarget.style.cursor = 'wait';
           }
 
           chrome.runtime.sendMessage({ prompt: this.finalTranscript.trim(), bypassAi: this.currentDictationBypassesAi }, response => {
-            this.isProcessing = false;  
+            this.isProcessing = false;
             this._hideLoadingIndicator();
             this._playSound('assets/audio/end.mp3');
-            
+
             if (!isGoogleDocs && finishedTarget) {
               finishedTarget.style.opacity = '1';
               finishedTarget.style.cursor = 'auto';
@@ -649,10 +653,8 @@
             if (chrome.runtime.lastError || !response) {
               const errorMsg = chrome.runtime.lastError ? chrome.runtime.lastError.message : 'No response from the extension.';
               this._showNotification(`Error: ${errorMsg}`);
-              this._resetDictationState();
             } else if (response.error) {
               this._showNotification(`Error: ${response.error}`);
-              this._resetDictationState();
             } else if (response.generatedText) {
               if (isGoogleDocs) {
                 navigator.clipboard.writeText(response.generatedText).then(() => {
@@ -672,21 +674,18 @@
             if (!isGoogleDocs && !this.isDetachedMode && finishedTarget && document.activeElement === finishedTarget) {
               setTimeout(() => this._showOnFocusMicIcon(finishedTarget), 100);
             }
-            
-            this._resetDictationState(); 
+
+            this._resetDictationState();
           });
-        } else if (finishedTarget) {
+        } else if (finishedTarget || isGoogleDocs) {
           // Handles cases where dictation was stopped with no speech
           this._hideLoadingIndicator();
           this._playSound('assets/audio/end.mp3');
-          if (!this.isDetachedMode && document.activeElement === finishedTarget) {
+          if (!isGoogleDocs && !this.isDetachedMode && finishedTarget && document.activeElement === finishedTarget) {
             this._showOnFocusMicIcon(finishedTarget);
           }
           this._resetDictationState();
         } else {
-          // Google Docs case with no text
-          this._hideLoadingIndicator();
-          this._playSound('assets/audio/end.mp3');
           this._resetDictationState();
         }
       }
@@ -721,7 +720,7 @@
       _onFocusOut(e) { if (!this.isDetachedMode && e.target === this.lastFocusedEditableElement) { this.focusOutTimeout = setTimeout(() => { if (document.activeElement !== this.lastFocusedEditableElement) { this._hideOnFocusMicIcon(); this._hideFab(); this.lastFocusedEditableElement = null; } }, TIMING.FOCUS_OUT_DELAY); } }
       _onKeyUp() { if (this.isDetachedMode || !this.lastFocusedEditableElement || window.getSelection().toString().trim().length > 0) return; clearTimeout(this.typingTimer); this._hideFab(); if (this._getElementText(this.lastFocusedEditableElement).trim().length > 0) this.typingTimer = setTimeout(() => { if (document.activeElement === this.lastFocusedEditableElement && window.getSelection().toString().trim().length === 0) this._showFab(); }, TIMING.TYPING_DELAY); }
       _onSelectionChange() { if (!this.isDetachedMode && this.lastFocusedEditableElement && document.activeElement === this.lastFocusedEditableElement) { if (window.getSelection().toString().trim().length > 0) { clearTimeout(this.typingTimer); this._showFab(); } else this._hideFab(); } }
-      
+
       _onDragStart(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -742,14 +741,14 @@
         this.dragOffsetX = e.clientX - rect.left;
         this.dragOffsetY = e.clientY - rect.top;
       }
-      
+
       _onDrag(e) {
         if (!this.isDragging) return;
         e.preventDefault();
         const el = this.detachedContainer;
         const newLeft = Math.max(0, Math.min(e.clientX - this.dragOffsetX, window.innerWidth - el.offsetWidth));
         const newTop = Math.max(0, Math.min(e.clientY - this.dragOffsetY, window.innerHeight - el.offsetHeight));
-        
+
         el.style.left = `${newLeft}px`;
         el.style.top = `${newTop}px`;
 
@@ -824,7 +823,7 @@
       _hideOnFocusMicIcon(immediately = false) { if (this.isDetachedMode) return; const hide = () => { if (this.onFocusMicIcon?.parentElement) { this._toggleUIElement(this.onFocusMicIcon, false); setTimeout(() => { if (this.currentIconParent) { this.currentIconParent.style.position = this.originalParentPosition; this.currentIconParent = null; } if(this.resizeObserver) this.resizeObserver.disconnect(); }, TIMING.ICON_FADE_DURATION); } }; clearTimeout(this.focusOutTimeout); if (immediately) hide(); else this.focusOutTimeout = setTimeout(hide, TIMING.ICON_FADE_DURATION); }
       _showFab() { if (this.isDetachedMode || !this.fab || !this.currentIconParent) return; this._toggleUIElement(this.fab, true, this.currentIconParent); this._updateIconPositions(); }
       _hideFab(immediately = false) { if (this.isDetachedMode || !this.fab) return; clearTimeout(this.typingTimer); const action = () => this._toggleUIElement(this.fab, false); if (immediately) { this.fab.style.transition = 'none'; action(); setTimeout(() => { this.fab.style.transition = 'opacity 0.2s ease-in-out'; }, 50); } else action(); this._hideFabStyleMenu(); }
-      
+
       _showFabStyleMenu() {
         if (!this.fabStyleMenu) {
           this.fabStyleMenu = this._createElement('div');
@@ -841,15 +840,15 @@
 
         if (this.isDetachedMode) {
           this.fabStyleMenu.style.flexDirection = 'column';
-          this.fabStyleMenu.style.width = '140px'; 
+          this.fabStyleMenu.style.width = '140px';
         } else {
           this.fabStyleMenu.style.flexDirection = 'row';
-          this.fabStyleMenu.style.width = 'auto'; 
+          this.fabStyleMenu.style.width = 'auto';
         }
-        
+
         this.fabStyleMenu.style.visibility = 'hidden';
         this.fabStyleMenu.style.display = 'flex';
-        
+
         const fabRect = this.fab.getBoundingClientRect();
         const menuRect = this.fabStyleMenu.getBoundingClientRect();
         const viewportMargin = 10;
@@ -878,7 +877,7 @@
 
       _hideFabStyleMenu() { if (this.fabStyleMenu) this.fabStyleMenu.style.display = 'none'; }
       _updateIconPositions() { if (this.isDetachedMode || !this.currentIconParent || !this.lastFocusedEditableElement) return; const parentRect = this.currentIconParent.getBoundingClientRect(); const targetRect = this.lastFocusedEditableElement.getBoundingClientRect(); const targetRelativeLeft = targetRect.left - parentRect.left; const parentHeight = this.currentIconParent.offsetHeight; if (this.onFocusMicIcon.parentElement === this.currentIconParent) { this.onFocusMicIcon.style.top = `${(parentHeight / 2) - (this.onFocusMicIcon.offsetHeight / 2)}px`; this.onFocusMicIcon.style.left = `${targetRelativeLeft + targetRect.width - 34}px`; } if (this.fab.parentElement === this.currentIconParent) { this.fab.style.top = `${(parentHeight / 2) - (this.fab.offsetHeight / 2)}px`; this.fab.style.left = `${targetRelativeLeft + targetRect.width - 64}px`; } }
-      
+
       _showListeningIndicator() {
         if (!this.onFocusMicIcon) return;
         this.onFocusMicIcon.setAttribute('aria-label', 'Stop Dictation');
@@ -888,7 +887,7 @@
         this.stopDictationClickHandler = e => { e.preventDefault(); e.stopPropagation(); this._handleToggleDictation({ start: false }); };
         this.onFocusMicIcon.addEventListener('click', this.stopDictationClickHandler);
       }
-      
+
       _hideListeningIndicator() {
         if (!this.onFocusMicIcon) return;
         this.onFocusMicIcon.setAttribute('aria-label', 'Start Dictation');
@@ -926,7 +925,7 @@
 
       _setMicHover(isHovering) { if (!this.isMouseDownOnMic && !this.stopDictationClickHandler) this.onFocusMicIcon.style.backgroundColor = isHovering ? COLORS.MIC_HOVER_BG : COLORS.MIC_DEFAULT_BG; }
       _setFabHover(isHovering) { if (!this.isMouseDownOnFab) this.fab.style.backgroundColor = isHovering ? COLORS.FAB_HOVER_BG : COLORS.FAB_BG; }
-      
+
       // --- 6. UTILITY METHODS ---
 
       _showNotification(message, duration = 4000, type = 'default') {
@@ -934,7 +933,7 @@
             className: 'gemini-assistant-notification',
             textContent: message
         });
-        
+
         if (type === 'success') {
             notification.classList.add('gemini-assistant-notification--success');
         }
@@ -957,10 +956,10 @@
 
       _createSvgElement(tag, attr) { const el = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const key in attr) el.setAttribute(key, attr[key]); return el; }
       _createElement(tag, prop = {}) { const el = document.createElement(tag); Object.entries(prop).forEach(([key, val]) => { if (key === 'style') Object.assign(el.style, val); else if (key === 'dataset') Object.assign(el.dataset, val); else el[key] = val; }); return el; }
-      
+
       _insertText(element, text, mode = 'replaceSelection') { // Modes: 'replaceSelection', 'replaceAll'
         element.focus();
-    
+
         // --- Method 1: Robust `execCommand` for `contenteditable` (e.g., Google Gemini, Facebook) ---
         if (element.isContentEditable) {
             if (mode === 'replaceAll') {
@@ -969,14 +968,14 @@
             document.execCommand('insertText', false, text);
             return;
         }
-    
+
         // --- Method 2: Comprehensive Event Simulation for standard inputs (e.g., Angular) ---
         if (typeof element.selectionStart === 'number') {
             const start = element.selectionStart;
             const end = element.selectionEnd;
             let newTextValue;
             let newCursorPos;
-    
+
             if (mode === 'replaceAll') {
                 newTextValue = text;
                 newCursorPos = text.length;
@@ -984,7 +983,7 @@
                 newTextValue = element.value.slice(0, start) + text + element.value.slice(end);
                 newCursorPos = start + text.length;
             }
-    
+
             // Use native value setter for maximum framework compatibility.
             const nativeSetter = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value')?.set;
             if (nativeSetter) {
@@ -992,10 +991,10 @@
             } else {
                 element.value = newTextValue; // Fallback for older browsers.
             }
-    
+
             // Set the selection range to the end of the inserted text.
             element.selectionStart = element.selectionEnd = newCursorPos;
-    
+
             // Dispatch a sequence of events to ensure frameworks detect the change.
             element.dispatchEvent(new Event('keydown', { bubbles: true, cancelable: true }));
             element.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
@@ -1008,7 +1007,7 @@
         // For standard input and textarea elements
         if (typeof element.selectionStart === "number") {
           element.selectionStart = element.selectionEnd = element.value.length;
-        } 
+        }
         // For contenteditable elements
         else if (element.isContentEditable) {
           const range = document.createRange();
@@ -1022,10 +1021,13 @@
 
       _getElementText(el) { return !el ? '' : (typeof el.value !== 'undefined' ? el.value : el.textContent); }
       _isElementSuitable(el) { if (!el) return false; const tag = el.tagName.toUpperCase(); if (el.isContentEditable || ['TEXTAREA'].includes(tag)) return true; if (tag === 'INPUT') return !['button', 'checkbox', 'color', 'date', 'datetime-local', 'email', 'file', 'hidden', 'image', 'month', 'number', 'password', 'radio', 'range', 'reset', 'search', 'submit', 'tel', 'time', 'url', 'week'].includes(el.type.toLowerCase()); return false; }
-      
-      // NEW: Google Docs detection
+
+      /**
+       * Checks if the current page is an active Google Docs document editor.
+       * @returns {boolean} True if the page is a Google Doc, false otherwise.
+       */
       _isGoogleDocs() {
-        return window.location.hostname === 'docs.google.com' && 
+        return window.location.hostname === 'docs.google.com' &&
                window.location.pathname.startsWith('/document');
       }
 
