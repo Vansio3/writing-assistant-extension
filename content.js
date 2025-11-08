@@ -440,7 +440,7 @@
           
           if (!promptText) {
             if (isGoogleDocs) {
-              this._showNotification("Please select text in Google Docs to process.");
+              this._showNotification("Unable to process text on Google Docs due to restrictions.");
               return;
             }
             processingMode = 'full';
