@@ -25,6 +25,7 @@
         // --- STATE MANAGEMENT ---
         this.recognition = null;
         this.isProcessing = false; 
+        this.isDictating = false;
         this.finalTranscript = '';
         this.dictationTargetElement = null;
         this.originalInputText = '';
@@ -161,11 +162,11 @@
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: rgba(71, 34, 34, 0.9);
+            background-color: rgba(71, 34, 34, 0.9); /* Default reddish-brown */
             color: #f2f3f5;
             padding: 12px 20px;
             border-radius: 8px;
-            border: 1px solid #251111;
+            border: 1px solid #251111; /* Default dark border */
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(5px);
             z-index: 2147483647;
@@ -174,6 +175,10 @@
             opacity: 0;
             transition: opacity 0.3s ease-in-out, top 0.3s ease-in-out;
             pointer-events: none;
+          }
+          .gemini-assistant-notification--success {
+            background-color: rgba(34, 87, 51, 0.9); /* A nice dark green */
+            border: 1px solid #225733; /* A matching darker green border */
           }
         `;
         document.head.appendChild(style);
@@ -366,7 +371,7 @@
       _setupMessageListener() {
           chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               if (request.command === "process-text") this.processSelectedText();
-              else if (request.command === "toggle-dictation") this._handleToggleDictation({ ...request, start: !this.dictationTargetElement });
+              else if (request.command === "toggle-dictation") this._handleToggleDictation({ ...request, start: !this.isDictating });
               else if (request.command === "enter-selection-mode") this._toggleSelectionMode();
               else if (request.command === "cycle-style") this._cycleStyle();
               sendResponse(true); return true;
@@ -410,35 +415,81 @@
       }
 
       processSelectedText(style = null) {
+        const isGoogleDocs = this._isGoogleDocs();
         const activeElement = this._getTargetElement();
-        if (!activeElement) { this._showNotification("Please select an editable text field, or use the target icon to map the buttons to a field."); return; }
-        activeElement.focus();
+        
+        // Allow Google Docs even without a focused element
+        if (!activeElement && !isGoogleDocs) {
+          this._showNotification("Please select an editable text field, or use the target icon to map the buttons to a field.");
+          return;
+        }
+
+        if (!isGoogleDocs && activeElement) {
+          activeElement.focus();
+        }
+
         chrome.runtime.sendMessage({ command: 'check-api-key' }, (response) => {
-          if (!response.apiKeyExists) { this._showNotification("Please set your Gemini API key in the extension's popup first."); return; }
+          if (!response.apiKeyExists) {
+            this._showNotification("Please set your Gemini API key in the extension's popup first.");
+            return;
+          }
+          
           const selection = window.getSelection();
           let promptText = selection.toString().trim();
           let processingMode = 'selection';
-          if (!promptText) {
-              processingMode = 'full';
-              promptText = this._getElementText(activeElement);
-              if (!promptText.trim()) return;
-              if (typeof activeElement.select === 'function') activeElement.select();
-              else if (activeElement.isContentEditable) { const range = document.createRange(); range.selectNodeContents(activeElement); selection.removeAllRanges(); selection.addRange(range); }
-          }
-          activeElement.style.opacity = '0.5'; activeElement.style.cursor = 'wait';
           
+          if (!promptText) {
+            if (isGoogleDocs) {
+              this._showNotification("Please select text in Google Docs to process.");
+              return;
+            }
+            processingMode = 'full';
+            promptText = this._getElementText(activeElement);
+            if (!promptText.trim()) return;
+            if (typeof activeElement.select === 'function') activeElement.select();
+            else if (activeElement.isContentEditable) { 
+              const range = document.createRange(); 
+              range.selectNodeContents(activeElement); 
+              selection.removeAllRanges(); 
+              selection.addRange(range); 
+            }
+          }
+
+          if (!isGoogleDocs && activeElement) {
+            activeElement.style.opacity = '0.5';
+            activeElement.style.cursor = 'wait';
+          }
+
           const styleToUse = style || FAB_OUTPUT_STYLES[this.currentStyleIndex].value;
 
           chrome.runtime.sendMessage({ prompt: promptText, style: styleToUse }, (response) => {
-            activeElement.style.opacity = '1'; activeElement.style.cursor = 'auto';
-            if (chrome.runtime.lastError || !response || response.error) { this._showNotification(`Error: ${response?.error || 'Unknown error'}`); return; }
+            if (!isGoogleDocs && activeElement) {
+              activeElement.style.opacity = '1';
+              activeElement.style.cursor = 'auto';
+            }
+
+            if (chrome.runtime.lastError || !response || response.error) {
+              this._showNotification(`Error: ${response?.error || 'Unknown error'}`);
+              return;
+            }
+            
             if (response.generatedText) {
-              if (processingMode === 'full') {
-                this._insertText(activeElement, response.generatedText, 'replaceAll');
+              if (isGoogleDocs) {
+                // Google Docs: Copy to clipboard and notify user
+                navigator.clipboard.writeText(response.generatedText).then(() => {
+                  this._showNotification("✓ Text copied! Press Ctrl+V (or Cmd+V) to paste in Google Docs.", 5000, 'success');                }).catch(err => {
+                  console.error('Clipboard error:', err);
+                  this._showNotification("✗ Failed to copy. Please check browser clipboard permissions.", 4000);
+                });
               } else {
-                this._insertText(activeElement, response.generatedText, 'replaceSelection');
+                // Normal sites: Insert directly
+                if (processingMode === 'full') {
+                  this._insertText(activeElement, response.generatedText, 'replaceAll');
+                } else {
+                  this._insertText(activeElement, response.generatedText, 'replaceSelection');
+                }
+                if(!this.isDetachedMode) setTimeout(() => this._updateIconPositions(), 200);
               }
-              if(!this.isDetachedMode) setTimeout(() => this._updateIconPositions(), 200);
             }
           });
         });
@@ -447,19 +498,29 @@
       _handleToggleDictation({ start, bypassAi = false }) {
         if (this.isProcessing) return;
 
+        const isGoogleDocs = this._isGoogleDocs();
         const activeElement = this._getTargetElement();
-        if (!activeElement || !this._isElementSuitable(activeElement)) {
+        
+        // For Google Docs, we don't need a target element
+        if (!isGoogleDocs && (!activeElement || !this._isElementSuitable(activeElement))) {
           this._hideListeningIndicator();
           if (this.isDetachedMode) this._showNotification("Please select a text field to dictate into, or use the target icon to map one.");
           return;
         }
-        activeElement.focus();
 
-        this._moveCursorToEnd(activeElement);
+        if (!isGoogleDocs && activeElement) {
+          activeElement.focus();
+          this._moveCursorToEnd(activeElement);
+        }
 
         if (start && this.SpeechRecognitionApi) {
+          this.isDictating = true;
+          
           chrome.runtime.sendMessage({ command: 'check-api-key' }, (response) => {
-            if (!response.apiKeyExists) { this._showNotification("Please set your Gemini API key in the extension's popup first."); return; }
+            if (!response.apiKeyExists) {
+              this._showNotification("Please set your Gemini API key in the extension's popup first.");
+              return;
+            }
             
             if (this.recognition) {
               this.recognition.onend = null;
@@ -486,18 +547,27 @@
             this.dictationCancelled = false;
             this.cancellationReason = null;
 
-            this.dictationTargetElement = activeElement;
+            // For Google Docs, store null as the target
+            this.dictationTargetElement = isGoogleDocs ? null : activeElement;
             this.currentDictationBypassesAi = bypassAi;
+            
             chrome.storage.local.get('selectedLanguage', ({ selectedLanguage }) => {
               this.recognition.lang = selectedLanguage || 'en-US';
               this._playSound('assets/audio/start.mp3');
-              this.originalInputText = this._getElementText(this.dictationTargetElement);
-              this.dictationTargetElement.addEventListener('blur', this._handleFocusLoss, { once: true });
+              
+              // Only store original text for non-Google Docs sites
+              this.originalInputText = isGoogleDocs ? '' : this._getElementText(this.dictationTargetElement);
+              
+              if (!isGoogleDocs && this.dictationTargetElement) {
+                this.dictationTargetElement.addEventListener('blur', this._handleFocusLoss, { once: true });
+              }
+              
               this._showListeningIndicator();
               this.recognition.start();
             });
           });
         } else if (!start && this.recognition) {
+          this.isDictating = false;
           this._hideListeningIndicator();
           this._showLoadingIndicator();
           this.dictationCancelled = true;
@@ -511,6 +581,8 @@
       _cancelDictation(reason) {
         if (!this.recognition || this.dictationCancelled) return;
         
+        // Clear dictating flag when cancelling
+        this.isDictating = false;
         this._playSound('assets/audio/end.mp3');
         this._hideListeningIndicator();
         this._hideLoadingIndicator(); // Ensure no spinner is shown on cancel
@@ -530,12 +602,15 @@
         this.dictationCancelled = false;
         this.cancellationReason = null;
         this.recognition = null;
+        this.isDictating = false; 
       }
 
       _onRecognitionEnd(sessionId) {
         if (sessionId !== this.dictationSessionId) {
           return;
         }
+
+        const isGoogleDocs = this._isGoogleDocs();
 
         if (this.dictationTargetElement && !this.dictationCancelled) {
           this.recognition.start();
@@ -553,45 +628,65 @@
             if (this.cancellationReason === 'escape' && !this.isDetachedMode) this._showOnFocusMicIcon(finishedTarget);
           }
           this._resetDictationState();
-        } else if (finishedTarget && this.finalTranscript.trim()) {
+        } else if ((finishedTarget || isGoogleDocs) && this.finalTranscript.trim()) {
           this.isProcessing = true;
-          finishedTarget.style.opacity = '0.5';
-          finishedTarget.style.cursor = 'wait';
-            chrome.runtime.sendMessage({ prompt: this.finalTranscript.trim(), bypassAi: this.currentDictationBypassesAi }, response => {
-              this.isProcessing = false;  
-              this._hideLoadingIndicator();
-                this._playSound('assets/audio/end.mp3');
-                finishedTarget.style.opacity = '1';
-                finishedTarget.style.cursor = 'auto';
+          
+          if (!isGoogleDocs && finishedTarget) {
+            finishedTarget.style.opacity = '0.5';
+            finishedTarget.style.cursor = 'wait';
+          }
 
-                if (chrome.runtime.lastError || !response) {
-                    this._insertText(finishedTarget, this.finalTranscript.trim() + ' ', 'replaceSelection');
-                    const errorMsg = chrome.runtime.lastError ? chrome.runtime.lastError.message : 'No response from the extension.';
-                    this._showNotification(`Error: ${errorMsg}`);
-                } else if (response.error) {
-                    this._insertText(finishedTarget, this.finalTranscript.trim() + ' ', 'replaceSelection');
-                    this._showNotification(`Error: ${response.error}`);
-                } else if (response.generatedText) {
-                    this._insertText(finishedTarget, response.generatedText, 'replaceSelection');
-                } else {
-                    this._insertText(finishedTarget, this.finalTranscript.trim() + ' ', 'replaceSelection');
-                    this._showNotification('Received an unexpected response.');
-                }
+          chrome.runtime.sendMessage({ prompt: this.finalTranscript.trim(), bypassAi: this.currentDictationBypassesAi }, response => {
+            this.isProcessing = false;  
+            this._hideLoadingIndicator();
+            this._playSound('assets/audio/end.mp3');
+            
+            if (!isGoogleDocs && finishedTarget) {
+              finishedTarget.style.opacity = '1';
+              finishedTarget.style.cursor = 'auto';
+            }
 
-                if (document.activeElement === finishedTarget && !this.isDetachedMode) {
-                  this._showOnFocusMicIcon(finishedTarget);
-                }
-                
-                this._resetDictationState(); 
-            });
-        } else if (finishedTarget) { // This handles cases where dictation was stopped with no speech
-          this._hideLoadingIndicator(); // Ensure loading indicator is hidden
+            if (chrome.runtime.lastError || !response) {
+              const errorMsg = chrome.runtime.lastError ? chrome.runtime.lastError.message : 'No response from the extension.';
+              this._showNotification(`Error: ${errorMsg}`);
+              this._resetDictationState();
+            } else if (response.error) {
+              this._showNotification(`Error: ${response.error}`);
+              this._resetDictationState();
+            } else if (response.generatedText) {
+              if (isGoogleDocs) {
+                navigator.clipboard.writeText(response.generatedText).then(() => {
+                  this._showNotification("✓ Dictated text copied! Press Ctrl+V (or Cmd+V) to paste in Google Docs.", 5000, 'success');
+                }).catch(err => {
+                  console.error('Clipboard error:', err);
+                  this._showNotification("✗ Failed to copy to clipboard.", 4000);
+                });
+              } else {
+                this._insertText(finishedTarget, response.generatedText, 'replaceSelection');
+              }
+            } else {
+              this._showNotification('Received an unexpected response.');
+            }
+
+            // Show mic icon again for non-detached mode on regular sites
+            if (!isGoogleDocs && !this.isDetachedMode && finishedTarget && document.activeElement === finishedTarget) {
+              setTimeout(() => this._showOnFocusMicIcon(finishedTarget), 100);
+            }
+            
+            this._resetDictationState(); 
+          });
+        } else if (finishedTarget) {
+          // Handles cases where dictation was stopped with no speech
+          this._hideLoadingIndicator();
           this._playSound('assets/audio/end.mp3');
-          if (document.activeElement === finishedTarget && !this.isDetachedMode) {
+          if (!this.isDetachedMode && document.activeElement === finishedTarget) {
             this._showOnFocusMicIcon(finishedTarget);
           }
           this._resetDictationState();
         } else {
+          // Google Docs case with no text
+          this._hideLoadingIndicator();
+          this._playSound('assets/audio/end.mp3');
           this._resetDictationState();
         }
       }
@@ -834,13 +929,18 @@
       
       // --- 6. UTILITY METHODS ---
 
-      _showNotification(message, duration = 4000) {
-        const notification = this._createElement('div', { 
+      _showNotification(message, duration = 4000, type = 'default') {
+        const notification = this._createElement('div', {
             className: 'gemini-assistant-notification',
             textContent: message
         });
-        document.body.appendChild(notification);
         
+        if (type === 'success') {
+            notification.classList.add('gemini-assistant-notification--success');
+        }
+
+        document.body.appendChild(notification);
+
         setTimeout(() => {
             notification.style.opacity = '1';
             notification.style.top = '30px';
@@ -922,6 +1022,13 @@
 
       _getElementText(el) { return !el ? '' : (typeof el.value !== 'undefined' ? el.value : el.textContent); }
       _isElementSuitable(el) { if (!el) return false; const tag = el.tagName.toUpperCase(); if (el.isContentEditable || ['TEXTAREA'].includes(tag)) return true; if (tag === 'INPUT') return !['button', 'checkbox', 'color', 'date', 'datetime-local', 'email', 'file', 'hidden', 'image', 'month', 'number', 'password', 'radio', 'range', 'reset', 'search', 'submit', 'tel', 'time', 'url', 'week'].includes(el.type.toLowerCase()); return false; }
+      
+      // NEW: Google Docs detection
+      _isGoogleDocs() {
+        return window.location.hostname === 'docs.google.com' && 
+               window.location.pathname.startsWith('/document');
+      }
+
       _playSound(file) { chrome.storage.local.get('soundEnabled', ({ soundEnabled }) => { if (soundEnabled !== false) (new Audio(chrome.runtime.getURL(file))).play(); }); }
     }
 
